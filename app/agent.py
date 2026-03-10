@@ -79,21 +79,31 @@ Rules:
 - Do NOT write body copy or design instructions — only titles and subjects.
 """
 
-LAYOUT_AGENT_SYSTEM_PROMPT = """You are building the shared header and footer for an email campaign sequence.
-Your ONLY job is to create exactly TWO rows using the MCP tools:
+LAYOUT_AGENT_SYSTEM_PROMPT = """You are building the shared foundation for an email campaign sequence.
+Your job is to set up three things, in this exact order:
 
-1. HEADER row — placed at the top:
-   - Full-width, dark branded background (e.g. deep navy or brand primary colour)
-   - Centred logo/brand image placeholder and campaign name as text
-   - Add a subtle bottom divider for separation
+STEP 1 — GLOBAL STYLES:
+Set the template-level styles so every email in the sequence shares the same base:
+- Page background colour (e.g. light grey #F4F4F4)
+- Content area background colour (white #FFFFFF)
+- Default font family (a clean web-safe sans-serif stack)
+- Default body text colour and size
+- Default link colour
+- Content area width (600 px)
 
-2. FOOTER row — placed at the bottom:
-   - Full-width, light neutral background (e.g. #F5F5F5)
-   - Centred placeholder text: company name, mailing address, unsubscribe link
-   - Small, muted typography (12–13 px)
+STEP 2 — HEADER ROW (top of every email):
+- Full-width, dark branded background (e.g. deep navy #26045D or similar)
+- Centred logo/brand image placeholder and campaign name as text
+- Subtle bottom divider for visual separation
+
+STEP 3 — FOOTER ROW (bottom of every email):
+- Full-width, light neutral background (e.g. #F5F5F5)
+- Centred placeholder text: company name, mailing address, unsubscribe link
+- Small, muted typography (12-13 px)
 
 RULES — follow exactly:
-- Create EXACTLY these two rows. Nothing else — no hero, no body, no CTA.
+- Complete the steps in order: global styles first, then header row, then footer row.
+- Do NOT add any body content, hero sections, CTAs, or anything between header and footer.
 - Do NOT call beefree_check_template.
 - After both rows are created, return your structured output with the row IDs
   you received from the tool responses as header_row_id and footer_row_id.
