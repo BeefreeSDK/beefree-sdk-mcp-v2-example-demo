@@ -1,7 +1,13 @@
 """PydanticAI agents: planner (structured output) and executor (MCP tools + SSE).
 
-Streaming strategy
-------------------
+Planner strategy (single fast LLM call)
+-----------------------------------------
+One Haiku call generates the sequence skeleton: titles and subject lines only
+(minimal token output, ~1-3 s).  The executor prompt is then built from a
+code template — zero additional LLM calls, instant.
+
+Executor streaming strategy
+----------------------------
 We use `Agent.iter()` (the graph-node iterator) which yields each node
 BEFORE it executes. This means:
 
@@ -28,6 +34,18 @@ from .config import Settings
 # --- Data models -------------------------------------------------------------
 
 
+class EmailSkeleton(BaseModel):
+    """Lightweight plan item — no agent_prompt yet (generated in parallel)."""
+    step: int
+    title: str
+    subject_line: str
+
+
+class EmailSkeletonPlan(BaseModel):
+    sequence_title: str
+    emails: list[EmailSkeleton]
+
+
 class EmailStep(BaseModel):
     step: int
     title: str
@@ -42,18 +60,17 @@ class EmailPlan(BaseModel):
 
 # --- System prompts -----------------------------------------------------------
 
-PLANNER_SYSTEM_PROMPT = """You are an expert email marketing strategist.
+PLANNER_SKELETON_PROMPT = """You are an expert email marketing strategist.
 
-Given a campaign brief, generate a structured email sequence plan.
-Determine the right number of emails from the brief — if the user specifies
-how many, follow that exactly. Otherwise decide based on the campaign needs.
+Given a campaign brief, output ONLY the sequence structure — no detailed copy.
+Determine the right number of emails from the brief: follow the user exactly
+if they specify a count, otherwise decide based on campaign needs.
 
 Rules:
-- Make `agent_prompt` highly detailed so an AI agent can build a complete email
-  using only Beefree MCP tools. Include: layout guidance, content to write,
-  visual style, and CTA instructions.
-- Keep subject lines concise and compelling (<= 60 characters).
-- `sequence_title` should be short (<= 50 characters).
+- `sequence_title` must be <= 50 characters.
+- `title` for each email should be short and descriptive (<= 40 characters).
+- `subject_line` must be concise and compelling (<= 60 characters).
+- Do NOT write body copy or design instructions — only titles and subjects.
 """
 
 EXECUTOR_SYSTEM_PROMPT = """You are an expert email designer working inside the Beefree headless editor.
@@ -75,18 +92,50 @@ Never stop after just the header — keep going until the entire email is built 
 # --- Planner -----------------------------------------------------------------
 
 
+def _build_executor_prompt(
+    s: EmailSkeleton,
+    sequence_title: str,
+    campaign_goal: str,
+) -> str:
+    """Build the executor prompt from a template — no LLM, instant."""
+    return (
+        f"Campaign: {sequence_title}\n"
+        f"Email {s.step}: {s.title}\n"
+        f"Subject line: {s.subject_line}\n\n"
+        f"Brief: {campaign_goal}\n\n"
+        "Build a complete, professional email that matches the campaign brand "
+        "and tone. Include all sections: header with logo/banner, hero message, "
+        "body copy, primary CTA button, supporting content, and a footer with "
+        "unsubscribe link. Write all text content appropriate to this specific "
+        "email's purpose and apply consistent typography, colours, and spacing."
+    )
+
+
 async def generate_plan(
     goal: str,
     settings: Settings,
 ) -> EmailPlan:
-    planner: Agent[None, EmailPlan] = Agent(
+    """Single LLM call for skeleton, then template-built executor prompts."""
+
+    skeleton_agent: Agent[None, EmailSkeletonPlan] = Agent(
         model=settings.llm_planner_model,
-        output_type=EmailPlan,
-        system_prompt=PLANNER_SYSTEM_PROMPT,
+        output_type=EmailSkeletonPlan,
+        system_prompt=PLANNER_SKELETON_PROMPT,
         retries=3,
     )
-    result = await planner.run(goal)
-    return result.output
+    result = await skeleton_agent.run(goal)
+    skeleton = result.output
+
+    emails = [
+        EmailStep(
+            step=s.step,
+            title=s.title,
+            subject_line=s.subject_line,
+            agent_prompt=_build_executor_prompt(s, skeleton.sequence_title, goal),
+        )
+        for s in skeleton.emails
+    ]
+    return EmailPlan(sequence_title=skeleton.sequence_title, emails=emails)
 
 
 # --- SSE helpers --------------------------------------------------------------
