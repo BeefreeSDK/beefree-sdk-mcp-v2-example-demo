@@ -34,34 +34,45 @@
   <main class="container">
 
     <!-- ── Campaign form ── -->
-    <section class="card form-card">
-      <h2 class="card-title">Design your campaign</h2>
+    <section class="card form-card" id="form-section">
+      <div class="card-header-row">
+        <h2 class="card-title">Design your campaign</h2>
+        <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
 
-      <form
-        hx-post="/plan"
-        hx-target="#workspace"
-        hx-swap="innerHTML"
-        hx-indicator="#spinner"
-        class="campaign-form"
-      >
-        <div class="field full">
-          <label for="goal">Campaign brief</label>
-          <textarea
-            id="goal"
-            name="goal"
-            rows="6"
-            placeholder="Describe your emails — the planner will figure out how many to create.&#10;&#10;e.g. Generate 3 transactional emails for Netflix: account confirmation, password reset, and subscription confirmation…"
-            required
-          ></textarea>
-        </div>
+      <div class="card-body">
+        <div>
+          <form
+            hx-post="/plan"
+            hx-target="#workspace"
+            hx-swap="innerHTML"
+            hx-indicator="#spinner"
+            class="campaign-form"
+          >
+            <div class="field full">
+              <label for="goal">Campaign brief</label>
+              <textarea
+                id="goal"
+                name="goal"
+                rows="6"
+                placeholder="Describe your emails — the planner will figure out how many to create.&#10;&#10;e.g. Generate 3 transactional emails for Netflix: account confirmation, password reset, and subscription confirmation…"
+                required
+              ></textarea>
+            </div>
 
-        <div class="field full actions">
-          <button type="submit" class="btn btn-primary">
-            Generate Sequence
-            <span id="spinner" class="htmx-indicator spinner"></span>
-          </button>
+            <div class="field full actions">
+              <button type="submit" class="btn btn-primary">
+                Generate Sequence
+                <span id="spinner" class="htmx-indicator spinner"></span>
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
     </section>
 
     <!-- ── Dynamic workspace (plan → execution) ── -->
@@ -77,6 +88,7 @@
   </footer>
 
   <script>
+    /* ── Thumbnail rescaling ── */
     function rescaleThumbs() {
       document.querySelectorAll('.thumb-viewport').forEach(vp => {
         const w = vp.offsetWidth;
@@ -86,8 +98,28 @@
       });
     }
     window.addEventListener('resize', rescaleThumbs);
-    document.body.addEventListener('htmx:afterSwap', function() {
+
+    /* ── Section collapse ── */
+    function toggleCard(card) {
+      if (card) card.classList.toggle('is-collapsed');
+    }
+
+    document.body.addEventListener('htmx:afterSwap', function(e) {
       setTimeout(rescaleThumbs, 50);
+      var tgt = e.detail && e.detail.target;
+      if (!tgt) return;
+
+      // Plan appeared → collapse the campaign form
+      if (tgt.id === 'workspace') {
+        var fs = document.getElementById('form-section');
+        if (fs) fs.classList.add('is-collapsed');
+      }
+
+      // Execute started → collapse the plan card
+      if (tgt.id === 'execution') {
+        var pc = document.querySelector('.plan-card');
+        if (pc) pc.classList.add('is-collapsed');
+      }
     });
   </script>
 

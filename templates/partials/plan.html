@@ -4,39 +4,48 @@
   <div class="plan-header">
     <h2 class="card-title">{{ plan.sequence_title }}</h2>
     <span class="plan-badge">{{ plan.emails | length }} emails planned</span>
-  </div>
-
-  <div class="email-grid">
-    {% for email in plan.emails %}
-    <div class="email-preview-card">
-      <div class="preview-step">Email {{ email.step }}</div>
-      <h3 class="preview-title">{{ email.title }}</h3>
-      <p class="preview-subject">
-        <span class="label">Subject:</span> {{ email.subject_line }}
-      </p>
-      <p class="preview-prompt">{{ email.agent_prompt[:180] }}{% if email.agent_prompt | length > 180 %}…{% endif %}</p>
-      {% if email.agent_prompt | length > 180 %}
-      <span class="prompt-hint">Hover to read full prompt</span>
-      {% endif %}
-      <div class="prompt-tooltip" aria-hidden="true">
-        <p class="prompt-tooltip-label">Full prompt</p>
-        <p class="prompt-tooltip-text">{{ email.agent_prompt }}</p>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-
-  <form
-    hx-post="/execute"
-    hx-target="#execution"
-    hx-swap="innerHTML"
-    hx-indicator="#exec-spinner"
-    class="execute-form"
-  >
-    <input type="hidden" name="plan_json" value="{{ plan_json | e }}" />
-    <button type="submit" class="btn btn-accent">
-      Execute Sequence — {{ plan.emails | length }} agents in parallel
-      <span id="exec-spinner" class="htmx-indicator spinner"></span>
+    <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
     </button>
-  </form>
+  </div>
+
+  <div class="card-body">
+    <div>
+      <div class="email-grid">
+        {% for email in plan.emails %}
+        <div class="email-preview-card">
+          <div class="preview-step">Email {{ email.step }}</div>
+          <h3 class="preview-title">{{ email.title }}</h3>
+          <p class="preview-subject">
+            <span class="label">Subject:</span> {{ email.subject_line }}
+          </p>
+          <p class="preview-prompt">{{ email.agent_prompt[:180] }}{% if email.agent_prompt | length > 180 %}…{% endif %}</p>
+          {% if email.agent_prompt | length > 180 %}
+          <span class="prompt-hint">Hover to read full prompt</span>
+          {% endif %}
+          <div class="prompt-tooltip" aria-hidden="true">
+            <p class="prompt-tooltip-label">Full prompt</p>
+            <p class="prompt-tooltip-text">{{ email.agent_prompt }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <form
+        hx-post="/execute"
+        hx-target="#execution"
+        hx-swap="innerHTML"
+        hx-indicator="#exec-spinner"
+        class="execute-form"
+      >
+        <input type="hidden" name="plan_json" value="{{ plan_json | e }}" />
+        <button type="submit" class="btn btn-accent">
+          Execute Sequence — {{ plan.emails | length }} agents in parallel
+          <span id="exec-spinner" class="htmx-indicator spinner"></span>
+        </button>
+      </form>
+    </div>
+  </div>
 </section>

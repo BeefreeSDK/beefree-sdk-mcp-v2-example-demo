@@ -82,6 +82,7 @@ main.container { flex: 1; padding-top: 2rem; padding-bottom: 3rem; }
 /* ─── Card ──────────────────────────────────────────────────────────────────── */
 
 .card {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -198,6 +199,65 @@ textarea { resize: vertical; }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Collapsible card sections ─────────────────────────────────────────────── */
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Grid-based height animation — smooth open AND close */
+.card-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows .35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-body > div { overflow: hidden; }
+
+.is-collapsed .card-body {
+  grid-template-rows: 0fr;
+}
+
+/* Chevron button — always pinned to the top-right corner of the card */
+.collapse-btn {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: .3rem;
+  color: var(--text-muted);
+  border-radius: 6px;
+  transition: color .15s, background .15s;
+  line-height: 0;
+}
+.collapse-btn svg {
+  transition: transform .35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.collapse-btn:hover {
+  color: var(--primary);
+  background: rgba(119,71,255,.08);
+}
+.is-collapsed .collapse-btn svg {
+  transform: rotate(-90deg);
+}
+
+/* Add right padding so card header text never slides under the button */
+.card-header-row,
+.plan-header {
+  padding-right: 2rem;
+}
+
+/* Keep plan-header items aligned with the new collapse button */
+.plan-header { margin-bottom: 0; }
+.plan-card .card-body > div { padding-top: 1.25rem; }
 
 /* ─── Plan header ───────────────────────────────────────────────────────────── */
 
