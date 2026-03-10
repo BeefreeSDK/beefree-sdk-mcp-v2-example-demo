@@ -209,7 +209,7 @@ async def build_shared_layout(
         max_retries=3,
     )
     layout_agent: Agent[None, LayoutRowIds] = Agent(
-        model=settings.llm_executor_model,
+        model=settings.llm_layout_model,
         output_type=LayoutRowIds,
         toolsets=[mcp],
         system_prompt=LAYOUT_AGENT_SYSTEM_PROMPT,

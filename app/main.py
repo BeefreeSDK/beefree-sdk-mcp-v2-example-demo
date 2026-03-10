@@ -78,46 +78,91 @@ async def plan_stream(request: Request, goal: str):
 
 
 @app.post("/execute", response_class=HTMLResponse)
-async def execute(
-    request: Request,
-    plan_json: str = Form(...),
-):
+async def execute(request: Request, plan_json: str = Form(...)):
+    """Return the loading partial immediately; SSE does the real work."""
+    return templates.TemplateResponse(
+        "partials/execute_loading.html",
+        {"request": request, "plan_json": plan_json},
+    )
+
+
+@app.get("/execute-stream")
+async def execute_stream(request: Request, plan_json: str):
+    """SSE: build shared layout, seed templates, stream the sequence view."""
     settings = get_settings()
     email_plan = EmailPlan.model_validate_json(plan_json)
+    n = len(email_plan.emails)
 
-    # Step 1: Build shared header + footer once (sequential — must finish first)
-    header_row_id, footer_row_id, layout_json = await build_shared_layout(
-        email_plan.sequence_title, settings
-    )
+    async def generator():
+        try:
+            # Phase 1 — shared layout (blocks until done)
+            header_row_id, footer_row_id, layout_json = (
+                await build_shared_layout(email_plan.sequence_title, settings)
+            )
 
-    # Step 2: Create N template sessions pre-seeded with the shared layout
-    template_ids: list[str] = await asyncio.gather(
-        *[create_seeded_template(settings, layout_json) for _ in email_plan.emails]
-    )
+            # Signal layout complete so the UI flips to phase 2
+            s = "s" if n != 1 else ""
+            yield {
+                "event": "layout-done",
+                "data": (
+                    '<div class="exec-phase is-done">'
+                    '<span class="phase-check">&#10003;</span>'
+                    '<div class="phase-content">'
+                    '<p class="phase-title">Shared layout ready</p>'
+                    "<p class='phase-sub'>"
+                    "Header, footer and global styles applied"
+                    "</p></div></div>"
+                    '<div class="exec-phase is-active">'
+                    '<span class="phase-spinner"></span>'
+                    '<div class="phase-content">'
+                    f"<p class='phase-title'>"
+                    f"Launching {n} email agent{s} in parallel"
+                    "</p>"
+                    "<p class='phase-sub'>"
+                    "Previews stream in as each agent builds"
+                    "</p></div></div>"
+                ),
+            }
 
-    # Step 3: Enrich each executor prompt with the protected row IDs
-    enriched_emails = [
-        EmailStep(
-            step=e.step,
-            title=e.title,
-            subject_line=e.subject_line,
-            agent_prompt=append_layout_context(
-                e.agent_prompt, header_row_id, footer_row_id
-            ),
-        )
-        for e in email_plan.emails
-    ]
+            # Phase 2 — seed templates + render sequence view
+            template_ids: list[str] = await asyncio.gather(
+                *[
+                    create_seeded_template(settings, layout_json)
+                    for _ in email_plan.emails
+                ]
+            )
 
-    emails_with_ids = list(zip(enriched_emails, template_ids))
+            enriched_emails = [
+                EmailStep(
+                    step=e.step,
+                    title=e.title,
+                    subject_line=e.subject_line,
+                    agent_prompt=append_layout_context(
+                        e.agent_prompt, header_row_id, footer_row_id
+                    ),
+                )
+                for e in email_plan.emails
+            ]
 
-    return templates.TemplateResponse(
-        "partials/sequence.html",
-        {
-            "request": request,
-            "plan": email_plan,
-            "emails_with_ids": emails_with_ids,
-        },
-    )
+            emails_with_ids = list(zip(enriched_emails, template_ids))
+            tmpl = templates.env.get_template("partials/sequence.html")
+            sequence_html = tmpl.render(
+                plan=email_plan,
+                emails_with_ids=emails_with_ids,
+            )
+            yield {"event": "sequence", "data": sequence_html}
+
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error("Execute stream error: %s", exc)
+            yield {
+                "event": "sequence",
+                "data": f"<p class='plan-error'>Execution failed: {exc}</p>",
+            }
+        finally:
+            yield {"event": "close", "data": ""}
+
+    return EventSourceResponse(generator())
 
 
 @app.get("/stream/{template_id}")

@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     bee_api_base: str = "https://api.getbee.io"
     llm_model: str = "anthropic:claude-sonnet-4-6"
     llm_planner_model: str = "anthropic:claude-haiku-4-5-20251001"
+    llm_layout_model: str = "anthropic:claude-sonnet-4-6"
     llm_executor_model: str = "anthropic:claude-haiku-4-5-20251001"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

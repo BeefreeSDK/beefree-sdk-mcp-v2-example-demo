@@ -1,0 +1,43 @@
+<!-- Returned instantly by POST /execute. SSE drives the two-phase progress. -->
+
+<div hx-ext="sse"
+     sse-connect="/execute-stream?plan_json={{ plan_json | urlencode }}"
+     sse-close="close">
+
+  <!-- Replaced wholesale by the "sequence" SSE event when agents are ready -->
+  <div id="exec-content" sse-swap="sequence" hx-swap="innerHTML">
+
+    <section class="card exec-progress-card">
+      <div class="exec-progress-header">
+        <h3 class="exec-progress-title">Preparing your email sequence&hellip;</h3>
+        <p class="exec-progress-sub">
+          This takes a moment — the shared layout is built once so every email
+          starts from an identical foundation.
+        </p>
+      </div>
+
+      <!-- Phase list — inner content replaced by the "layout-done" SSE event -->
+      <div class="exec-phases" sse-swap="layout-done" hx-swap="innerHTML">
+
+        <div class="exec-phase is-active">
+          <span class="phase-spinner"></span>
+          <div class="phase-content">
+            <p class="phase-title">Building shared layout</p>
+            <p class="phase-sub">Header, footer and global styles &mdash; identical across all emails</p>
+          </div>
+        </div>
+
+        <div class="exec-phase is-pending">
+          <span class="phase-dot"></span>
+          <div class="phase-content">
+            <p class="phase-title">Launch email agents</p>
+            <p class="phase-sub">All agents will run in parallel once the layout is ready</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+</div>

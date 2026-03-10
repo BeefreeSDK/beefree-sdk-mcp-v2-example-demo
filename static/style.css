@@ -360,6 +360,106 @@ textarea { resize: vertical; }
   font-weight: 600;
 }
 
+/* ─── Execute progress card ──────────────────────────────────────────────────── */
+
+.exec-progress-card { padding: 2rem 1.75rem; }
+
+.exec-progress-header { margin-bottom: 1.75rem; }
+
+.exec-progress-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: .35rem;
+}
+
+.exec-progress-sub {
+  font-size: .825rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.exec-phases {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.exec-phase {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  transition: background .25s;
+  position: relative;
+}
+
+/* Vertical connector line between phases */
+.exec-phase + .exec-phase::before {
+  content: "";
+  position: absolute;
+  left: 1.8rem;
+  top: -12px;
+  width: 2px;
+  height: 12px;
+  background: var(--border);
+}
+
+.exec-phase.is-active  { background: rgba(119,71,255,.06); }
+.exec-phase.is-done    { background: rgba(130,237,168,.12); }
+.exec-phase.is-pending { opacity: .45; }
+
+/* Phase spinner (active) */
+.phase-spinner {
+  flex-shrink: 0;
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid var(--primary-lt);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+/* Phase check (done) */
+.phase-check {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--dark);
+  font-size: .85rem;
+  font-weight: 700;
+}
+
+/* Phase dot (pending) */
+.phase-dot {
+  flex-shrink: 0;
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+}
+
+.phase-title {
+  font-size: .875rem;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: .15rem;
+}
+
+.phase-sub {
+  font-size: .775rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
 /* ─── Plan loading state ─────────────────────────────────────────────────────── */
 
 .planning-state {
