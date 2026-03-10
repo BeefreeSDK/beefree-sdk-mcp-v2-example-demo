@@ -1,24 +1,121 @@
-<!-- Live execution view — returned by POST /execute, swapped into #workspace -->
+<!-- Live execution view — returned by POST /execute, swapped into #execution -->
 
 <style>
-  .seq-header { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; }
-  .seq-title { font-size:1.15rem; font-weight:700; color:#26045D; }
-  .seq-row { display:flex; gap:1rem; }
+  .seq-header { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; flex-wrap:wrap; }
+  .seq-title  { font-size:1.15rem; font-weight:700; color:#26045D; }
+
+  .seq-row { display:flex; gap:1rem; align-items:flex-start; }
+
+  /* ── Column card ── */
   .seq-col {
-    flex:1; min-width:0;
-    border:1px solid #EAE6F7;
-    border-radius:12px;
-    overflow:hidden;
-    background:#fff;
-    box-shadow:0 1px 3px rgba(38,4,93,.06), 0 6px 20px rgba(38,4,93,.08);
+    flex: 1;
+    min-width: 0;
+    border: 2px solid #EAE6F7;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(38,4,93,.06), 0 6px 20px rgba(38,4,93,.08);
+    transition: border-color .3s, box-shadow .3s;
   }
+
+  /* Active: purple glow */
+  .seq-col.is-generating {
+    border-color: #7747FF;
+    box-shadow:
+      0 0 0 3px rgba(119,71,255,.15),
+      0 1px 3px rgba(38,4,93,.06),
+      0 6px 20px rgba(38,4,93,.08);
+  }
+
+  /* Done: green accent */
+  .seq-col.is-done {
+    border-color: #82EDA8;
+  }
+
+  /* ── Column header ── */
+  .seq-col-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .7rem 1rem;
+    border-bottom: 1px solid #EAE6F7;
+    background: #FAFAF9;
+    min-height: 56px;
+  }
+
+  .seq-col-info { display:flex; flex-direction:column; gap:.15rem; min-width:0; }
+
+  .seq-col-step {
+    font-size: .62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #7747FF;
+  }
+
+  .seq-col-title {
+    font-size: .85rem;
+    font-weight: 600;
+    color: #26045D;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: white-space .15s;
+  }
+
+  .seq-col:hover .seq-col-title {
+    white-space: normal;
+    overflow: visible;
+  }
+
+  /* ── Status pill ── */
+  .seq-status {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .7rem;
+    font-weight: 700;
+    padding: .28rem .65rem;
+    border-radius: 99px;
+    white-space: nowrap;
+    transition: background .3s, color .3s;
+  }
+
+  .seq-status.generating {
+    background: rgba(119,71,255,.1);
+    color: #7747FF;
+  }
+
+  .seq-status.done {
+    background: rgba(130,237,168,.25);
+    color: #1a7a40;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: blink-dot 1s ease-in-out infinite;
+  }
+
+  @keyframes blink-dot {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: .25; }
+  }
+
+  /* ── Preview area ── */
   .seq-iframe-wrap { width:600px; transform-origin:top left; }
   .seq-iframe-wrap iframe { width:600px; border:none; display:block; }
+
   .seq-placeholder {
-    padding:4rem 1rem;
-    text-align:center;
-    color:#6E5F8A;
-    font-style:italic;
+    padding: 4rem 1rem;
+    text-align: center;
+    color: #6E5F8A;
+    font-style: italic;
+    font-size: .875rem;
   }
 </style>
 
@@ -36,12 +133,20 @@
       sse-connect="/stream/{{ template_id }}?prompt={{ email.agent_prompt | urlencode }}"
       sse-close="close"
     >
-      <div
-        class="seq-iframe-wrap"
-        sse-swap="preview"
-        hx-swap="innerHTML"
-      >
-        <div class="seq-placeholder">Waiting for agent…</div>
+      <!-- Column header: fixed identity + live status -->
+      <div class="seq-col-header">
+        <div class="seq-col-info">
+          <span class="seq-col-step">Email {{ loop.index }}</span>
+          <span class="seq-col-title" title="{{ email.title }}">{{ email.title }}</span>
+        </div>
+        <span class="seq-status generating">
+          <span class="status-dot"></span>Generating&hellip;
+        </span>
+      </div>
+
+      <!-- Live preview area (updated by SSE) -->
+      <div class="seq-iframe-wrap" sse-swap="preview" hx-swap="innerHTML">
+        <div class="seq-placeholder">Waiting for agent&hellip;</div>
       </div>
     </div>
     {% endfor %}
@@ -49,25 +154,47 @@
 </section>
 
 <script>
-(function() {
+(function () {
+
+  /* ── Scale iframe wraps to fit column width ── */
   function scaleWraps() {
     var row = document.getElementById('seq-row');
     if (!row) return;
-    var cols = row.querySelectorAll('.seq-col');
-    cols.forEach(function(col) {
+    row.querySelectorAll('.seq-col').forEach(function (col) {
       var w = col.offsetWidth;
       var scale = w / 600;
       var wrap = col.querySelector('.seq-iframe-wrap');
       if (wrap) {
         wrap.style.transform = 'scale(' + scale + ')';
-        var h = 800 * scale;
-        wrap.style.height = h + 'px';
+        wrap.style.height = (800 * scale) + 'px';
       }
     });
   }
   scaleWraps();
   window.addEventListener('resize', scaleWraps);
-  document.body.addEventListener('htmx:afterSwap', function() { setTimeout(scaleWraps, 100); });
-  document.body.addEventListener('htmx:sseMessage', function() { setTimeout(scaleWraps, 50); });
+  document.body.addEventListener('htmx:afterSwap', function () { setTimeout(scaleWraps, 100); });
+  document.body.addEventListener('htmx:sseMessage',  function () { setTimeout(scaleWraps,  50); });
+
+  /* ── Status transitions ── */
+
+  // Mark column as actively generating when SSE connection opens
+  document.body.addEventListener('htmx:sseOpen', function (e) {
+    var col = e.target.closest('.seq-col');
+    if (col) col.classList.add('is-generating');
+  });
+
+  // Flip status pill to Done when SSE stream closes
+  document.body.addEventListener('htmx:sseClose', function (e) {
+    var col = e.target.closest('.seq-col');
+    if (!col) return;
+    col.classList.remove('is-generating');
+    col.classList.add('is-done');
+    var pill = col.querySelector('.seq-status');
+    if (pill) {
+      pill.className = 'seq-status done';
+      pill.textContent = '✓ Done';
+    }
+  });
+
 })();
 </script>
