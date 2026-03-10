@@ -1,0 +1,22 @@
+<!-- Returned instantly by POST /plan. SSE connection fills in the real plan. -->
+
+<div hx-ext="sse"
+     sse-connect="/plan-stream?goal={{ goal | urlencode }}"
+     sse-close="close">
+
+  <div id="plan-result" sse-swap="plan" hx-swap="innerHTML">
+    <!-- Shown while the planner LLM is running -->
+    <section class="card plan-card">
+      <div class="planning-state">
+        <div class="spinner-ring"></div>
+        <div class="planning-text">
+          <p class="planning-headline">Planning your email sequence&hellip;</p>
+          <p class="planning-sub">The AI is designing your campaign structure.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="execution"></div>
+
+</div>

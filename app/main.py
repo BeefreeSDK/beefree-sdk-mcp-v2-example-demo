@@ -38,17 +38,36 @@ async def plan(
     request: Request,
     goal: str = Form(...),
 ):
-    settings = get_settings()
-    email_plan = await generate_plan(goal, settings)
-    plan_json = email_plan.model_dump_json()
+    """Return the loading partial immediately; SSE streams in the plan."""
     return templates.TemplateResponse(
-        "partials/plan.html",
-        {
-            "request": request,
-            "plan": email_plan,
-            "plan_json": plan_json,
-        },
+        "partials/plan_loading.html",
+        {"request": request, "goal": goal},
     )
+
+
+@app.get("/plan-stream")
+async def plan_stream(request: Request, goal: str):
+    """SSE endpoint: runs the planner LLM and yields the rendered plan HTML."""
+    settings = get_settings()
+
+    async def generator():
+        try:
+            email_plan = await generate_plan(goal, settings)
+            plan_json = email_plan.model_dump_json()
+            tmpl = templates.env.get_template("partials/plan.html")
+            plan_html = tmpl.render(plan=email_plan, plan_json=plan_json)
+            yield {"event": "plan", "data": plan_html}
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error("Planner error: %s", exc)
+            yield {
+                "event": "plan-error",
+                "data": f"<p class='plan-error'>Planning failed: {exc}</p>",
+            }
+        finally:
+            yield {"event": "close", "data": ""}
+
+    return EventSourceResponse(generator())
 
 
 @app.post("/execute", response_class=HTMLResponse)

@@ -1,4 +1,4 @@
-<!-- Plan preview — returned by POST /plan, swapped into #workspace -->
+<!-- Plan preview — swapped into #plan-result via SSE from /plan-stream -->
 
 <section class="card plan-card">
   <div class="plan-header">
@@ -15,6 +15,13 @@
         <span class="label">Subject:</span> {{ email.subject_line }}
       </p>
       <p class="preview-prompt">{{ email.agent_prompt[:180] }}{% if email.agent_prompt | length > 180 %}…{% endif %}</p>
+      {% if email.agent_prompt | length > 180 %}
+      <span class="prompt-hint">Hover to read full prompt</span>
+      {% endif %}
+      <div class="prompt-tooltip" aria-hidden="true">
+        <p class="prompt-tooltip-label">Full prompt</p>
+        <p class="prompt-tooltip-text">{{ email.agent_prompt }}</p>
+      </div>
     </div>
     {% endfor %}
   </div>
@@ -33,5 +40,3 @@
     </button>
   </form>
 </section>
-
-<div id="execution"></div>

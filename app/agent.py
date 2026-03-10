@@ -80,7 +80,7 @@ async def generate_plan(
     settings: Settings,
 ) -> EmailPlan:
     planner: Agent[None, EmailPlan] = Agent(
-        model=settings.llm_model,
+        model=settings.llm_planner_model,
         output_type=EmailPlan,
         system_prompt=PLANNER_SYSTEM_PROMPT,
         retries=3,

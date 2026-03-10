@@ -241,15 +241,67 @@ textarea { resize: vertical; }
 /* ─── Plan preview cards ────────────────────────────────────────────────────── */
 
 .email-preview-card {
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 1rem;
   background: var(--bg);
-  transition: box-shadow .15s;
+  transition: box-shadow .2s, border-color .2s;
+  overflow: hidden;
+  cursor: default;
 }
 
 .email-preview-card:hover {
-  box-shadow: 0 4px 16px rgba(119,71,255,.1);
+  box-shadow: 0 6px 24px rgba(119,71,255,.18);
+  border-color: var(--primary-lt);
+}
+
+/* ─── Full-prompt overlay (shown on hover) ──────────────────────────────────── */
+
+.prompt-tooltip {
+  position: absolute;
+  inset: 0;
+  background: var(--dark);
+  border-radius: 10px;
+  padding: 1rem 1rem 1.25rem;
+  overflow-y: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+}
+
+.email-preview-card:hover .prompt-tooltip {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.prompt-tooltip-label {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--accent);
+  margin-bottom: .6rem;
+}
+
+.prompt-tooltip-text {
+  font-size: .78rem;
+  color: rgba(255,255,255,.88);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.prompt-hint {
+  display: inline-block;
+  margin-top: .5rem;
+  font-size: .65rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  opacity: .7;
 }
 
 .preview-step {
@@ -306,6 +358,43 @@ textarea { resize: vertical; }
 .site-footer strong {
   color: var(--primary);
   font-weight: 600;
+}
+
+/* ─── Plan loading state ─────────────────────────────────────────────────────── */
+
+.planning-state {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: .5rem 0;
+}
+
+.spinner-ring {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--primary-lt);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin .75s linear infinite;
+}
+
+.planning-headline {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dark);
+}
+
+.planning-sub {
+  font-size: .825rem;
+  color: var(--text-muted);
+  margin-top: .2rem;
+}
+
+.plan-error {
+  color: var(--red);
+  font-size: .875rem;
+  padding: 1rem 0;
 }
 
 /* ─── Responsive ─────────────────────────────────────────────────────────────── */
