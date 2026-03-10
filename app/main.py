@@ -11,8 +11,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sse_starlette import EventSourceResponse
 
-from .agent import EmailPlan, generate_plan, stream_executor
-from .beefree import create_template
+from .agent import (
+    EmailPlan,
+    EmailStep,
+    append_layout_context,
+    build_shared_layout,
+    generate_plan,
+    stream_executor,
+)
+from .beefree import create_seeded_template
 from .config import get_settings
 
 app = FastAPI(title="Beefree Headless MCP v2 Demo")
@@ -78,12 +85,30 @@ async def execute(
     settings = get_settings()
     email_plan = EmailPlan.model_validate_json(plan_json)
 
-    # Create all template sessions in parallel — one per email
-    template_ids: list[str] = await asyncio.gather(
-        *[create_template(settings) for _ in email_plan.emails]
+    # Step 1: Build shared header + footer once (sequential — must finish first)
+    header_row_id, footer_row_id, layout_json = await build_shared_layout(
+        email_plan.sequence_title, settings
     )
 
-    emails_with_ids = list(zip(email_plan.emails, template_ids))
+    # Step 2: Create N template sessions pre-seeded with the shared layout
+    template_ids: list[str] = await asyncio.gather(
+        *[create_seeded_template(settings, layout_json) for _ in email_plan.emails]
+    )
+
+    # Step 3: Enrich each executor prompt with the protected row IDs
+    enriched_emails = [
+        EmailStep(
+            step=e.step,
+            title=e.title,
+            subject_line=e.subject_line,
+            agent_prompt=append_layout_context(
+                e.agent_prompt, header_row_id, footer_row_id
+            ),
+        )
+        for e in email_plan.emails
+    ]
+
+    emails_with_ids = list(zip(enriched_emails, template_ids))
 
     return templates.TemplateResponse(
         "partials/sequence.html",

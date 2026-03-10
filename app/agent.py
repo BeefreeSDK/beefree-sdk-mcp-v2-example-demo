@@ -58,6 +58,12 @@ class EmailPlan(BaseModel):
     emails: list[EmailStep]
 
 
+class LayoutRowIds(BaseModel):
+    """Structured output from the layout agent: IDs of the header and footer rows."""
+    header_row_id: str
+    footer_row_id: str
+
+
 # --- System prompts -----------------------------------------------------------
 
 PLANNER_SKELETON_PROMPT = """You are an expert email marketing strategist.
@@ -73,19 +79,48 @@ Rules:
 - Do NOT write body copy or design instructions — only titles and subjects.
 """
 
+LAYOUT_AGENT_SYSTEM_PROMPT = """You are building the shared header and footer for an email campaign sequence.
+Your ONLY job is to create exactly TWO rows using the MCP tools:
+
+1. HEADER row — placed at the top:
+   - Full-width, dark branded background (e.g. deep navy or brand primary colour)
+   - Centred logo/brand image placeholder and campaign name as text
+   - Add a subtle bottom divider for separation
+
+2. FOOTER row — placed at the bottom:
+   - Full-width, light neutral background (e.g. #F5F5F5)
+   - Centred placeholder text: company name, mailing address, unsubscribe link
+   - Small, muted typography (12–13 px)
+
+RULES — follow exactly:
+- Create EXACTLY these two rows. Nothing else — no hero, no body, no CTA.
+- Do NOT call beefree_check_template.
+- After both rows are created, return your structured output with the row IDs
+  you received from the tool responses as header_row_id and footer_row_id.
+"""
+
 EXECUTOR_SYSTEM_PROMPT = """You are an expert email designer working inside the Beefree headless editor.
-Use the available MCP tools to build a complete, professional email template.
-The template starts empty. Build it from scratch by adding rows and content elements.
+The template already contains a shared header (top row) and a shared footer (bottom row)
+built by the layout agent — do NOT recreate, modify, or delete them.
+
+Your task: build the BODY content rows that go between the existing header and footer.
+
+CRITICAL — ROW INSERTION ORDER:
+Every body row you add MUST be inserted BEFORE the footer row (use the footer row ID
+as the position reference). Never append rows to the end of the template, as that
+places them after the footer. The footer must always remain the last row.
+
+CRITICAL — PROTECTED ROWS:
+The protected row IDs listed in your prompt must never be passed to any tool that
+modifies, moves, or deletes rows. Only add NEW rows for the body.
 
 You MUST complete ALL of these steps — skipping any step is a failure:
-1. Add rows and columns to create the email structure
-2. Add EVERY content element: header image, titles, body paragraphs, buttons, footer text, dividers, spacers
-3. Apply typography and colour styles
-4. beefree_check_template — validate the final result
+1. Add body rows BEFORE the footer row: hero title/image, body paragraphs, CTA button, dividers, spacers
+2. Apply typography and colour styles consistent with the campaign brand
+3. beefree_check_template — validate the final result
 
 CRITICAL: The email is NOT done until you have called beefree_check_template.
-If the email has a footer section, you MUST populate it. Never leave rows empty.
-Never stop after just the header — keep going until the entire email is built and validated.
+Never leave rows empty. Build a complete body — hero, copy, CTA, and supporting content.
 """
 
 
@@ -136,6 +171,69 @@ async def generate_plan(
         for s in skeleton.emails
     ]
     return EmailPlan(sequence_title=skeleton.sequence_title, emails=emails)
+
+
+# --- Shared layout agent -----------------------------------------------------
+
+
+async def build_shared_layout(
+    sequence_title: str,
+    settings: Settings,
+) -> tuple[str, str, dict]:
+    """Run the layout agent once to build a shared header + footer.
+
+    Returns (header_row_id, footer_row_id, template_json).
+    The template_json can be used to seed each email template so they all
+    start with the identical header and footer.
+    """
+    from .beefree import create_template, get_template
+
+    layout_template_id = await create_template(settings)
+
+    mcp = MCPServerStreamableHTTP(
+        url=f"{settings.bee_api_base}/v2/sdk/mcp",
+        headers={
+            "Authorization": f"Bearer {settings.bee_api_key}",
+            "x-bee-template-id": layout_template_id,
+        },
+        max_retries=3,
+    )
+    layout_agent: Agent[None, LayoutRowIds] = Agent(
+        model=settings.llm_executor_model,
+        output_type=LayoutRowIds,
+        toolsets=[mcp],
+        system_prompt=LAYOUT_AGENT_SYSTEM_PROMPT,
+        retries=2,
+    )
+
+    result = await layout_agent.run(
+        f"Build the shared header and footer for the '{sequence_title}' campaign."
+    )
+    layout_ids = result.output
+
+    template_data = await get_template(layout_template_id, settings)
+    template_json = template_data.get("template", template_data)
+
+    return layout_ids.header_row_id, layout_ids.footer_row_id, template_json
+
+
+def append_layout_context(
+    prompt: str,
+    header_row_id: str,
+    footer_row_id: str,
+) -> str:
+    """Append protected row IDs and insertion instructions to an executor prompt."""
+    return (
+        prompt + "\n\n"
+        "SHARED LAYOUT — already in the template:\n"
+        f"  Header row ID (top):    {header_row_id}\n"
+        f"  Footer row ID (bottom): {footer_row_id}\n\n"
+        "Protected row IDs — NEVER delete, modify, or pass to destructive tools.\n\n"
+        "INSERTION RULE — this is mandatory:\n"
+        f"Every body row you add MUST be inserted BEFORE row {footer_row_id}.\n"
+        "Never append rows to the end — that places them after the footer.\n"
+        "The footer must always be the last row in the template."
+    )
 
 
 # --- SSE helpers --------------------------------------------------------------
