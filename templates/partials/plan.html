@@ -1,0 +1,37 @@
+<!-- Plan preview — returned by POST /plan, swapped into #workspace -->
+
+<section class="card plan-card">
+  <div class="plan-header">
+    <h2 class="card-title">{{ plan.sequence_title }}</h2>
+    <span class="plan-badge">{{ plan.emails | length }} emails planned</span>
+  </div>
+
+  <div class="email-grid">
+    {% for email in plan.emails %}
+    <div class="email-preview-card">
+      <div class="preview-step">Email {{ email.step }}</div>
+      <h3 class="preview-title">{{ email.title }}</h3>
+      <p class="preview-subject">
+        <span class="label">Subject:</span> {{ email.subject_line }}
+      </p>
+      <p class="preview-prompt">{{ email.agent_prompt[:180] }}{% if email.agent_prompt | length > 180 %}…{% endif %}</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <form
+    hx-post="/execute"
+    hx-target="#execution"
+    hx-swap="innerHTML"
+    hx-indicator="#exec-spinner"
+    class="execute-form"
+  >
+    <input type="hidden" name="plan_json" value="{{ plan_json | e }}" />
+    <button type="submit" class="btn btn-accent">
+      Execute Sequence — {{ plan.emails | length }} agents in parallel
+      <span id="exec-spinner" class="htmx-indicator spinner"></span>
+    </button>
+  </form>
+</section>
+
+<div id="execution"></div>

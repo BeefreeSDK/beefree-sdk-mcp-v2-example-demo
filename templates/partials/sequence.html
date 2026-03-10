@@ -1,0 +1,73 @@
+<!-- Live execution view — returned by POST /execute, swapped into #workspace -->
+
+<style>
+  .seq-header { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; }
+  .seq-title { font-size:1.15rem; font-weight:700; color:#26045D; }
+  .seq-row { display:flex; gap:1rem; }
+  .seq-col {
+    flex:1; min-width:0;
+    border:1px solid #EAE6F7;
+    border-radius:12px;
+    overflow:hidden;
+    background:#fff;
+    box-shadow:0 1px 3px rgba(38,4,93,.06), 0 6px 20px rgba(38,4,93,.08);
+  }
+  .seq-iframe-wrap { width:600px; transform-origin:top left; }
+  .seq-iframe-wrap iframe { width:600px; border:none; display:block; }
+  .seq-placeholder {
+    padding:4rem 1rem;
+    text-align:center;
+    color:#6E5F8A;
+    font-style:italic;
+  }
+</style>
+
+<section>
+  <div class="seq-header">
+    <h2 class="seq-title">{{ plan.sequence_title }}</h2>
+    <span class="plan-badge running">{{ emails_with_ids | length }} agents in parallel</span>
+  </div>
+
+  <div class="seq-row" id="seq-row">
+    {% for email, template_id in emails_with_ids %}
+    <div
+      class="seq-col"
+      hx-ext="sse"
+      sse-connect="/stream/{{ template_id }}?prompt={{ email.agent_prompt | urlencode }}"
+      sse-close="close"
+    >
+      <div
+        class="seq-iframe-wrap"
+        sse-swap="preview"
+        hx-swap="innerHTML"
+      >
+        <div class="seq-placeholder">Waiting for agent…</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<script>
+(function() {
+  function scaleWraps() {
+    var row = document.getElementById('seq-row');
+    if (!row) return;
+    var cols = row.querySelectorAll('.seq-col');
+    cols.forEach(function(col) {
+      var w = col.offsetWidth;
+      var scale = w / 600;
+      var wrap = col.querySelector('.seq-iframe-wrap');
+      if (wrap) {
+        wrap.style.transform = 'scale(' + scale + ')';
+        var h = 800 * scale;
+        wrap.style.height = h + 'px';
+      }
+    });
+  }
+  scaleWraps();
+  window.addEventListener('resize', scaleWraps);
+  document.body.addEventListener('htmx:afterSwap', function() { setTimeout(scaleWraps, 100); });
+  document.body.addEventListener('htmx:sseMessage', function() { setTimeout(scaleWraps, 50); });
+})();
+</script>
