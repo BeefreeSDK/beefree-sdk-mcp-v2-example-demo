@@ -280,6 +280,7 @@ async def stream_executor(
     template_id: str,
     prompt: str,
     settings: Settings,
+    mcp_url: str | None = None,
 ) -> AsyncIterator[dict]:
     """Run one MCP executor agent and yield SSE events.
 
@@ -288,8 +289,9 @@ async def stream_executor(
     - "preview" events: rendered email HTML in an iframe
     - "close" event: tells HTMX to stop reconnecting
     """
+    effective_url = mcp_url or f"{settings.bee_api_base}/v2/sdk/mcp"
     mcp = MCPServerStreamableHTTP(
-        url=f"{settings.bee_api_base}/v2/sdk/mcp",
+        url=effective_url,
         headers={
             "Authorization": f"Bearer {settings.bee_api_key}",
             "x-bee-template-id": template_id,

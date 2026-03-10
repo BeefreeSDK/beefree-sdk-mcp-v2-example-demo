@@ -1,12 +1,13 @@
 import asyncio
 from urllib.parse import quote
 
+import httpx
 from dotenv import load_dotenv
 
-load_dotenv()  # put .env vars into os.environ so PydanticAI providers can read them
+load_dotenv()  # put .env vars into os.environ so PydanticAI can read them
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sse_starlette import EventSourceResponse
@@ -28,6 +29,9 @@ templates = Jinja2Templates(directory="templates")
 
 # Expose urlencode as a Jinja2 filter for prompt embedding in SSE URLs
 templates.env.filters["urlencode"] = quote
+
+# Maps template_id → {header_row_id, footer_row_id} for the MCP proxy
+template_layouts: dict[str, dict] = {}
 
 # ─── Routes ──────────────────────────────────────────────────────────────────
 
@@ -124,13 +128,20 @@ async def execute_stream(request: Request, plan_json: str):
                 ),
             }
 
-            # Phase 2 — seed templates + render sequence view
+            # Phase 2 — seed templates + register layouts for the proxy
             template_ids: list[str] = await asyncio.gather(
                 *[
                     create_seeded_template(settings, layout_json)
                     for _ in email_plan.emails
                 ]
             )
+
+            # Register footer_row_id per template so the proxy can inject it
+            for tid in template_ids:
+                template_layouts[tid] = {
+                    "header_row_id": header_row_id,
+                    "footer_row_id": footer_row_id,
+                }
 
             enriched_emails = [
                 EmailStep(
@@ -165,12 +176,87 @@ async def execute_stream(request: Request, plan_json: str):
     return EventSourceResponse(generator())
 
 
-@app.get("/stream/{template_id}")
-async def stream(template_id: str, prompt: str):
+@app.post("/mcp-proxy")
+async def mcp_proxy(request: Request):
+    """Transparent MCP proxy that enforces footer position.
+
+    Intercepts every beefree_add_section call and injects
+    before_row_id = footer_row_id when the parameter is absent,
+    ensuring the footer row always stays last.
+    All other calls are forwarded untouched.
+    """
+    body = await request.json()
+    template_id = request.headers.get("x-bee-template-id", "")
+    footer_row_id = template_layouts.get(template_id, {}).get("footer_row_id")
+
+    # Intercept beefree_add_section — handle single and batch JSON-RPC
+    def _maybe_inject(msg: dict) -> None:
+        if (
+            footer_row_id
+            and msg.get("method") == "tools/call"
+            and msg.get("params", {}).get("name") == "beefree_add_section"
+        ):
+            args = msg["params"].setdefault("arguments", {})
+            if "before_row_id" not in args:
+                args["before_row_id"] = footer_row_id
+
+    if isinstance(body, list):
+        for item in body:
+            _maybe_inject(item)
+    else:
+        _maybe_inject(body)
+
+    # Forward to Beefree — pass all original headers except hop-by-hop ones
+    skip_req = {"host", "content-length", "transfer-encoding", "content-type"}
+    fwd_headers = {
+        k: v for k, v in request.headers.items()
+        if k.lower() not in skip_req
+    }
+
     settings = get_settings()
+    client = httpx.AsyncClient(timeout=300.0)
+    upstream = client.build_request(
+        "POST",
+        f"{settings.bee_api_base}/v2/sdk/mcp",
+        json=body,
+        headers=fwd_headers,
+    )
+    resp = await client.send(upstream, stream=True)
+
+    skip_resp = {
+        "transfer-encoding", "content-encoding",
+        "content-length", "content-type",
+    }
+    resp_headers = {
+        k: v for k, v in resp.headers.items()
+        if k.lower() not in skip_resp
+    }
+
+    async def _stream():
+        try:
+            async for chunk in resp.aiter_bytes():
+                yield chunk
+        finally:
+            await resp.aclose()
+            await client.aclose()
+
+    return StreamingResponse(
+        _stream(),
+        status_code=resp.status_code,
+        headers=resp_headers,
+        media_type=resp.headers.get("content-type", "application/json"),
+    )
+
+
+@app.get("/stream/{template_id}")
+async def stream(request: Request, template_id: str, prompt: str):
+    settings = get_settings()
+    proxy_url = str(request.base_url).rstrip("/") + "/mcp-proxy"
 
     async def generator():
-        async for event in stream_executor(template_id, prompt, settings):
+        async for event in stream_executor(
+            template_id, prompt, settings, mcp_url=proxy_url
+        ):
             yield event
 
     return EventSourceResponse(generator())
