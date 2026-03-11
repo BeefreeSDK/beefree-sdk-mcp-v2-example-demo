@@ -25,23 +25,6 @@
 
   .single-result-col.is-done { border-color: #82EDA8; }
 
-  .single-result-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: .75rem;
-    padding: .7rem 1rem;
-    border-bottom: 1px solid #EAE6F7;
-    background: #FAFAF9;
-    min-height: 56px;
-  }
-
-  .single-result-title {
-    font-size: .85rem;
-    font-weight: 600;
-    color: #26045D;
-  }
-
   .single-gen-status {
     flex-shrink: 0;
     display: inline-flex;
@@ -78,19 +61,12 @@
     50%       { opacity: .25; }
   }
 
-  .single-preview-panel {
-    height: 520px;
-    overflow: hidden;
-  }
-
   .single-iframe-wrap { width: 600px; transform-origin: top left; }
   .single-iframe-wrap iframe { width: 600px; border: none; display: block; }
 
   .single-waiting {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
+    padding: 4rem 1rem;
+    text-align: center;
     color: #6E5F8A;
     font-style: italic;
     font-size: .875rem;
@@ -113,12 +89,7 @@
     id="single-gen-card"
   >
     <div class="single-result-col is-generating">
-      <div
-        class="single-preview-panel"
-        id="single-preview"
-        sse-swap="preview"
-        hx-swap="innerHTML"
-      >
+      <div class="single-iframe-wrap" sse-swap="preview" hx-swap="innerHTML">
         <div class="single-waiting">Agent is starting&hellip;</div>
       </div>
     </div>
@@ -127,20 +98,35 @@
 
 <script>
 (function () {
+
   function scalePreview() {
-    var wrap = document.querySelector('.single-iframe-wrap');
-    if (!wrap) return;
-    var panel = document.getElementById('single-preview');
-    if (!panel) return;
-    var w = panel.offsetWidth;
+    var col = document.querySelector('.single-result-col');
+    if (!col) return;
+    var w = col.offsetWidth;
     var scale = w / 600;
-    wrap.style.transform = 'scale(' + scale + ')';
-    wrap.style.transformOrigin = 'top left';
+    var wrap = col.querySelector('.single-iframe-wrap');
+    if (wrap) {
+      wrap.style.transform = 'scale(' + scale + ')';
+      wrap.style.height = (800 * scale) + 'px';
+    }
   }
 
+  scalePreview();
   window.addEventListener('resize', scalePreview);
-  document.body.addEventListener('htmx:sseMessage', function () { setTimeout(scalePreview, 50); });
-  document.body.addEventListener('htmx:afterSwap',  function () { setTimeout(scalePreview, 50); });
+  document.body.addEventListener('htmx:afterSwap', function () { setTimeout(scalePreview, 50); });
+  document.body.addEventListener('htmx:sseMessage', function (e) {
+    setTimeout(scalePreview, 50);
+    var col = e.target && e.target.closest('.single-result-col');
+    if (!col) return;
+    var wrap = col.querySelector('.single-iframe-wrap');
+    if (!wrap) return;
+    wrap.classList.remove('preview-refreshing');
+    void wrap.offsetWidth;
+    wrap.classList.add('preview-refreshing');
+    wrap.addEventListener('animationend', function () {
+      wrap.classList.remove('preview-refreshing');
+    }, { once: true });
+  });
 
   document.body.addEventListener('htmx:sseClose', function () {
     var badge = document.getElementById('single-status-badge');
@@ -155,5 +141,6 @@
     }
     scalePreview();
   });
+
 })();
 </script>

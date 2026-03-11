@@ -110,6 +110,7 @@
   .seq-iframe-wrap { width:600px; transform-origin:top left; }
   .seq-iframe-wrap iframe { width:600px; border:none; display:block; }
 
+
   .seq-placeholder {
     padding: 4rem 1rem;
     text-align: center;
@@ -173,7 +174,19 @@
   scaleWraps();
   window.addEventListener('resize', scaleWraps);
   document.body.addEventListener('htmx:afterSwap', function () { setTimeout(scaleWraps, 100); });
-  document.body.addEventListener('htmx:sseMessage',  function () { setTimeout(scaleWraps,  50); });
+  document.body.addEventListener('htmx:sseMessage', function (e) {
+    setTimeout(scaleWraps, 50);
+    var col = e.target && e.target.closest('.seq-col');
+    if (!col) return;
+    var wrap = col.querySelector('.seq-iframe-wrap');
+    if (!wrap) return;
+    wrap.classList.remove('preview-refreshing');
+    void wrap.offsetWidth;
+    wrap.classList.add('preview-refreshing');
+    wrap.addEventListener('animationend', function () {
+      wrap.classList.remove('preview-refreshing');
+    }, { once: true });
+  });
 
   /* ── Status transitions ── */
 

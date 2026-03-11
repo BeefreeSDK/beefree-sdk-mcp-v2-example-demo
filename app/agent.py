@@ -23,7 +23,10 @@ events to their own card in the browser.
 """
 
 import html as html_module
+import logging
 from typing import AsyncIterator
+
+log = logging.getLogger(__name__)
 
 from pydantic import BaseModel
 from pydantic_ai import Agent, ModelRequestNode
@@ -364,20 +367,6 @@ def _preview_event(email_html: str) -> dict:
     return {"event": "preview", "data": iframe}
 
 
-def _single_preview_event(email_html: str) -> dict:
-    """Wrap rendered email in a scalable iframe div for the single-generation view."""
-    escaped = html_module.escape(email_html, quote=True)
-    content = (
-        '<div class="single-iframe-wrap">'
-        f'<iframe srcdoc="{escaped}" '
-        f'sandbox="allow-same-origin" '
-        f'style="width:600px;height:1400px;border:none;display:block;" '
-        f'title="Email preview"></iframe>'
-        '</div>'
-    )
-    return {"event": "preview", "data": content}
-
-
 # --- Executor SSE stream -----------------------------------------------------
 
 
@@ -425,24 +414,27 @@ async def stream_executor(
     try:
         async with executor.iter(prompt) as agent_run:
             async for node in agent_run:
-                if isinstance(node, ModelRequestNode):
-                    has_tool_returns = any(
-                        getattr(p, "part_kind", "") == "tool-return"
-                        for p in node.request.parts
-                    )
-                    if has_tool_returns:
-                        preview_html = await _fetch_preview(template_id, settings)
-                        if preview_html:
-                            yield _preview_event(preview_html)
-
+                try:
+                    if isinstance(node, ModelRequestNode):
+                        has_tool_returns = any(
+                            getattr(p, "part_kind", "") == "tool-return"
+                            for p in node.request.parts
+                        )
+                        if has_tool_returns:
+                            preview_html = await _fetch_preview(template_id, settings)
+                            if preview_html:
+                                yield _preview_event(preview_html)
+                except Exception as node_exc:
+                    log.warning("Executor node error (continuing): %s", node_exc)
     except Exception as exc:
-        import logging
-        logging.getLogger(__name__).error("Agent error for %s: %s", template_id, exc)
+        log.error("Executor agent error for %s: %s", template_id, exc)
 
-    # Final preview
-    preview_html = await _fetch_preview(template_id, settings)
-    if preview_html:
-        yield _preview_event(preview_html)
+    try:
+        preview_html = await _fetch_preview(template_id, settings)
+        if preview_html:
+            yield _preview_event(preview_html)
+    except Exception:
+        pass
 
     yield {"event": "close", "data": ""}
 
@@ -497,7 +489,7 @@ async def stream_translation_executor(
         max_retries=3,
     )
     agent: Agent[None, str] = Agent(
-        model="anthropic:claude-haiku-4-5-20251001",
+        model=settings.llm_planner_model,  # fast/cheap model for the active provider
         toolsets=[mcp],
         system_prompt=TRANSLATION_AGENT_SYSTEM_PROMPT.format(language=language),
         retries=3,
@@ -508,26 +500,27 @@ async def stream_translation_executor(
             f"Translate all text content in this email template into {language}."
         ) as agent_run:
             async for node in agent_run:
-                if isinstance(node, ModelRequestNode):
-                    has_tool_returns = any(
-                        getattr(p, "part_kind", "") == "tool-return"
-                        for p in node.request.parts
-                    )
-                    if has_tool_returns:
-                        preview_html = await _fetch_preview(template_id, settings)
-                        if preview_html:
-                            yield _preview_event(preview_html)
-
+                try:
+                    if isinstance(node, ModelRequestNode):
+                        has_tool_returns = any(
+                            getattr(p, "part_kind", "") == "tool-return"
+                            for p in node.request.parts
+                        )
+                        if has_tool_returns:
+                            preview_html = await _fetch_preview(template_id, settings)
+                            if preview_html:
+                                yield _preview_event(preview_html)
+                except Exception as node_exc:
+                    log.warning("Translation node error (continuing): %s", node_exc)
     except Exception as exc:
-        import logging
-        logging.getLogger(__name__).error(
-            "Translation agent error for %s (%s): %s", template_id, language, exc
-        )
+        log.error("Translation agent error for %s (%s): %s", template_id, language, exc)
 
-    # Final preview
-    preview_html = await _fetch_preview(template_id, settings)
-    if preview_html:
-        yield _preview_event(preview_html)
+    try:
+        preview_html = await _fetch_preview(template_id, settings)
+        if preview_html:
+            yield _preview_event(preview_html)
+    except Exception:
+        pass
 
     yield {"event": "close", "data": ""}
 
@@ -602,26 +595,27 @@ async def stream_palette_executor(
             f"Apply the '{palette['name']}' color palette to this email template."
         ) as agent_run:
             async for node in agent_run:
-                if isinstance(node, ModelRequestNode):
-                    has_tool_returns = any(
-                        getattr(p, "part_kind", "") == "tool-return"
-                        for p in node.request.parts
-                    )
-                    if has_tool_returns:
-                        preview_html = await _fetch_preview(template_id, settings)
-                        if preview_html:
-                            yield _preview_event(preview_html)
-
+                try:
+                    if isinstance(node, ModelRequestNode):
+                        has_tool_returns = any(
+                            getattr(p, "part_kind", "") == "tool-return"
+                            for p in node.request.parts
+                        )
+                        if has_tool_returns:
+                            preview_html = await _fetch_preview(template_id, settings)
+                            if preview_html:
+                                yield _preview_event(preview_html)
+                except Exception as node_exc:
+                    log.warning("Palette node error (continuing): %s", node_exc)
     except Exception as exc:
-        import logging
-        logging.getLogger(__name__).error(
-            "Palette agent error for %s (%s): %s", template_id, palette["name"], exc
-        )
+        log.error("Palette agent error for %s (%s): %s", template_id, palette["name"], exc)
 
-    # Final preview
-    preview_html = await _fetch_preview(template_id, settings)
-    if preview_html:
-        yield _preview_event(preview_html)
+    try:
+        preview_html = await _fetch_preview(template_id, settings)
+        if preview_html:
+            yield _preview_event(preview_html)
+    except Exception:
+        pass
 
     yield {"event": "close", "data": ""}
 
@@ -640,7 +634,7 @@ async def stream_single_executor(
     content, footer, and final validation — all in one pass.
 
     Emits:
-    - "preview" events: rendered email HTML in a scalable iframe wrapper
+    - "preview" events: rendered email HTML in an iframe (same as other executors)
     - "close" event: tells HTMX to stop reconnecting
     """
     mcp = MCPServerStreamableHTTP(
@@ -661,23 +655,26 @@ async def stream_single_executor(
     try:
         async with agent.iter(brief) as agent_run:
             async for node in agent_run:
-                if isinstance(node, ModelRequestNode):
-                    has_tool_returns = any(
-                        getattr(p, "part_kind", "") == "tool-return"
-                        for p in node.request.parts
-                    )
-                    if has_tool_returns:
-                        preview_html = await _fetch_preview(template_id, settings)
-                        if preview_html:
-                            yield _single_preview_event(preview_html)
-
+                try:
+                    if isinstance(node, ModelRequestNode):
+                        has_tool_returns = any(
+                            getattr(p, "part_kind", "") == "tool-return"
+                            for p in node.request.parts
+                        )
+                        if has_tool_returns:
+                            preview_html = await _fetch_preview(template_id, settings)
+                            if preview_html:
+                                yield _preview_event(preview_html)
+                except Exception as node_exc:
+                    log.warning("Single agent node error (continuing): %s", node_exc)
     except Exception as exc:
-        import logging
-        logging.getLogger(__name__).error("Single agent error for %s: %s", template_id, exc)
+        log.error("Single agent error for %s: %s", template_id, exc)
 
-    # Final preview
-    preview_html = await _fetch_preview(template_id, settings)
-    if preview_html:
-        yield _single_preview_event(preview_html)
+    try:
+        preview_html = await _fetch_preview(template_id, settings)
+        if preview_html:
+            yield _preview_event(preview_html)
+    except Exception:
+        pass
 
     yield {"event": "close", "data": ""}

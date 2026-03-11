@@ -66,7 +66,7 @@
             <div class="seq-prompt-grid">
 
               <button type="button" class="seq-prompt-card" onclick="selectPreset(this)"
-                data-prompt="Design a premium welcome email for new subscribers of a high-end coffee subscription service (think Blue Bottle or Nespresso). Include: a warm, exclusive welcome headline; a hero image placeholder of fresh coffee; 3 benefit highlights (quality beans, flexible delivery, barista tips) in a two-column layout; a prominent CTA to 'Start Your First Order'; and a personalised sign-off. Brand tone: warm, artisan, premium. Rich imagery, deep espresso browns and creamy off-whites.">
+                data-prompt="Goal: Welcome email&#10;Audience: New subscribers of a premium artisan coffee subscription (think Blue Bottle or Nespresso)&#10;Brand voice: Warm, exclusive, artisan&#10;Offer: First bag curated by our head roaster — free shipping on the first order&#10;Primary CTA: &quot;Start Your First Order&quot; → https://example.com/start&#10;Brand colors: #3B1A08 primary, #1A0A00 text, #FDF6EE background&#10;Include: hero with full-width coffee image placeholder, 3 benefit highlights (quality beans, flexible delivery, barista tips) in a two-column layout, a personalised sign-off from the founder, footer with unsubscribe/address&#10;Notes: keep copy warm and personal; one primary CTA; rich imagery with deep espresso browns and creamy off-whites.">
                 <div class="seq-prompt-header">
                   <span class="seq-prompt-tag">Welcome · E-commerce</span>
                   <span class="seq-prompt-check">
@@ -78,7 +78,7 @@
               </button>
 
               <button type="button" class="seq-prompt-card" onclick="selectPreset(this)"
-                data-prompt="Design a flash sale announcement email for a premium sneaker brand (think Nike SNKRS or Adidas Confirmed). Include: an urgent, bold headline announcing a 48-hour exclusive drop; a full-width hero image placeholder of the featured sneaker; product highlights in a 3-column grid with image placeholders; a countdown urgency message; and a large high-contrast CTA to 'Shop the Drop'. Brand tone: street culture, exclusive, high-energy. Bold typography, black and neon accent, clean layout.">
+                data-prompt="Goal: Limited-drop flash sale&#10;Audience: Sneaker enthusiasts and returning customers of a premium streetwear brand&#10;Brand voice: Energetic, exclusive, street culture&#10;Offer: 48-hour exclusive drop — use code DROP48 at checkout&#10;Primary CTA: &quot;Shop the Drop&quot; → https://example.com/drop&#10;Brand colors: #000000 primary, #CCFF00 accent, #111111 background&#10;Include: full-width hero image placeholder of the featured sneaker, product highlights in a 3-column grid with image placeholders, urgency block (&quot;48 hours only&quot;), large high-contrast CTA button, footer with legal/unsubscribe&#10;Notes: bold typography, maximum urgency; mobile-first spacing with 44px+ buttons.">
                 <div class="seq-prompt-header">
                   <span class="seq-prompt-tag">Promotional · Fashion</span>
                   <span class="seq-prompt-check">
@@ -90,15 +90,15 @@
               </button>
 
               <button type="button" class="seq-prompt-card" onclick="selectPreset(this)"
-                data-prompt="Design a product update / release notes email for a B2B SaaS analytics platform (think Mixpanel or Amplitude). Include: a clean headline announcing a major new feature release; a hero image placeholder showing a product dashboard screenshot; 3–4 key improvements listed as icon + title + short description in a structured layout; a secondary section with a short testimonial quote from a power user; and a CTA to 'See What's New'. Brand tone: professional, data-driven, trustworthy. Clean whites and blues, structured grid layout, minimal decorative elements.">
+                data-prompt="Goal: Product launch&#10;Audience: Product managers and engineering leads at mid-size B2B SaaS companies&#10;Brand voice: Modern, authoritative, data-driven&#10;Product: AI-powered analytics dashboard that cuts reporting time by 60%&#10;Primary CTA: &quot;Book a demo&quot; → https://example.com/demo&#10;Brand colors: #2563EB primary, #1E293B text, #F8FAFC background&#10;Include: hero with dashboard screenshot placeholder and CTA, 3 feature highlights (real-time insights, one-click reports, team sharing), customer quote, pricing tiers overview, social proof badges, FAQ teaser, compliant footer with unsubscribe/address&#10;Notes: keep copy concise and scannable; mobile-first spacing; 44px+ buttons.">
                 <div class="seq-prompt-header">
-                  <span class="seq-prompt-tag">Product Update · SaaS</span>
+                  <span class="seq-prompt-tag">Product Launch · SaaS</span>
                   <span class="seq-prompt-check">
                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </span>
                 </div>
-                <h3 class="seq-prompt-title">SaaS Feature Release</h3>
-                <p class="seq-prompt-desc">Clean product update email for a B2B analytics platform.</p>
+                <h3 class="seq-prompt-title">SaaS Product Launch</h3>
+                <p class="seq-prompt-desc">Full product launch email for a B2B analytics platform.</p>
               </button>
 
             </div>
@@ -109,8 +109,8 @@
             <label for="custom-brief">Or write your own brief</label>
             <textarea
               id="custom-brief"
-              rows="4"
-              placeholder="Describe the email you want to generate — brand, goal, tone, key sections…"
+              rows="8"
+              placeholder="Goal: …&#10;Audience: …&#10;Brand voice: …&#10;Offer / message: …&#10;Primary CTA: "Button label" → https://…&#10;Brand colors: #… primary, #… text&#10;Include: hero, sections, footer…&#10;Notes: …"
               oninput="onCustomInput(this)"
               style="resize:vertical;"
             ></textarea>
@@ -139,6 +139,22 @@
   </footer>
 
   <script>
+    /* ── Inject prompt hints + tooltips into preset cards ── */
+    document.querySelectorAll('.seq-prompt-card[data-prompt]').forEach(function (card) {
+      var hint = document.createElement('span');
+      hint.className = 'prompt-hint';
+      hint.textContent = 'Hover to read full prompt';
+      card.appendChild(hint);
+
+      var tip = document.createElement('div');
+      tip.className = 'prompt-tooltip';
+      tip.innerHTML =
+        '<p class="prompt-tooltip-label">Full prompt</p>' +
+        '<p class="prompt-tooltip-text"></p>';
+      tip.querySelector('.prompt-tooltip-text').textContent = card.dataset.prompt;
+      card.appendChild(tip);
+    });
+
     var activePreset = null;
 
     function selectPreset(el) {
