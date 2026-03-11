@@ -1,7 +1,7 @@
 <!-- Returned instantly by POST /plan. SSE connection fills in the real plan. -->
 
 <div hx-ext="sse"
-     sse-connect="/plan-stream?goal={{ goal | urlencode }}"
+     sse-connect="/plan-stream?goal={{ goal | urlencode }}&preset_id={{ preset_id | urlencode }}"
      sse-close="close">
 
   <div id="plan-result" sse-swap="plan" hx-swap="innerHTML">

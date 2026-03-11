@@ -56,21 +56,53 @@
             hx-target="#workspace"
             hx-swap="innerHTML"
             hx-indicator="#spinner"
-            class="campaign-form"
+            onsubmit="return !!document.getElementById('goal').value"
           >
-            <div class="field full">
-              <label for="goal">Campaign brief</label>
-              <textarea
-                id="goal"
-                name="goal"
-                rows="6"
-                placeholder="Describe your emails — the planner will figure out how many to create.&#10;&#10;e.g. Generate 3 transactional emails for Netflix: account confirmation, password reset, and subscription confirmation…"
-                required
-              ></textarea>
+            <input type="hidden" id="goal" name="goal" value="" />
+            <input type="hidden" id="preset_id" name="preset_id" value="" />
+
+            <div class="seq-prompt-grid">
+
+              <!-- Preset 1: Streaming service onboarding -->
+              <button type="button" class="seq-prompt-card" onclick="selectPrompt(this)" data-preset-id="streaming-onboarding" data-prompt="Generate 3 transactional emails for a premium streaming service (think Netflix): (1) Welcome &amp; account confirmation — warm welcome, highlight top content categories, bold CTA to start watching. (2) Password reset — clear and secure, prominent reset button, expires-in notice. (3) Subscription confirmation — recap the plan name, next billing date, what's included, CTA to explore the catalogue. Brand tone: friendly, modern, premium. Dark branded header, rich imagery placeholders.">
+                <div class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Transactional · 3 emails</span>
+                  <span class="seq-prompt-check">
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                </div>
+                <h3 class="seq-prompt-title">Streaming Service Onboarding</h3>
+                <p class="seq-prompt-desc">Welcome, password reset, and subscription confirmation for a Netflix-style platform.</p>
+              </button>
+
+              <!-- Preset 2: SaaS trial nurture -->
+              <button type="button" class="seq-prompt-card" onclick="selectPrompt(this)" data-preset-id="saas-trial-nurture" data-prompt="Generate a 4-email nurture sequence for a B2B SaaS project management tool (think Asana or Monday.com) designed to convert free-trial users into paid subscribers: (1) Trial started — quick-start guide, 3 key features to try, CTA to the dashboard. (2) Day 3 check-in — tips to maximise the trial, links to short tutorial videos. (3) Day 7 feature spotlight — showcase the one premium feature they haven't tried, strong upgrade CTA. (4) Trial ending soon — urgency message, value recap, limited-time discount offer, upgrade CTA. Brand tone: professional, motivating, results-focused. Clean layout with data/metric callouts.">
+                <div class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Nurture · 4 emails</span>
+                  <span class="seq-prompt-check">
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                </div>
+                <h3 class="seq-prompt-title">SaaS Trial-to-Paid Nurture</h3>
+                <p class="seq-prompt-desc">4-step sequence guiding free-trial users toward upgrading a B2B project management tool.</p>
+              </button>
+
+              <!-- Preset 3: E-commerce Black Friday -->
+              <button type="button" class="seq-prompt-card" onclick="selectPrompt(this)" data-preset-id="black-friday-fashion" data-prompt="Generate a 3-email Black Friday campaign for a premium fashion e-commerce brand: (1) Teaser (2 days before) — build anticipation, hint at the deals without revealing them, CTA to join the early-access list. (2) Launch day — announce the sale, hero banner with discount code, curated product highlights in a grid, CTA to shop now. (3) Last chance (24 h left) — urgency and scarcity, countdown reminder, best-sellers still in stock, final CTA. Brand tone: exclusive, exciting, fashion-forward. Rich full-width imagery placeholders, bold typography, high-contrast CTAs.">
+                <div class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Promotional · 3 emails</span>
+                  <span class="seq-prompt-check">
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                </div>
+                <h3 class="seq-prompt-title">Black Friday Fashion Campaign</h3>
+                <p class="seq-prompt-desc">Teaser, launch day, and last-chance emails for a premium fashion e-commerce brand.</p>
+              </button>
+
             </div>
 
-            <div class="field full actions">
-              <button type="submit" class="btn btn-primary">
+            <div class="field full actions" style="margin-top:1.25rem;">
+              <button type="submit" class="btn btn-primary" id="seq-submit" disabled>
                 Generate Sequence
                 <span id="spinner" class="htmx-indicator spinner"></span>
               </button>
@@ -93,6 +125,17 @@
   </footer>
 
   <script>
+    /* ── Preset prompt selection ── */
+    function selectPrompt(el) {
+      document.querySelectorAll('.seq-prompt-card').forEach(function(c) {
+        c.classList.remove('seq-prompt-card-selected');
+      });
+      el.classList.add('seq-prompt-card-selected');
+      document.getElementById('goal').value = el.dataset.prompt;
+      document.getElementById('preset_id').value = el.dataset.presetId || '';
+      document.getElementById('seq-submit').disabled = false;
+    }
+
     /* ── Thumbnail rescaling ── */
     function rescaleThumbs() {
       document.querySelectorAll('.thumb-viewport').forEach(vp => {

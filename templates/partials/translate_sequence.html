@@ -5,6 +5,7 @@
   .trans-title  { font-size:1.15rem; font-weight:700; color:#26045D; }
 
   .trans-row { display:flex; gap:1rem; align-items:flex-start; }
+  .trans-row--single { max-width: 450px; margin: 0 auto; }
 
   .trans-col {
     flex: 1;
@@ -113,7 +114,7 @@
     <span class="plan-badge running">{{ languages_with_ids | length }} agents in parallel</span>
   </div>
 
-  <div class="trans-row" id="trans-row">
+  <div class="trans-row{% if languages_with_ids | length == 1 %} trans-row--single{% endif %}" id="trans-row">
     {% for language, template_id in languages_with_ids %}
     <div
       class="trans-col"

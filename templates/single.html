@@ -31,17 +31,16 @@
         <span class="brand-tag">Single Email</span>
       </div>
       <p class="header-sub">
-        Generate one complete email with a single AI agent.
+        Generate one complete, stunning email with a single AI agent.
       </p>
     </div>
   </header>
 
   <main class="container">
 
-    <!-- ── Brief form ── -->
     <section class="card form-card" id="form-section">
       <div class="card-header-row">
-        <h2 class="card-title">Describe your email</h2>
+        <h2 class="card-title">Design your email</h2>
         <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -51,36 +50,83 @@
 
       <div class="card-body">
         <div>
-          <form
-            hx-post="/generate"
-            hx-target="#workspace"
-            hx-swap="innerHTML"
-            hx-indicator="#spinner"
-            class="campaign-form"
-          >
-            <div class="field full">
-              <label for="brief">Email brief</label>
-              <textarea
-                id="brief"
-                name="brief"
-                rows="6"
-                placeholder="Describe the email you want to generate.&#10;&#10;e.g. A welcome email for new Netflix subscribers. Warm tone, highlight what they can watch, include a CTA to start browsing…"
-                required
-              ></textarea>
-            </div>
+        <form
+          hx-post="/generate"
+          hx-target="#workspace"
+          hx-swap="innerHTML"
+          hx-indicator="#spinner"
+          class="campaign-form"
+          onsubmit="return !!document.getElementById('brief').value.trim()"
+        >
+          <input type="hidden" id="brief" name="brief" value="" />
 
-            <div class="field full actions">
-              <button type="submit" class="btn btn-primary">
-                Generate Email
-                <span id="spinner" class="htmx-indicator spinner"></span>
+          <!-- ── Preset cards ── -->
+          <div class="field full">
+            <label>Start from a preset <span class="label-count" id="preset-label"></span></label>
+            <div class="seq-prompt-grid">
+
+              <button type="button" class="seq-prompt-card" onclick="selectPreset(this)"
+                data-prompt="Design a premium welcome email for new subscribers of a high-end coffee subscription service (think Blue Bottle or Nespresso). Include: a warm, exclusive welcome headline; a hero image placeholder of fresh coffee; 3 benefit highlights (quality beans, flexible delivery, barista tips) in a two-column layout; a prominent CTA to 'Start Your First Order'; and a personalised sign-off. Brand tone: warm, artisan, premium. Rich imagery, deep espresso browns and creamy off-whites.">
+                <div class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Welcome · E-commerce</span>
+                  <span class="seq-prompt-check">
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                </div>
+                <h3 class="seq-prompt-title">Premium Coffee Welcome</h3>
+                <p class="seq-prompt-desc">Artisan welcome email for a high-end coffee subscription brand.</p>
               </button>
+
+              <button type="button" class="seq-prompt-card" onclick="selectPreset(this)"
+                data-prompt="Design a flash sale announcement email for a premium sneaker brand (think Nike SNKRS or Adidas Confirmed). Include: an urgent, bold headline announcing a 48-hour exclusive drop; a full-width hero image placeholder of the featured sneaker; product highlights in a 3-column grid with image placeholders; a countdown urgency message; and a large high-contrast CTA to 'Shop the Drop'. Brand tone: street culture, exclusive, high-energy. Bold typography, black and neon accent, clean layout.">
+                <div class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Promotional · Fashion</span>
+                  <span class="seq-prompt-check">
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                </div>
+                <h3 class="seq-prompt-title">Sneaker Drop Flash Sale</h3>
+                <p class="seq-prompt-desc">High-energy limited-drop announcement for a premium sneaker brand.</p>
+              </button>
+
+              <button type="button" class="seq-prompt-card" onclick="selectPreset(this)"
+                data-prompt="Design a product update / release notes email for a B2B SaaS analytics platform (think Mixpanel or Amplitude). Include: a clean headline announcing a major new feature release; a hero image placeholder showing a product dashboard screenshot; 3–4 key improvements listed as icon + title + short description in a structured layout; a secondary section with a short testimonial quote from a power user; and a CTA to 'See What's New'. Brand tone: professional, data-driven, trustworthy. Clean whites and blues, structured grid layout, minimal decorative elements.">
+                <div class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Product Update · SaaS</span>
+                  <span class="seq-prompt-check">
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                </div>
+                <h3 class="seq-prompt-title">SaaS Feature Release</h3>
+                <p class="seq-prompt-desc">Clean product update email for a B2B analytics platform.</p>
+              </button>
+
             </div>
-          </form>
+          </div>
+
+          <!-- ── Custom prompt ── -->
+          <div class="field full" style="margin-top:.25rem;">
+            <label for="custom-brief">Or write your own brief</label>
+            <textarea
+              id="custom-brief"
+              rows="4"
+              placeholder="Describe the email you want to generate — brand, goal, tone, key sections…"
+              oninput="onCustomInput(this)"
+              style="resize:vertical;"
+            ></textarea>
+          </div>
+
+          <div class="field full actions">
+            <button type="submit" class="btn btn-primary" id="single-submit" disabled>
+              Generate Email
+              <span id="spinner" class="htmx-indicator spinner"></span>
+            </button>
+          </div>
+        </form>
         </div>
       </div>
     </section>
 
-    <!-- ── Dynamic workspace ── -->
     <div id="workspace"></div>
 
   </main>
@@ -93,6 +139,47 @@
   </footer>
 
   <script>
+    var activePreset = null;
+
+    function selectPreset(el) {
+      /* deselect previous */
+      document.querySelectorAll('.seq-prompt-card').forEach(function(c) {
+        c.classList.remove('seq-prompt-card-selected');
+      });
+
+      if (activePreset === el) {
+        /* clicking the same card again = deselect */
+        activePreset = null;
+        document.getElementById('brief').value = '';
+        document.getElementById('preset-label').textContent = '';
+        updateSubmit();
+        return;
+      }
+
+      el.classList.add('seq-prompt-card-selected');
+      activePreset = el;
+      document.getElementById('brief').value = el.dataset.prompt;
+      document.getElementById('custom-brief').value = '';
+      document.getElementById('preset-label').textContent = 'selected';
+      updateSubmit();
+    }
+
+    function onCustomInput(ta) {
+      /* typing in custom field deselects any preset */
+      if (activePreset) {
+        activePreset.classList.remove('seq-prompt-card-selected');
+        activePreset = null;
+        document.getElementById('preset-label').textContent = '';
+      }
+      document.getElementById('brief').value = ta.value;
+      updateSubmit();
+    }
+
+    function updateSubmit() {
+      var val = document.getElementById('brief').value.trim();
+      document.getElementById('single-submit').disabled = !val;
+    }
+
     function toggleCard(card) {
       if (card) card.classList.toggle('is-collapsed');
     }

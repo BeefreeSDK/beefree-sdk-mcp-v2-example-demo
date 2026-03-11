@@ -1,4 +1,5 @@
 import asyncio
+import html as html_lib
 import json
 import uuid
 from urllib.parse import quote
@@ -52,6 +53,71 @@ AVAILABLE_LANGUAGES = [
     "Finnish", "Czech", "Hungarian", "Romanian", "Greek",
     "Hebrew", "Thai", "Vietnamese", "Indonesian", "Ukrainian", "Hindi",
 ]
+
+SEQUENCE_PRESETS: dict[str, list[list[str]]] = {
+    # sections_per_step[email_index] = ordered list of body section descriptions
+    "streaming-onboarding": [
+        [  # Email 1 — Welcome
+            "Full-width hero: branded 'Welcome!' headline, atmospheric background image placeholder, large 'Start Watching Now' CTA button",
+            "Content category grid: 4 genre tiles with cover image placeholders and genre labels (Action, Drama, Comedy, Documentaries)",
+            "Featured picks row: 'Hand-picked for you' intro copy + 2–3 show/movie cards with thumbnail placeholder, title, and one-line description",
+            "App download row: 'Watch anywhere' copy + App Store and Google Play button placeholders side by side",
+        ],
+        [  # Email 2 — Password Reset
+            "Security alert row: padlock icon + 'Password Reset Request' headline + one line of reassuring intro copy",
+            "Reset action row: clear instruction sentence + large high-contrast 'Reset My Password' CTA button + 'This link expires in 24 hours' notice in small muted text",
+            "Safety notice row: short paragraph — 'Didn't request this? You can safely ignore this email.' + support contact link",
+        ],
+        [  # Email 3 — Subscription Confirmation
+            "Plan summary row: plan name badge, billing cycle label, and monthly price displayed prominently with icon accents",
+            "Benefits grid: 3-column icon list — number of screens, downloads, video quality (HD/4K), and ad-free viewing",
+            "Next steps CTA row: 'You're all set!' headline + 'Start exploring now' copy + 'Browse the Catalogue' button + 'Manage your subscription' text link",
+        ],
+    ],
+    "saas-trial-nurture": [
+        [  # Email 1 — Trial Started
+            "Welcome hero: 'Your trial has started' headline, product dashboard screenshot placeholder, 'Open Your Dashboard' CTA button",
+            "Top 3 features grid: 3-column layout — each column has icon, feature name, and one-line benefit (e.g. Task Boards, Time Tracking, Team Collaboration)",
+            "Quick-start CTA row: '3 steps to get started' intro + step-count badges with short action labels + 'Start Your First Project' button",
+        ],
+        [  # Email 2 — Day 3 Check-in
+            "Friendly check-in hero: conversational 'How's it going so far?' headline + short personal-tone intro paragraph",
+            "3 actionable tips: numbered list with icon accents — each tip is one concrete task the user can complete today in the tool",
+            "Tutorial resources row: 2 video tutorial cards with thumbnail placeholder, title, and viewing time",
+            "Support CTA row: 'Need a hand?' copy + help docs link + 'Back to Dashboard' button",
+        ],
+        [  # Email 3 — Day 7 Feature Spotlight
+            "Feature hero: bold spotlight headline naming the premium feature, feature screenshot/illustration placeholder, 1-sentence value statement",
+            "Benefits breakdown: 2–3 benefit bullets with icons — concrete outcomes the feature enables for the user's team",
+            "Upgrade CTA block: contrasting background, 'Unlock this feature today' headline, pricing reminder (monthly/annual), 'Upgrade Now' button",
+        ],
+        [  # Email 4 — Trial Ending
+            "Urgency banner: 'Your trial ends soon' headline with clock icon, warm-but-urgent tone intro paragraph",
+            "Value recap: 3 metric/achievement cards showing key outcomes the paid plan unlocks, each with icon accent",
+            "Exclusive offer row: highlighted offer box with discount percentage, promo code in large text, and expiry date",
+            "Final CTA: 'Don't lose access' copy + large 'Upgrade Now' button + 'Compare plans' text link",
+        ],
+    ],
+    "black-friday-fashion": [
+        [  # Email 1 — Teaser
+            "Mystery hero: dark atmospheric full-width banner with 'Something extraordinary is coming' headline — no product reveal, pure anticipation",
+            "Countdown visual row: '48 HOURS TO GO' copy with large stylised numeral or graphic countdown placeholder",
+            "Early access CTA: 'Be the first to shop' copy with exclusive subscriber angle + 'Secure Your Early Access' button",
+            "Brand teaser row: two-column layout — fashion editorial image placeholder + 1–2 sentences on craft or exclusivity",
+        ],
+        [  # Email 2 — Launch Day
+            "Sale hero: bold 'BLACK FRIDAY IS HERE' headline over striking product image placeholder, discount percentage badge overlaid",
+            "Discount code spotlight: high-contrast box with 'USE CODE:' label and promo code in large monospace-style font + expiry notice + 'Shop Now' CTA",
+            "Curated product grid: 3–4 product cards, each with image placeholder, product name, original strikethrough price, and sale price",
+            "Closing CTA row: 'Don't miss out — sale ends midnight' urgency copy + 'Browse All Deals' button",
+        ],
+        [  # Email 3 — Last Chance
+            "Urgency hero: high-contrast '24 HOURS LEFT' banner, bold all-caps typography, dramatic fashion image placeholder",
+            "Best-sellers grid: 3 product cards with image placeholder, product name, and 'Only X left in stock' scarcity indicator",
+            "Final CTA block: 'This is your last chance to save' copy + promo code reminder + large 'Shop Before It's Gone' button",
+        ],
+    ],
+}
 
 PALETTES = [
     {
@@ -225,6 +291,31 @@ async def generate_stream(request: Request, brief: str):
     return EventSourceResponse(generator())
 
 
+@app.post("/preview-template", response_class=HTMLResponse)
+async def preview_template(request: Request, template_json: str = Form(...)):
+    """Render a pasted/uploaded Beefree template JSON and return a scaled iframe."""
+    from .beefree import render_html
+    settings = get_settings()
+    try:
+        data = json.loads(template_json)
+        template = data.get("template", data)
+        rendered = await render_html(template, settings)
+        escaped = html_lib.escape(rendered, quote=True)
+        return HTMLResponse(
+            '<div class="tpl-preview-wrap">'
+            f'<iframe srcdoc="{escaped}" sandbox="allow-same-origin" '
+            'style="width:600px;height:1200px;border:none;display:block;" '
+            'title="Template preview"></iframe>'
+            '</div>'
+        )
+    except Exception:
+        return HTMLResponse(
+            '<div class="tpl-preview-placeholder">'
+            '<p>Could not render preview — check your JSON.</p>'
+            '</div>'
+        )
+
+
 @app.get("/translate", response_class=HTMLResponse)
 async def translate_page(request: Request):
     return templates.TemplateResponse(
@@ -389,22 +480,24 @@ async def stream_palette(request: Request, template_id: str, palette_id: str):
 async def plan(
     request: Request,
     goal: str = Form(...),
+    preset_id: str = Form(""),
 ):
     """Return the loading partial immediately; SSE streams in the plan."""
     return templates.TemplateResponse(
         "partials/plan_loading.html",
-        {"request": request, "goal": goal},
+        {"request": request, "goal": goal, "preset_id": preset_id},
     )
 
 
 @app.get("/plan-stream")
-async def plan_stream(request: Request, goal: str):
+async def plan_stream(request: Request, goal: str, preset_id: str = ""):
     """SSE endpoint: runs the planner LLM and yields the rendered plan HTML."""
     settings = get_settings()
+    sections_per_step = SEQUENCE_PRESETS.get(preset_id) if preset_id else None
 
     async def generator():
         try:
-            email_plan = await generate_plan(goal, settings)
+            email_plan = await generate_plan(goal, settings, sections_per_step)
             plan_json = email_plan.model_dump_json()
             tmpl = templates.env.get_template("partials/plan.html")
             plan_html = tmpl.render(plan=email_plan, plan_json=plan_json)

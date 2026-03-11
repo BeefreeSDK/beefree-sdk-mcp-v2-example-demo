@@ -62,24 +62,41 @@
             <!-- ── Step 1: Template JSON ── -->
             <div class="field full">
               <label>Template JSON</label>
-              <textarea
-                id="template_json"
-                name="template_json"
-                rows="8"
-                placeholder='Paste your Beefree template JSON here, or upload a file…'
-                required
-                spellcheck="false"
-                style="font-family: var(--mono); font-size: .8rem;"
-              ></textarea>
-              <div class="json-toolbar">
-                <button type="button" class="btn-outline" onclick="document.getElementById('file-upload').click()">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M7 1v8M4 4l3-3 3 3M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  Upload .json
-                </button>
-                <input type="file" id="file-upload" accept=".json" style="display:none" onchange="loadFile(this)" />
-                <span id="json-status" class="json-status"></span>
+              <div class="tpl-input-preview-row">
+                <div class="tpl-input-side">
+                  <textarea
+                    id="template_json"
+                    name="template_json"
+                    rows="12"
+                    placeholder='Paste your Beefree template JSON here, or upload a file…'
+                    required
+                    spellcheck="false"
+                    style="font-family: var(--mono); font-size: .8rem; height:100%; min-height:220px;"
+                    hx-post="/preview-template"
+                    hx-trigger="input changed delay:600ms"
+                    hx-target="#tpl-preview"
+                    hx-swap="innerHTML"
+                  ></textarea>
+                  <div class="json-toolbar">
+                    <button type="button" class="btn-outline" onclick="document.getElementById('file-upload').click()">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M7 1v8M4 4l3-3 3 3M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      Upload .json
+                    </button>
+                    <input type="file" id="file-upload" accept=".json" style="display:none" onchange="loadFile(this)" />
+                    <span id="json-status" class="json-status"></span>
+                  </div>
+                </div>
+                <div class="tpl-preview-panel" id="tpl-preview">
+                  <div class="tpl-preview-placeholder">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="opacity:.35">
+                      <rect x="4" y="6" width="24" height="20" rx="4" stroke="currentColor" stroke-width="2"/>
+                      <path d="M4 10l12 8 12-8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    </svg>
+                    <p>Paste or upload a template<br>to see a preview</p>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -164,9 +181,12 @@
         var statusEl = document.getElementById('json-status');
         try {
           var parsed = JSON.parse(e.target.result);
-          document.getElementById('template_json').value = JSON.stringify(parsed, null, 2);
+          var ta = document.getElementById('template_json');
+          ta.value = JSON.stringify(parsed, null, 2);
           statusEl.textContent = '✓ Valid JSON';
           statusEl.className = 'json-status is-valid';
+          // trigger HTMX preview
+          ta.dispatchEvent(new Event('input'));
         } catch (err) {
           statusEl.textContent = '✗ Invalid JSON';
           statusEl.className = 'json-status is-error';
@@ -175,6 +195,24 @@
       reader.readAsText(file);
       input.value = '';
     }
+
+    function scaleTplPreview() {
+      var wrap = document.querySelector('#tpl-preview .tpl-preview-wrap');
+      if (!wrap) return;
+      var panel = document.getElementById('tpl-preview');
+      if (!panel) return;
+      var w = panel.offsetWidth;
+      var scale = w / 600;
+      wrap.style.transform = 'scale(' + scale + ')';
+      wrap.style.transformOrigin = 'top left';
+    }
+
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      if (e.detail && e.detail.target && e.detail.target.id === 'tpl-preview') {
+        setTimeout(scaleTplPreview, 50);
+      }
+    });
+    window.addEventListener('resize', scaleTplPreview);
 
     function validateForm() {
       if (selectedPalettes.length === 0) {

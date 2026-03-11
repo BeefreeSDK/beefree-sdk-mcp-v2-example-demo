@@ -90,22 +90,26 @@ Set the template-level styles so every email in the sequence shares the same bas
 - Default body text colour and size
 - Default link colour
 - Content area width (600 px)
+Then call beefree_check_template to validate colours and contrast.
 
 STEP 2 — HEADER ROW (top of every email):
 - Full-width, dark branded background (e.g. deep navy #26045D or similar)
 - Centred logo/brand image placeholder and campaign name as text
 - Subtle bottom divider for visual separation
+Then call beefree_check_template to validate the header colours and contrast.
 
 STEP 3 — FOOTER ROW (bottom of every email):
 - Full-width, light neutral background (e.g. #F5F5F5)
 - Centred placeholder text: company name, mailing address, unsubscribe link
 - Small, muted typography (12-13 px)
+Then call beefree_check_template to validate the footer colours and contrast.
 
 RULES — follow exactly:
 - Complete the steps in order: global styles first, then header row, then footer row.
+- Call beefree_check_template after each step as specified above.
 - Do NOT add any body content, hero sections, CTAs, or anything between header and footer.
-- Do NOT call beefree_check_template.
-- After both rows are created, return your structured output with the row IDs
+- For all image placeholders use URLs from https://placehold.co — e.g. https://placehold.co/600x200 for a full-width banner or https://placehold.co/200x60 for a logo. Choose dimensions appropriate to the content.
+- After all three steps are done and validated, return your structured output with the row IDs
   you received from the tool responses as header_row_id and footer_row_id.
 """
 
@@ -115,65 +119,97 @@ built by the layout agent — do NOT recreate, modify, or delete them.
 
 Your task: build the BODY content rows that go between the existing header and footer.
 
+CRITICAL — PROTECTED ROWS:
+The header row ID and footer row ID listed in your prompt are protected.
+NEVER pass them to any tool that modifies, moves, or deletes rows.
+NEVER recreate, edit, or delete the header or footer. Only add NEW body rows.
+
 CRITICAL — ROW INSERTION ORDER:
 Every body row you add MUST be inserted BEFORE the footer row (use the footer row ID
-as the position reference). Never append rows to the end of the template, as that
-places them after the footer. The footer must always remain the last row.
+as the position reference). Never append rows to the end of the template.
 
-CRITICAL — PROTECTED ROWS:
-The protected row IDs listed in your prompt must never be passed to any tool that
-modifies, moves, or deletes rows. Only add NEW rows for the body.
+CRITICAL — REQUIRED SECTIONS:
+If your prompt includes a "REQUIRED BODY SECTIONS" list, you MUST build exactly those
+rows in the specified order — no more, no fewer. Each listed section = one body row.
+Do not add extra rows, do not skip any, do not reorder them.
 
-You MUST complete ALL of these steps — skipping any step is a failure:
-1. Add body rows BEFORE the footer row: hero title/image, body paragraphs, CTA button, dividers, spacers
-2. Apply typography and colour styles consistent with the campaign brand
-3. beefree_check_template — validate the final result
+WORKFLOW:
+1. Add the first body row before the footer, then call beefree_check_template to validate colours and contrast.
+2. Continue adding the remaining body rows one at a time, calling beefree_check_template after every row.
+3. Once all rows are in place, apply any final typography and colour adjustments, then call beefree_check_template one last time.
 
-CRITICAL: The email is NOT done until you have called beefree_check_template.
-Never leave rows empty. Build a complete body — hero, copy, CTA, and supporting content.
+CRITICAL: beefree_check_template MUST be called after every row addition, not just at the end.
+Never leave rows empty.
+For all image placeholders use URLs from https://placehold.co — e.g. https://placehold.co/600x300 for a hero banner, https://placehold.co/280x200 for a content card, https://placehold.co/200x60 for a logo. Choose dimensions appropriate to the content.
 """
 
-SINGLE_EMAIL_AGENT_SYSTEM_PROMPT = """You are an expert email designer working inside the Beefree headless editor.
-Your task is to build one complete, production-ready email from scratch.
+SINGLE_EMAIL_AGENT_SYSTEM_PROMPT = """You are a world-class email designer working inside the Beefree headless editor via MCP tools.
+Your goal: build one stunning, production-ready email from scratch that looks like it came from a top-tier design agency.
 
-Complete ALL of these steps in this exact order:
+Follow ALL steps in this exact order — never skip, never reorder.
 
-STEP 1 — GLOBAL STYLES:
-Set template-level styles:
-- Page background colour (light grey #F4F4F4)
-- Content area background colour (white #FFFFFF)
-- Default font family (a clean web-safe sans-serif stack)
-- Default body text colour and size
-- Default link colour
-- Content area width (600 px)
+── STEP 1 · GLOBAL STYLES ──────────────────────────────────────────────────
+Call beefree_set_template_styles to establish the visual foundation:
+- Page background: a colour that complements the brand (e.g. soft #F4F4F4 or a tinted tone)
+- Content area background: white or near-white
+- Content area width: 600 px
+- Default font family: a clean, modern web-safe sans-serif stack (e.g. "Helvetica Neue, Helvetica, Arial, sans-serif")
+- Default body text colour: dark near-black (e.g. #1A1A2E) for maximum readability
+- Default link colour: a vibrant accent matching the brand palette
+Then call beefree_check_template.
 
-STEP 2 — HEADER ROW:
-- Full-width branded background (deep navy #26045D or similar)
-- Centred logo/brand image placeholder and email title as text
-- Subtle bottom divider for visual separation
+── STEP 2 · HEADER ROW ─────────────────────────────────────────────────────
+Add a full-width header row:
+- Bold, on-brand background colour (deep or saturated — make it striking)
+- Centred logo placeholder: https://placehold.co/200x60/ffffff/7747FF?text=LOGO
+- Brand name as styled text below the logo if appropriate
+- Subtle bottom separator or shadow for depth
+Then call beefree_check_template.
 
-STEP 3 — BODY ROWS:
-Build compelling body content:
-- Hero section: large headline and supporting image placeholder
-- Body copy: 2–3 paragraphs relevant to the brief
-- Primary CTA button: clear, action-oriented label
-- Supporting content sections as appropriate (features, benefits, highlights)
-- Dividers and spacers for visual breathing room
+── STEP 3 · HERO SECTION ───────────────────────────────────────────────────
+Add an impactful hero row:
+- Full-width hero image: https://placehold.co/600x300 (pick dimensions that suit the content)
+- Large, bold headline directly relevant to the brief (1–2 lines max)
+- Short punchy sub-headline supporting the main message
+Then call beefree_check_template.
 
-STEP 4 — FOOTER ROW:
-- Full-width light neutral background (#F5F5F5)
-- Centred placeholder text: company name, mailing address, unsubscribe link
-- Small, muted typography (12–13 px)
+── STEP 4 · BODY CONTENT ROWS ─────────────────────────────────────────────
+Build 2–4 body rows that tell the story and drive action:
+- Opening paragraph: warm, engaging, personal — hook the reader immediately
+- Feature / benefit highlights: use a 2-column or 3-column layout with icons or images
+  (images: https://placehold.co/280x180 or https://placehold.co/160x160 as appropriate)
+- Supporting copy: concise, benefit-led sentences — no filler, no fluff
+- At least one prominent CTA button per major section: bold background, contrasting label,
+  rounded corners, generous padding — make it impossible to miss
+- Spacer rows between content blocks for breathing room
+Then call beefree_check_template after adding these rows.
 
-STEP 5 — VALIDATE:
-Call beefree_check_template to validate the final result.
+── STEP 5 · CLOSING CTA STRIP ──────────────────────────────────────────────
+Add a strong closing row:
+- Bold background colour (can contrast with or complement the header)
+- Short, urgent closing headline
+- One clear, large primary CTA button
+Then call beefree_check_template.
 
-RULES:
-- Complete all steps in order. Do NOT skip any step.
-- Do NOT leave any content areas empty.
-- Apply consistent typography, colours, and spacing throughout.
-- Write all text content appropriate to the email's purpose.
-- The email is NOT done until beefree_check_template has been called.
+── STEP 6 · FOOTER ROW ─────────────────────────────────────────────────────
+Add a clean, professional footer row:
+- Light neutral background (#F5F5F5 or similar)
+- Social icon row if relevant
+- Company name, mailing address, unsubscribe link — small muted text (12 px)
+Then call beefree_check_template.
+
+── STEP 7 · FINAL VALIDATION ───────────────────────────────────────────────
+Call beefree_check_template one final time to confirm the complete template passes all checks.
+
+── DESIGN RULES ────────────────────────────────────────────────────────────
+- Every image MUST use https://placehold.co — e.g. https://placehold.co/600x300 (hero),
+  https://placehold.co/280x180 (card), https://placehold.co/200x60 (logo).
+  Choose realistic dimensions. Never leave an image src empty.
+- ALL text content must be real, purposeful, and relevant to the brief — no "lorem ipsum".
+- Use consistent typography: 1–2 font sizes for body (15–16 px), larger for headlines (24–32 px).
+- Maintain strong colour contrast on all text/background combinations.
+- CTA buttons must stand out: contrasting colour, 14–16 px bold text, 12–16 px padding.
+- The email is NOT complete until beefree_check_template has been called after every step.
 """
 
 
@@ -184,27 +220,44 @@ def _build_executor_prompt(
     s: EmailSkeleton,
     sequence_title: str,
     campaign_goal: str,
+    sections: list[str] | None = None,
 ) -> str:
     """Build the executor prompt from a template — no LLM, instant."""
-    return (
+    base = (
         f"Campaign: {sequence_title}\n"
         f"Email {s.step}: {s.title}\n"
         f"Subject line: {s.subject_line}\n\n"
         f"Brief: {campaign_goal}\n\n"
-        "Build a complete, professional email that matches the campaign brand "
-        "and tone. Include all sections: header with logo/banner, hero message, "
-        "body copy, primary CTA button, supporting content, and a footer with "
-        "unsubscribe link. Write all text content appropriate to this specific "
-        "email's purpose and apply consistent typography, colours, and spacing."
+        "Build a complete, professional email that matches the campaign brand and tone."
     )
+    if sections:
+        numbered = "\n".join(f"  {i + 1}. {sec}" for i, sec in enumerate(sections))
+        base += (
+            f"\n\nREQUIRED BODY SECTIONS — build exactly {len(sections)} rows in this order:\n"
+            f"{numbered}\n\n"
+            "You MUST build every section listed above, in the exact order shown. "
+            "Do NOT add extra rows. Do NOT skip any row. Do NOT change the order. "
+            "Each listed section corresponds to exactly one body row inserted before the footer."
+        )
+    else:
+        base += (
+            " Include a hero section, body copy, primary CTA button, and supporting "
+            "content. Apply consistent typography, colours, and spacing throughout."
+        )
+    return base
 
 
 async def generate_plan(
     goal: str,
     settings: Settings,
+    sections_per_step: list[list[str]] | None = None,
 ) -> EmailPlan:
-    """Single LLM call for skeleton, then template-built executor prompts."""
+    """Single LLM call for skeleton, then template-built executor prompts.
 
+    If sections_per_step is provided (one list of section descriptions per email),
+    those are injected verbatim into each executor prompt so the agent builds
+    exactly the prescribed rows and nothing else.
+    """
     skeleton_agent: Agent[None, EmailSkeletonPlan] = Agent(
         model=settings.llm_planner_model,
         output_type=EmailSkeletonPlan,
@@ -219,7 +272,14 @@ async def generate_plan(
             step=s.step,
             title=s.title,
             subject_line=s.subject_line,
-            agent_prompt=_build_executor_prompt(s, skeleton.sequence_title, goal),
+            agent_prompt=_build_executor_prompt(
+                s,
+                skeleton.sequence_title,
+                goal,
+                sections=sections_per_step[s.step - 1]
+                if sections_per_step and s.step - 1 < len(sections_per_step)
+                else None,
+            ),
         )
         for s in skeleton.emails
     ]
@@ -437,7 +497,7 @@ async def stream_translation_executor(
         max_retries=3,
     )
     agent: Agent[None, str] = Agent(
-        model=settings.llm_executor_model,
+        model="anthropic:claude-haiku-4-5-20251001",
         toolsets=[mcp],
         system_prompt=TRANSLATION_AGENT_SYSTEM_PROMPT.format(language=language),
         retries=3,

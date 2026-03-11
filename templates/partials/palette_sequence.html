@@ -5,6 +5,7 @@
   .pal-title  { font-size:1.15rem; font-weight:700; color:#26045D; }
 
   .pal-row { display:flex; gap:1rem; align-items:flex-start; }
+  .pal-row--single { max-width: 450px; margin: 0 auto; }
 
   .pal-col {
     flex: 1;
@@ -113,7 +114,7 @@
     <span class="plan-badge running">{{ palettes_with_ids | length }} agents in parallel</span>
   </div>
 
-  <div class="pal-row" id="pal-row">
+  <div class="pal-row{% if palettes_with_ids | length == 1 %} pal-row--single{% endif %}" id="pal-row">
     {% for palette, template_id in palettes_with_ids %}
     <div
       class="pal-col"
