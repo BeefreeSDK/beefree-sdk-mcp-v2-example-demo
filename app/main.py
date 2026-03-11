@@ -1,4 +1,6 @@
 import asyncio
+import json
+import uuid
 from urllib.parse import quote
 
 import httpx
@@ -19,8 +21,11 @@ from .agent import (
     build_shared_layout,
     generate_plan,
     stream_executor,
+    stream_single_executor,
+    stream_translation_executor,
+    stream_palette_executor,
 )
-from .beefree import create_seeded_template
+from .beefree import create_seeded_template, create_template
 from .config import get_settings
 
 app = FastAPI(title="Beefree Headless MCP v2 Demo")
@@ -33,15 +38,351 @@ templates.env.filters["urlencode"] = quote
 # Maps template_id → {header_row_id, footer_row_id} for the MCP proxy
 template_layouts: dict[str, dict] = {}
 
+# Temporary store for bulk-translation sessions (session_id → {template_json, languages})
+translation_sessions: dict[str, dict] = {}
+
+# Temporary store for palette sessions (session_id → {template_json, palettes})
+palette_sessions: dict[str, dict] = {}
+
+AVAILABLE_LANGUAGES = [
+    "Spanish", "French", "German", "Italian", "Portuguese (Brazil)",
+    "Portuguese (Portugal)", "Dutch", "Russian", "Japanese",
+    "Chinese (Simplified)", "Chinese (Traditional)", "Korean",
+    "Arabic", "Polish", "Turkish", "Swedish", "Danish", "Norwegian",
+    "Finnish", "Czech", "Hungarian", "Romanian", "Greek",
+    "Hebrew", "Thai", "Vietnamese", "Indonesian", "Ukrainian", "Hindi",
+]
+
+PALETTES = [
+    {
+        "id": "ocean-blue",
+        "name": "Ocean Blue",
+        "swatches": ["#1E3A5F", "#1E40AF", "#0891B2", "#DBEAFE", "#FFFFFF"],
+        "colors": {
+            "page_bg": "#EBF4FF", "content_bg": "#FFFFFF",
+            "header_bg": "#1E3A5F", "heading": "#1E3A5F", "text": "#374151",
+            "primary": "#1E40AF", "accent": "#0891B2",
+            "footer_bg": "#DBEAFE", "footer_text": "#475569",
+        },
+    },
+    {
+        "id": "forest",
+        "name": "Forest",
+        "swatches": ["#1A3D2B", "#2D6A4F", "#40916C", "#D8F3DC", "#FFFFFF"],
+        "colors": {
+            "page_bg": "#F0FFF4", "content_bg": "#FFFFFF",
+            "header_bg": "#1A3D2B", "heading": "#1A3D2B", "text": "#374151",
+            "primary": "#2D6A4F", "accent": "#40916C",
+            "footer_bg": "#D8F3DC", "footer_text": "#3D6B52",
+        },
+    },
+    {
+        "id": "sunset",
+        "name": "Sunset",
+        "swatches": ["#7C2D12", "#EA580C", "#F97316", "#FEF3C7", "#FFFFFF"],
+        "colors": {
+            "page_bg": "#FFF7ED", "content_bg": "#FFFFFF",
+            "header_bg": "#7C2D12", "heading": "#7C2D12", "text": "#44403C",
+            "primary": "#EA580C", "accent": "#F97316",
+            "footer_bg": "#FEF3C7", "footer_text": "#78716C",
+        },
+    },
+    {
+        "id": "rose-gold",
+        "name": "Rose Gold",
+        "swatches": ["#881337", "#BE185D", "#EC4899", "#FCE7F3", "#FFFFFF"],
+        "colors": {
+            "page_bg": "#FFF1F2", "content_bg": "#FFFFFF",
+            "header_bg": "#881337", "heading": "#881337", "text": "#44403C",
+            "primary": "#BE185D", "accent": "#EC4899",
+            "footer_bg": "#FCE7F3", "footer_text": "#9F1239",
+        },
+    },
+    {
+        "id": "midnight",
+        "name": "Midnight",
+        "swatches": ["#0F172A", "#1E293B", "#475569", "#334155", "#94A3B8"],
+        "colors": {
+            "page_bg": "#0F172A", "content_bg": "#1E293B",
+            "header_bg": "#020617", "heading": "#F1F5F9", "text": "#CBD5E1",
+            "primary": "#6366F1", "accent": "#818CF8",
+            "footer_bg": "#0F172A", "footer_text": "#64748B",
+        },
+    },
+    {
+        "id": "lavender",
+        "name": "Lavender",
+        "swatches": ["#3B0764", "#6D28D9", "#8B5CF6", "#EDE9FE", "#FFFFFF"],
+        "colors": {
+            "page_bg": "#F5F3FF", "content_bg": "#FFFFFF",
+            "header_bg": "#3B0764", "heading": "#3B0764", "text": "#374151",
+            "primary": "#6D28D9", "accent": "#8B5CF6",
+            "footer_bg": "#EDE9FE", "footer_text": "#6D28D9",
+        },
+    },
+    {
+        "id": "earthy",
+        "name": "Earthy",
+        "swatches": ["#431407", "#92400E", "#D97706", "#FEF3C7", "#FFFBF7"],
+        "colors": {
+            "page_bg": "#FFFBF7", "content_bg": "#FFFFFF",
+            "header_bg": "#431407", "heading": "#431407", "text": "#57534E",
+            "primary": "#92400E", "accent": "#D97706",
+            "footer_bg": "#FEF3C7", "footer_text": "#78716C",
+        },
+    },
+    {
+        "id": "arctic",
+        "name": "Arctic",
+        "swatches": ["#164E63", "#0E7490", "#22D3EE", "#CFFAFE", "#FFFFFF"],
+        "colors": {
+            "page_bg": "#ECFEFF", "content_bg": "#FFFFFF",
+            "header_bg": "#164E63", "heading": "#164E63", "text": "#374151",
+            "primary": "#0E7490", "accent": "#22D3EE",
+            "footer_bg": "#CFFAFE", "footer_text": "#0E7490",
+        },
+    },
+    {
+        "id": "coral",
+        "name": "Coral",
+        "swatches": ["#9F1239", "#E11D48", "#FB7185", "#FFE4E6", "#FFFFFF"],
+        "colors": {
+            "page_bg": "#FFF1F2", "content_bg": "#FFFFFF",
+            "header_bg": "#9F1239", "heading": "#9F1239", "text": "#44403C",
+            "primary": "#E11D48", "accent": "#FB7185",
+            "footer_bg": "#FFE4E6", "footer_text": "#9F1239",
+        },
+    },
+    {
+        "id": "minimal",
+        "name": "Minimal",
+        "swatches": ["#111827", "#374151", "#6B7280", "#F3F4F6", "#FFFFFF"],
+        "colors": {
+            "page_bg": "#F9FAFB", "content_bg": "#FFFFFF",
+            "header_bg": "#111827", "heading": "#111827", "text": "#374151",
+            "primary": "#374151", "accent": "#6B7280",
+            "footer_bg": "#F3F4F6", "footer_text": "#6B7280",
+        },
+    },
+]
+
 # ─── Routes ──────────────────────────────────────────────────────────────────
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+async def landing(request: Request):
+    return templates.TemplateResponse(
+        "landing.html",
+        {"request": request},
+    )
+
+
+@app.get("/sequence", response_class=HTMLResponse)
+async def sequence(request: Request):
     return templates.TemplateResponse(
         "index.html",
         {"request": request},
     )
+
+
+@app.get("/single", response_class=HTMLResponse)
+async def single(request: Request):
+    return templates.TemplateResponse(
+        "single.html",
+        {"request": request},
+    )
+
+
+@app.post("/generate", response_class=HTMLResponse)
+async def generate(request: Request, brief: str = Form(...)):
+    """Return the loading partial immediately; SSE drives the generation."""
+    return templates.TemplateResponse(
+        "partials/single_loading.html",
+        {"request": request, "brief": brief},
+    )
+
+
+@app.get("/generate-stream")
+async def generate_stream(request: Request, brief: str):
+    """SSE endpoint: creates a template, runs single email agent, streams previews."""
+    settings = get_settings()
+
+    async def generator():
+        try:
+            template_id = await create_template(settings)
+            async for event in stream_single_executor(template_id, brief, settings):
+                yield event
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error("Single gen error: %s", exc)
+            yield {
+                "event": "preview",
+                "data": f"<p class='plan-error'>Generation failed: {exc}</p>",
+            }
+        finally:
+            yield {"event": "close", "data": ""}
+
+    return EventSourceResponse(generator())
+
+
+@app.get("/translate", response_class=HTMLResponse)
+async def translate_page(request: Request):
+    return templates.TemplateResponse(
+        "translate.html",
+        {"request": request, "languages": AVAILABLE_LANGUAGES},
+    )
+
+
+@app.post("/translate-submit", response_class=HTMLResponse)
+async def translate_submit(
+    request: Request,
+    template_json: str = Form(...),
+    languages: str = Form(...),
+):
+    """Parse template JSON, store session, return the loading partial."""
+    try:
+        parsed = json.loads(template_json)
+    except json.JSONDecodeError as exc:
+        return HTMLResponse(
+            f"<p class='plan-error'>Invalid JSON: {exc}</p>", status_code=400
+        )
+    lang_list = [la.strip() for la in languages.split(",") if la.strip()]
+    session_id = uuid.uuid4().hex[:12]
+    translation_sessions[session_id] = {"template_json": parsed, "languages": lang_list}
+    return templates.TemplateResponse(
+        "partials/translate_loading.html",
+        {"request": request, "session_id": session_id, "languages": lang_list},
+    )
+
+
+@app.get("/translate-stream")
+async def translate_stream_route(request: Request, session_id: str):
+    """SSE: seed N template copies, render the column grid, agents stream previews."""
+    settings = get_settings()
+    data = translation_sessions.pop(session_id, None)
+
+    async def generator():
+        if not data:
+            yield {"event": "close", "data": ""}
+            return
+        try:
+            template_json = data["template_json"]
+            languages = data["languages"]
+
+            template_ids: list[str] = await asyncio.gather(
+                *[create_seeded_template(settings, template_json) for _ in languages]
+            )
+
+            tmpl = templates.env.get_template("partials/translate_sequence.html")
+            result_html = tmpl.render(
+                languages_with_ids=list(zip(languages, template_ids))
+            )
+            yield {"event": "ready", "data": result_html}
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error("Translate stream error: %s", exc)
+            yield {
+                "event": "ready",
+                "data": f"<p class='plan-error'>Translation failed: {exc}</p>",
+            }
+        finally:
+            yield {"event": "close", "data": ""}
+
+    return EventSourceResponse(generator())
+
+
+@app.get("/stream-translate/{template_id}")
+async def stream_translate(request: Request, template_id: str, language: str):
+    settings = get_settings()
+
+    async def generator():
+        async for event in stream_translation_executor(template_id, language, settings):
+            yield event
+
+    return EventSourceResponse(generator())
+
+
+@app.get("/palette", response_class=HTMLResponse)
+async def palette_page(request: Request):
+    return templates.TemplateResponse(
+        "palette.html",
+        {"request": request, "palettes": PALETTES},
+    )
+
+
+@app.post("/palette-submit", response_class=HTMLResponse)
+async def palette_submit(
+    request: Request,
+    template_json: str = Form(...),
+    palette_ids: str = Form(...),
+):
+    """Parse template JSON, resolve selected palettes, store session, return loading partial."""
+    try:
+        parsed = json.loads(template_json)
+    except json.JSONDecodeError as exc:
+        return HTMLResponse(
+            f"<p class='plan-error'>Invalid JSON: {exc}</p>", status_code=400
+        )
+    id_set = {pid.strip() for pid in palette_ids.split(",") if pid.strip()}
+    selected = [p for p in PALETTES if p["id"] in id_set]
+    session_id = uuid.uuid4().hex[:12]
+    palette_sessions[session_id] = {"template_json": parsed, "palettes": selected}
+    return templates.TemplateResponse(
+        "partials/palette_loading.html",
+        {"request": request, "session_id": session_id, "palettes": selected},
+    )
+
+
+@app.get("/palette-stream")
+async def palette_stream_route(request: Request, session_id: str):
+    """SSE: seed N template copies, render palette column grid."""
+    settings = get_settings()
+    data = palette_sessions.pop(session_id, None)
+
+    async def generator():
+        if not data:
+            yield {"event": "close", "data": ""}
+            return
+        try:
+            template_json = data["template_json"]
+            palettes = data["palettes"]
+
+            template_ids: list[str] = await asyncio.gather(
+                *[create_seeded_template(settings, template_json) for _ in palettes]
+            )
+
+            tmpl = templates.env.get_template("partials/palette_sequence.html")
+            result_html = tmpl.render(
+                palettes_with_ids=list(zip(palettes, template_ids))
+            )
+            yield {"event": "ready", "data": result_html}
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error("Palette stream error: %s", exc)
+            yield {
+                "event": "ready",
+                "data": f"<p class='plan-error'>Palette application failed: {exc}</p>",
+            }
+        finally:
+            yield {"event": "close", "data": ""}
+
+    return EventSourceResponse(generator())
+
+
+@app.get("/stream-palette/{template_id}")
+async def stream_palette(request: Request, template_id: str, palette_id: str):
+    settings = get_settings()
+    palette = next((p for p in PALETTES if p["id"] == palette_id), None)
+    if not palette:
+        async def err():
+            yield {"event": "close", "data": ""}
+        return EventSourceResponse(err())
+
+    async def generator():
+        async for event in stream_palette_executor(template_id, palette, settings):
+            yield event
+
+    return EventSourceResponse(generator())
 
 
 @app.post("/plan", response_class=HTMLResponse)

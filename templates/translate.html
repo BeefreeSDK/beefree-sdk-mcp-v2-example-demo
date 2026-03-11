@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beefree Headless MCP v2 — Bulk Translations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <div class="header-brand">
+        <a href="/" class="back-link" aria-label="Back to home">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M11 14L6 9l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#7747FF"/>
+          <path d="M16 6c-2 0-6 2-6 6 0 2 1 3 2 4-1 1-2 3-2 5 0 4 3 7 6 7s6-3 6-7c0-2-1-4-2-5 1-1 2-2 2-4 0-4-4-6-6-6z" fill="#82EDA8"/>
+          <circle cx="13" cy="13" r="1.5" fill="#26045D"/>
+          <circle cx="19" cy="13" r="1.5" fill="#26045D"/>
+        </svg>
+        <span class="brand-name">Beefree SDK</span>
+        <span class="brand-tag">Bulk Translations</span>
+      </div>
+      <p class="header-sub">
+        Translate one template into multiple languages in parallel — text only, design untouched.
+      </p>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <section class="card form-card" id="form-section">
+      <div class="card-header-row">
+        <h2 class="card-title">Set up your translations</h2>
+        <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="card-body">
+        <div>
+          <form
+            hx-post="/translate-submit"
+            hx-target="#workspace"
+            hx-swap="innerHTML"
+            hx-indicator="#spinner"
+            class="campaign-form"
+            onsubmit="return validateForm()"
+          >
+
+            <!-- ── Step 1: Template JSON ── -->
+            <div class="field full">
+              <label>Template JSON</label>
+              <textarea
+                id="template_json"
+                name="template_json"
+                rows="8"
+                placeholder='Paste your Beefree template JSON here, or use the upload button below…'
+                required
+                spellcheck="false"
+                style="font-family: var(--mono); font-size: .8rem;"
+              ></textarea>
+              <div class="json-toolbar">
+                <button type="button" class="btn-outline" onclick="document.getElementById('file-upload').click()">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M7 1v8M4 4l3-3 3 3M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Upload .json
+                </button>
+                <input type="file" id="file-upload" accept=".json" style="display:none" onchange="loadFile(this)" />
+                <span id="json-status" class="json-status"></span>
+              </div>
+            </div>
+
+            <!-- ── Step 2: Language chips ── -->
+            <div class="field full">
+              <label>
+                Target languages
+                <span class="label-count" id="lang-count"></span>
+              </label>
+              <div class="langs-grid">
+                {% for lang in languages %}
+                <button
+                  type="button"
+                  class="chip"
+                  data-lang="{{ lang }}"
+                  onclick="toggleLang(this)"
+                >{{ lang }}</button>
+                {% endfor %}
+              </div>
+              <input type="hidden" id="languages" name="languages" value="" />
+            </div>
+
+            <!-- ── Actions ── -->
+            <div class="field full actions">
+              <button type="submit" class="btn btn-primary" id="submit-btn">
+                Translate
+                <span id="spinner" class="htmx-indicator spinner"></span>
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <div id="workspace"></div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      Powered by <strong>Beefree SDK MCP v2</strong> ·
+      <strong>PydanticAI</strong> · <strong>FastAPI</strong>
+    </div>
+  </footer>
+
+  <script>
+    var selectedLangs = [];
+
+    function toggleLang(el) {
+      var lang = el.dataset.lang;
+      var idx = selectedLangs.indexOf(lang);
+      if (idx > -1) {
+        selectedLangs.splice(idx, 1);
+        el.classList.remove('chip-selected');
+      } else {
+        selectedLangs.push(lang);
+        el.classList.add('chip-selected');
+      }
+      document.getElementById('languages').value = selectedLangs.join(',');
+      var count = selectedLangs.length;
+      document.getElementById('lang-count').textContent = count > 0 ? count + ' selected' : '';
+    }
+
+    function loadFile(input) {
+      var file = input.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var statusEl = document.getElementById('json-status');
+        try {
+          var parsed = JSON.parse(e.target.result);
+          document.getElementById('template_json').value = JSON.stringify(parsed, null, 2);
+          statusEl.textContent = '✓ Valid JSON';
+          statusEl.className = 'json-status is-valid';
+        } catch (err) {
+          statusEl.textContent = '✗ Invalid JSON';
+          statusEl.className = 'json-status is-error';
+        }
+      };
+      reader.readAsText(file);
+      // reset so same file can be re-uploaded
+      input.value = '';
+    }
+
+    function validateForm() {
+      if (selectedLangs.length === 0) {
+        alert('Please select at least one target language.');
+        return false;
+      }
+      var json = document.getElementById('template_json').value.trim();
+      if (!json) {
+        alert('Please paste or upload a template JSON.');
+        return false;
+      }
+      try { JSON.parse(json); } catch (e) {
+        alert('The template JSON is not valid. Please check and try again.');
+        return false;
+      }
+      return true;
+    }
+
+    function toggleCard(card) {
+      if (card) card.classList.toggle('is-collapsed');
+    }
+
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      var tgt = e.detail && e.detail.target;
+      if (tgt && tgt.id === 'workspace') {
+        var fs = document.getElementById('form-section');
+        if (fs) fs.classList.add('is-collapsed');
+      }
+    });
+  </script>
+
+</body>
+</html>

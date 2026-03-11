@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beefree Headless MCP v2 — Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <div class="header-brand">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#7747FF"/>
+          <path d="M16 6c-2 0-6 2-6 6 0 2 1 3 2 4-1 1-2 3-2 5 0 4 3 7 6 7s6-3 6-7c0-2-1-4-2-5 1-1 2-2 2-4 0-4-4-6-6-6z" fill="#82EDA8"/>
+          <circle cx="13" cy="13" r="1.5" fill="#26045D"/>
+          <circle cx="19" cy="13" r="1.5" fill="#26045D"/>
+        </svg>
+        <span class="brand-name">Beefree SDK</span>
+        <span class="brand-tag">Headless MCP v2</span>
+      </div>
+      <p class="header-sub">AI-powered email generation — no browser required.</p>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <div class="landing-hero">
+      <h1 class="landing-title">What would you like to generate?</h1>
+      <p class="landing-sub">Pick a mode and let AI handle the rest.</p>
+    </div>
+
+    <div class="mode-grid">
+
+      <!-- Single Email Generation -->
+      <a href="/single" class="mode-card">
+        <div class="mode-icon mode-icon-single">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <rect x="4" y="6" width="24" height="20" rx="4" stroke="currentColor" stroke-width="2"/>
+            <path d="M4 10l12 8 12-8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="mode-badge">1 agent</div>
+        <h2 class="mode-title">Single Email</h2>
+        <p class="mode-desc">
+          Generate one complete, production-ready email with a single AI agent.
+          Ideal for one-off campaigns, transactional emails, or quick prototyping.
+        </p>
+        <span class="mode-cta">
+          Get started
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </a>
+
+      <!-- Color Palettes -->
+      <a href="/palette" class="mode-card">
+        <div class="mode-icon mode-icon-palette">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="16" r="11" stroke="currentColor" stroke-width="2"/>
+            <circle cx="16" cy="7"  r="2.5" fill="currentColor"/>
+            <circle cx="23" cy="11" r="2.5" fill="currentColor"/>
+            <circle cx="23" cy="21" r="2.5" fill="currentColor"/>
+            <circle cx="16" cy="25" r="2.5" fill="currentColor"/>
+            <circle cx="9"  cy="21" r="2.5" fill="currentColor"/>
+            <circle cx="9"  cy="11" r="2.5" fill="currentColor"/>
+            <circle cx="16" cy="16" r="3" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="mode-badge mode-badge-palette">N variations · parallel</div>
+        <h2 class="mode-title">Color Palettes</h2>
+        <p class="mode-desc">
+          Upload a template and instantly generate N color variations.
+          Each agent recolors one palette — layout, fonts, and copy stay identical.
+        </p>
+        <span class="mode-cta">
+          Get started
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </a>
+
+      <!-- Bulk Translations -->
+      <a href="/translate" class="mode-card">
+        <div class="mode-icon mode-icon-translate">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <path d="M4 8h10M9 5v3M4 8c0 4 3 7 6 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10 16c1 1 3 2 4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M16 10l4-4 4 4M20 6v14M16 24h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="mode-badge mode-badge-translate">N agents · parallel</div>
+        <h2 class="mode-title">Bulk Translations</h2>
+        <p class="mode-desc">
+          Upload a template and translate it into any number of languages at once.
+          Parallel agents replace text only — layout and design stay identical.
+        </p>
+        <span class="mode-cta">
+          Get started
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </a>
+
+      <!-- Email Sequence -->
+      <a href="/sequence" class="mode-card">
+        <div class="mode-icon mode-icon-sequence">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <rect x="2" y="5" width="13" height="10" rx="3" stroke="currentColor" stroke-width="2"/>
+            <rect x="17" y="5" width="13" height="10" rx="3" stroke="currentColor" stroke-width="2"/>
+            <rect x="9" y="19" width="14" height="10" rx="3" stroke="currentColor" stroke-width="2"/>
+            <path d="M8.5 15l7 4M23.5 15l-7 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="mode-badge mode-badge-sequence">N agents · parallel</div>
+        <h2 class="mode-title">Email Sequence</h2>
+        <p class="mode-desc">
+          Plan and generate a full multi-email campaign. Each email is built
+          simultaneously by parallel agents, all sharing the same brand layout.
+        </p>
+        <span class="mode-cta">
+          Get started
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </a>
+
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      Powered by <strong>Beefree SDK MCP v2</strong> ·
+      <strong>PydanticAI</strong> · <strong>FastAPI</strong>
+    </div>
+  </footer>
+
+</body>
+</html>

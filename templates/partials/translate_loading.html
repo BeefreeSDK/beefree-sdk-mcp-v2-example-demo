@@ -1,0 +1,42 @@
+<!-- Returned instantly by POST /translate-submit. SSE drives the column grid. -->
+
+<div hx-ext="sse"
+     sse-connect="/translate-stream?session_id={{ session_id }}"
+     sse-close="close">
+
+  <div id="translate-content" sse-swap="ready" hx-swap="innerHTML">
+
+    <section class="card exec-progress-card">
+      <div class="exec-progress-header">
+        <h3 class="exec-progress-title">Preparing {{ languages | length }} translation{{ 's' if languages | length != 1 else '' }}&hellip;</h3>
+        <p class="exec-progress-sub">
+          Seeding {{ languages | length }} isolated template copies, then launching one agent per language in parallel.
+        </p>
+      </div>
+
+      <div class="exec-phases">
+
+        <div class="exec-phase is-active">
+          <span class="phase-spinner"></span>
+          <div class="phase-content">
+            <p class="phase-title">Seeding template copies</p>
+            <p class="phase-sub">
+              {{ languages | join(', ') }}
+            </p>
+          </div>
+        </div>
+
+        <div class="exec-phase is-pending">
+          <span class="phase-dot"></span>
+          <div class="phase-content">
+            <p class="phase-title">Launch translation agents</p>
+            <p class="phase-sub">All agents run in parallel — one per language</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+</div>

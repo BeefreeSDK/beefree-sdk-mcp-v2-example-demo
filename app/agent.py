@@ -133,6 +133,49 @@ CRITICAL: The email is NOT done until you have called beefree_check_template.
 Never leave rows empty. Build a complete body — hero, copy, CTA, and supporting content.
 """
 
+SINGLE_EMAIL_AGENT_SYSTEM_PROMPT = """You are an expert email designer working inside the Beefree headless editor.
+Your task is to build one complete, production-ready email from scratch.
+
+Complete ALL of these steps in this exact order:
+
+STEP 1 — GLOBAL STYLES:
+Set template-level styles:
+- Page background colour (light grey #F4F4F4)
+- Content area background colour (white #FFFFFF)
+- Default font family (a clean web-safe sans-serif stack)
+- Default body text colour and size
+- Default link colour
+- Content area width (600 px)
+
+STEP 2 — HEADER ROW:
+- Full-width branded background (deep navy #26045D or similar)
+- Centred logo/brand image placeholder and email title as text
+- Subtle bottom divider for visual separation
+
+STEP 3 — BODY ROWS:
+Build compelling body content:
+- Hero section: large headline and supporting image placeholder
+- Body copy: 2–3 paragraphs relevant to the brief
+- Primary CTA button: clear, action-oriented label
+- Supporting content sections as appropriate (features, benefits, highlights)
+- Dividers and spacers for visual breathing room
+
+STEP 4 — FOOTER ROW:
+- Full-width light neutral background (#F5F5F5)
+- Centred placeholder text: company name, mailing address, unsubscribe link
+- Small, muted typography (12–13 px)
+
+STEP 5 — VALIDATE:
+Call beefree_check_template to validate the final result.
+
+RULES:
+- Complete all steps in order. Do NOT skip any step.
+- Do NOT leave any content areas empty.
+- Apply consistent typography, colours, and spacing throughout.
+- Write all text content appropriate to the email's purpose.
+- The email is NOT done until beefree_check_template has been called.
+"""
+
 
 # --- Planner -----------------------------------------------------------------
 
@@ -261,6 +304,20 @@ def _preview_event(email_html: str) -> dict:
     return {"event": "preview", "data": iframe}
 
 
+def _single_preview_event(email_html: str) -> dict:
+    """Wrap rendered email in a scalable iframe div for the single-generation view."""
+    escaped = html_module.escape(email_html, quote=True)
+    content = (
+        '<div class="single-iframe-wrap">'
+        f'<iframe srcdoc="{escaped}" '
+        f'sandbox="allow-same-origin" '
+        f'style="width:600px;height:1400px;border:none;display:block;" '
+        f'title="Email preview"></iframe>'
+        '</div>'
+    )
+    return {"event": "preview", "data": content}
+
+
 # --- Executor SSE stream -----------------------------------------------------
 
 
@@ -326,5 +383,241 @@ async def stream_executor(
     preview_html = await _fetch_preview(template_id, settings)
     if preview_html:
         yield _preview_event(preview_html)
+
+    yield {"event": "close", "data": ""}
+
+
+# --- Translation executor SSE stream -----------------------------------------
+
+TRANSLATION_AGENT_SYSTEM_PROMPT = """You are a professional translation agent working inside the Beefree headless editor.
+The email template is already fully built. Your only job is to translate every visible text string into {language}.
+
+WHAT TO TRANSLATE:
+- Headings, titles, and subheadings
+- All paragraph and body copy
+- Button labels and CTA text
+- Link text
+- Image alt text
+
+STRICT RULES — you must NEVER:
+- Add, remove, reorder, or restructure any rows, columns, or content blocks
+- Change any colors, fonts, spacing, padding, borders, or any visual/style property
+- Call beefree_add_section, beefree_delete_section, or beefree_set_template_styles
+- Leave any original-language text untranslated (brand names and proper nouns are the only exception)
+
+Workflow:
+1. Examine the template to identify all text content blocks
+2. Translate each block's text into {language}, preserving formatting and intent
+3. Update each block using the appropriate text-editing tool
+4. Call beefree_check_template to validate
+
+The task is NOT complete until beefree_check_template has been called.
+"""
+
+
+async def stream_translation_executor(
+    template_id: str,
+    language: str,
+    settings: Settings,
+) -> AsyncIterator[dict]:
+    """Run one translation agent for a specific language and yield SSE events.
+
+    The agent only edits existing text content — it never adds or removes rows.
+
+    Emits:
+    - "preview" events: rendered email HTML in an iframe
+    - "close" event: tells HTMX to stop reconnecting
+    """
+    mcp = MCPServerStreamableHTTP(
+        url=f"{settings.bee_api_base}/v2/sdk/mcp",
+        headers={
+            "Authorization": f"Bearer {settings.bee_api_key}",
+            "x-bee-template-id": template_id,
+        },
+        max_retries=3,
+    )
+    agent: Agent[None, str] = Agent(
+        model=settings.llm_executor_model,
+        toolsets=[mcp],
+        system_prompt=TRANSLATION_AGENT_SYSTEM_PROMPT.format(language=language),
+        retries=3,
+    )
+
+    try:
+        async with agent.iter(
+            f"Translate all text content in this email template into {language}."
+        ) as agent_run:
+            async for node in agent_run:
+                if isinstance(node, ModelRequestNode):
+                    has_tool_returns = any(
+                        getattr(p, "part_kind", "") == "tool-return"
+                        for p in node.request.parts
+                    )
+                    if has_tool_returns:
+                        preview_html = await _fetch_preview(template_id, settings)
+                        if preview_html:
+                            yield _preview_event(preview_html)
+
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error(
+            "Translation agent error for %s (%s): %s", template_id, language, exc
+        )
+
+    # Final preview
+    preview_html = await _fetch_preview(template_id, settings)
+    if preview_html:
+        yield _preview_event(preview_html)
+
+    yield {"event": "close", "data": ""}
+
+
+# --- Color palette executor SSE stream ---------------------------------------
+
+PALETTE_AGENT_SYSTEM_PROMPT = """You are a color palette agent working inside the Beefree headless editor.
+The email template is already fully built. Your only task is to restyle it using the exact color palette below.
+
+TARGET PALETTE — {palette_name}:
+  Page background:      {page_bg}
+  Content area:         {content_bg}
+  Header row bg:        {header_bg}
+  Heading text:         {heading}
+  Body text:            {text}
+  Buttons / CTAs:       {primary}
+  Links / accents:      {accent}
+  Footer row bg:        {footer_bg}
+  Footer text:          {footer_text}
+
+WORKFLOW — follow this order exactly, calling beefree_check_template after each phase:
+1. Call beefree_set_template_styles to set page background to {page_bg}, content area background to {content_bg}, default text color to {text}, and link color to {accent}. Then call beefree_check_template.
+2. Identify the first row (header) and update its background color to {header_bg}. Update any text inside it to a contrasting light color if needed. Then call beefree_check_template.
+3. Update all heading elements throughout the template to use {heading}. Update all button and CTA elements to use {primary} as the background color. Then call beefree_check_template.
+4. Identify the last row (footer) and update its background to {footer_bg} and its text to {footer_text}. Then call beefree_check_template.
+
+STRICT RULES — you must NEVER:
+- Change any text content, copy, or wording
+- Add, remove, reorder, or restructure rows, columns, or content blocks
+- Change fonts, font sizes, spacing, padding, or any layout property
+- Call beefree_add_section or beefree_delete_section
+
+beefree_check_template MUST be called after every phase, not just at the end.
+"""
+
+
+async def stream_palette_executor(
+    template_id: str,
+    palette: dict,
+    settings: "Settings",
+) -> "AsyncIterator[dict]":
+    """Run one palette agent and yield SSE events.
+
+    The agent applies the target color palette to an existing template —
+    changing only colors, never layout, text content, or structure.
+
+    Emits:
+    - "preview" events: rendered email HTML in an iframe
+    - "close" event: tells HTMX to stop reconnecting
+    """
+    mcp = MCPServerStreamableHTTP(
+        url=f"{settings.bee_api_base}/v2/sdk/mcp",
+        headers={
+            "Authorization": f"Bearer {settings.bee_api_key}",
+            "x-bee-template-id": template_id,
+        },
+        max_retries=3,
+    )
+    system_prompt = PALETTE_AGENT_SYSTEM_PROMPT.format(
+        palette_name=palette["name"],
+        **palette["colors"],
+    )
+    agent: Agent[None, str] = Agent(
+        model=settings.llm_executor_model,
+        toolsets=[mcp],
+        system_prompt=system_prompt,
+        retries=3,
+    )
+
+    try:
+        async with agent.iter(
+            f"Apply the '{palette['name']}' color palette to this email template."
+        ) as agent_run:
+            async for node in agent_run:
+                if isinstance(node, ModelRequestNode):
+                    has_tool_returns = any(
+                        getattr(p, "part_kind", "") == "tool-return"
+                        for p in node.request.parts
+                    )
+                    if has_tool_returns:
+                        preview_html = await _fetch_preview(template_id, settings)
+                        if preview_html:
+                            yield _preview_event(preview_html)
+
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error(
+            "Palette agent error for %s (%s): %s", template_id, palette["name"], exc
+        )
+
+    # Final preview
+    preview_html = await _fetch_preview(template_id, settings)
+    if preview_html:
+        yield _preview_event(preview_html)
+
+    yield {"event": "close", "data": ""}
+
+
+# --- Single email executor SSE stream ----------------------------------------
+
+
+async def stream_single_executor(
+    template_id: str,
+    brief: str,
+    settings: Settings,
+) -> AsyncIterator[dict]:
+    """Run one single-email agent and yield SSE events.
+
+    The agent builds everything from scratch: global styles, header, body
+    content, footer, and final validation — all in one pass.
+
+    Emits:
+    - "preview" events: rendered email HTML in a scalable iframe wrapper
+    - "close" event: tells HTMX to stop reconnecting
+    """
+    mcp = MCPServerStreamableHTTP(
+        url=f"{settings.bee_api_base}/v2/sdk/mcp",
+        headers={
+            "Authorization": f"Bearer {settings.bee_api_key}",
+            "x-bee-template-id": template_id,
+        },
+        max_retries=3,
+    )
+    agent: Agent[None, str] = Agent(
+        model=settings.llm_executor_model,
+        toolsets=[mcp],
+        system_prompt=SINGLE_EMAIL_AGENT_SYSTEM_PROMPT,
+        retries=3,
+    )
+
+    try:
+        async with agent.iter(brief) as agent_run:
+            async for node in agent_run:
+                if isinstance(node, ModelRequestNode):
+                    has_tool_returns = any(
+                        getattr(p, "part_kind", "") == "tool-return"
+                        for p in node.request.parts
+                    )
+                    if has_tool_returns:
+                        preview_html = await _fetch_preview(template_id, settings)
+                        if preview_html:
+                            yield _single_preview_event(preview_html)
+
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("Single agent error for %s: %s", template_id, exc)
+
+    # Final preview
+    preview_html = await _fetch_preview(template_id, settings)
+    if preview_html:
+        yield _single_preview_event(preview_html)
 
     yield {"event": "close", "data": ""}

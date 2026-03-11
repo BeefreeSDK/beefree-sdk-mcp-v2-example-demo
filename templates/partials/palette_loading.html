@@ -1,0 +1,42 @@
+<!-- Returned instantly by POST /palette-submit. SSE drives the column grid. -->
+
+<div hx-ext="sse"
+     sse-connect="/palette-stream?session_id={{ session_id }}"
+     sse-close="close">
+
+  <div id="palette-content" sse-swap="ready" hx-swap="innerHTML">
+
+    <section class="card exec-progress-card">
+      <div class="exec-progress-header">
+        <h3 class="exec-progress-title">Preparing {{ palettes | length }} palette variation{{ 's' if palettes | length != 1 else '' }}&hellip;</h3>
+        <p class="exec-progress-sub">
+          Seeding {{ palettes | length }} isolated template copies, then launching one agent per palette in parallel.
+        </p>
+      </div>
+
+      <div class="exec-phases">
+
+        <div class="exec-phase is-active">
+          <span class="phase-spinner"></span>
+          <div class="phase-content">
+            <p class="phase-title">Seeding template copies</p>
+            <p class="phase-sub">
+              {{ palettes | map(attribute='name') | join(', ') }}
+            </p>
+          </div>
+        </div>
+
+        <div class="exec-phase is-pending">
+          <span class="phase-dot"></span>
+          <div class="phase-content">
+            <p class="phase-title">Launch palette agents</p>
+            <p class="phase-sub">All agents run in parallel — one per palette</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+</div>

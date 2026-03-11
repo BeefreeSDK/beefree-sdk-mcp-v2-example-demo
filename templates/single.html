@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Beefree Headless MCP v2 — Sequence Demo</title>
+  <title>Beefree Headless MCP v2 — Single Email</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -28,20 +28,20 @@
           <circle cx="19" cy="13" r="1.5" fill="#26045D"/>
         </svg>
         <span class="brand-name">Beefree SDK</span>
-        <span class="brand-tag">Email Sequence</span>
+        <span class="brand-tag">Single Email</span>
       </div>
       <p class="header-sub">
-        Generate a full email sequence in parallel — no browser required.
+        Generate one complete email with a single AI agent.
       </p>
     </div>
   </header>
 
   <main class="container">
 
-    <!-- ── Campaign form ── -->
+    <!-- ── Brief form ── -->
     <section class="card form-card" id="form-section">
       <div class="card-header-row">
-        <h2 class="card-title">Design your campaign</h2>
+        <h2 class="card-title">Describe your email</h2>
         <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -52,26 +52,26 @@
       <div class="card-body">
         <div>
           <form
-            hx-post="/plan"
+            hx-post="/generate"
             hx-target="#workspace"
             hx-swap="innerHTML"
             hx-indicator="#spinner"
             class="campaign-form"
           >
             <div class="field full">
-              <label for="goal">Campaign brief</label>
+              <label for="brief">Email brief</label>
               <textarea
-                id="goal"
-                name="goal"
+                id="brief"
+                name="brief"
                 rows="6"
-                placeholder="Describe your emails — the planner will figure out how many to create.&#10;&#10;e.g. Generate 3 transactional emails for Netflix: account confirmation, password reset, and subscription confirmation…"
+                placeholder="Describe the email you want to generate.&#10;&#10;e.g. A welcome email for new Netflix subscribers. Warm tone, highlight what they can watch, include a CTA to start browsing…"
                 required
               ></textarea>
             </div>
 
             <div class="field full actions">
               <button type="submit" class="btn btn-primary">
-                Generate Sequence
+                Generate Email
                 <span id="spinner" class="htmx-indicator spinner"></span>
               </button>
             </div>
@@ -80,7 +80,7 @@
       </div>
     </section>
 
-    <!-- ── Dynamic workspace (plan → execution) ── -->
+    <!-- ── Dynamic workspace ── -->
     <div id="workspace"></div>
 
   </main>
@@ -93,37 +93,16 @@
   </footer>
 
   <script>
-    /* ── Thumbnail rescaling ── */
-    function rescaleThumbs() {
-      document.querySelectorAll('.thumb-viewport').forEach(vp => {
-        const w = vp.offsetWidth;
-        const scale = w / 600;
-        const inner = vp.querySelector('.thumb-inner');
-        if (inner) inner.style.transform = 'scale(' + scale + ')';
-      });
-    }
-    window.addEventListener('resize', rescaleThumbs);
-
-    /* ── Section collapse ── */
     function toggleCard(card) {
       if (card) card.classList.toggle('is-collapsed');
     }
 
     document.body.addEventListener('htmx:afterSwap', function(e) {
-      setTimeout(rescaleThumbs, 50);
       var tgt = e.detail && e.detail.target;
       if (!tgt) return;
-
-      // Plan appeared → collapse the campaign form
       if (tgt.id === 'workspace') {
         var fs = document.getElementById('form-section');
         if (fs) fs.classList.add('is-collapsed');
-      }
-
-      // Execute started → collapse the plan card
-      if (tgt.id === 'execution') {
-        var pc = document.querySelector('.plan-card');
-        if (pc) pc.classList.add('is-collapsed');
       }
     });
   </script>
