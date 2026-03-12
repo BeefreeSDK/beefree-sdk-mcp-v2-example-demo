@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()  # put .env vars into os.environ so PydanticAI can read them
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sse_starlette import EventSourceResponse
@@ -25,8 +25,9 @@ from .agent import (
     stream_single_executor,
     stream_translation_executor,
     stream_palette_executor,
+    stream_edit_executor,
 )
-from .beefree import create_seeded_template, create_template
+from .beefree import create_seeded_template, create_template, get_template
 from .config import get_settings
 
 app = FastAPI(title="Beefree Headless MCP v2 Demo")
@@ -44,6 +45,9 @@ translation_sessions: dict[str, dict] = {}
 
 # Temporary store for palette sessions (session_id → {template_json, palettes})
 palette_sessions: dict[str, dict] = {}
+
+# Temporary store for edit sessions (session_id → {template_id, messages})
+edit_sessions: dict[str, dict] = {}
 
 AVAILABLE_LANGUAGES = [
     "Spanish", "French", "German", "Italian", "Portuguese (Brazil)",
@@ -276,6 +280,8 @@ async def generate_stream(request: Request, brief: str):
     async def generator():
         try:
             template_id = await create_template(settings)
+            # Tell the frontend which template was created so it can offer a download
+            yield {"event": "template-id", "data": template_id}
             async for event in stream_single_executor(template_id, brief, settings):
                 yield event
         except Exception as exc:
@@ -289,6 +295,20 @@ async def generate_stream(request: Request, brief: str):
             yield {"event": "close", "data": ""}
 
     return EventSourceResponse(generator())
+
+
+@app.get("/download-template/{template_id}")
+async def download_template(template_id: str):
+    """Return the Beefree template JSON as a downloadable file."""
+    settings = get_settings()
+    data = await get_template(template_id, settings)
+    template = data.get("template", data)
+    filename = f"email-{template_id[:8]}.json"
+    return Response(
+        content=json.dumps(template, indent=2),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.post("/preview-template", response_class=HTMLResponse)
@@ -680,6 +700,85 @@ async def mcp_proxy(request: Request):
         headers=resp_headers,
         media_type=resp.headers.get("content-type", "application/json"),
     )
+
+
+@app.get("/edit", response_class=HTMLResponse)
+async def edit_page(request: Request):
+    return templates.TemplateResponse("edit.html", {"request": request})
+
+
+@app.post("/edit-start", response_class=HTMLResponse)
+async def edit_start(request: Request, template_json: str = Form(...)):
+    """Parse template JSON, seed a Beefree template, create a session, return chat view."""
+    from .beefree import render_html
+
+    settings = get_settings()
+    try:
+        parsed = json.loads(template_json)
+    except json.JSONDecodeError as exc:
+        return HTMLResponse(
+            f"<p class='plan-error'>Invalid JSON: {exc}</p>", status_code=400
+        )
+
+    template = parsed.get("template", parsed)
+    try:
+        template_id = await create_seeded_template(settings, template)
+        rendered = await render_html(template, settings)
+    except Exception as exc:
+        return HTMLResponse(
+            f"<p class='plan-error'>Failed to load template: {exc}</p>", status_code=500
+        )
+
+    escaped = html_lib.escape(rendered, quote=True)
+    initial_preview = (
+        f'<iframe srcdoc="{escaped}" sandbox="allow-same-origin" '
+        'style="width:600px;height:1200px;border:none;display:block;" '
+        'title="Email preview"></iframe>'
+    )
+
+    session_id = uuid.uuid4().hex[:12]
+    edit_sessions[session_id] = {"template_id": template_id, "messages": []}
+
+    return templates.TemplateResponse(
+        "partials/edit_workspace.html",
+        {
+            "request": request,
+            "session_id": session_id,
+            "template_id": template_id,
+            "initial_preview": initial_preview,
+        },
+    )
+
+
+@app.get("/edit-stream")
+async def edit_stream_route(request: Request, session_id: str, message: str):
+    """SSE: run one edit-agent turn, stream previews + the agent's reply."""
+    settings = get_settings()
+    session = edit_sessions.get(session_id)
+    if not session:
+        async def _err():
+            yield {"event": "agent-message", "data": "<p>Session not found.</p>"}
+            yield {"event": "close", "data": ""}
+        return EventSourceResponse(_err())
+
+    template_id = session["template_id"]
+    history = session.get("messages", [])
+    new_messages: list = []
+
+    async def generator():
+        async for event in stream_edit_executor(
+            template_id=template_id,
+            message=message,
+            settings=settings,
+            message_history=history,
+            out_messages=new_messages,
+        ):
+            yield event
+        # Persist updated conversation history after the stream completes
+        if new_messages:
+            edit_sessions[session_id]["messages"] = new_messages
+
+    return EventSourceResponse(generator())
 
 
 @app.get("/stream/{template_id}")

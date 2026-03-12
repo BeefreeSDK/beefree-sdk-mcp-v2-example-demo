@@ -20,9 +20,7 @@
           <span class="phase-spinner"></span>
           <div class="phase-content">
             <p class="phase-title">Seeding template copies</p>
-            <p class="phase-sub">
-              {{ palettes | map(attribute='name') | join(', ') }}
-            </p>
+            <p class="phase-sub ai-ticker" id="palette-ticker">Duplicating your template for each palette variation&hellip;</p>
           </div>
         </div>
 
@@ -30,7 +28,7 @@
           <span class="phase-dot"></span>
           <div class="phase-content">
             <p class="phase-title">Launch palette agents</p>
-            <p class="phase-sub">All agents run in parallel — one per palette</p>
+            <p class="phase-sub">Each agent rewrites colours, buttons and backgrounds to match its palette &mdash; all in parallel</p>
           </div>
         </div>
 
@@ -40,3 +38,25 @@
   </div>
 
 </div>
+
+<script>
+(function () {
+  var msgs = [
+    "Duplicating your template for each palette variation\u2026",
+    "Preparing isolated workspaces per palette\u2026",
+    "About to launch {{ palettes | length }} agents in parallel\u2026",
+    "Each agent will apply a distinct colour scheme\u2026"
+  ];
+  var el = document.getElementById('palette-ticker');
+  if (!el) return;
+  var i = 0;
+  setInterval(function () {
+    el.style.opacity = '0';
+    setTimeout(function () {
+      i = (i + 1) % msgs.length;
+      el.textContent = msgs[i];
+      el.style.opacity = '1';
+    }, 200);
+  }, 2800);
+})();
+</script>

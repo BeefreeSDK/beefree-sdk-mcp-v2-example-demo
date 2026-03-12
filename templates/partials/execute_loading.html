@@ -9,10 +9,10 @@
 
     <section class="card exec-progress-card">
       <div class="exec-progress-header">
-        <h3 class="exec-progress-title">Preparing your email sequence&hellip;</h3>
+        <h3 class="exec-progress-title">Building your email sequence&hellip;</h3>
         <p class="exec-progress-sub">
-          This takes a moment — the shared layout is built once so every email
-          starts from an identical foundation.
+          The shared layout is built first &mdash; one consistent header, footer and colour
+          palette that all emails inherit. Then every email agent runs in parallel.
         </p>
       </div>
 
@@ -23,7 +23,7 @@
           <span class="phase-spinner"></span>
           <div class="phase-content">
             <p class="phase-title">Building shared layout</p>
-            <p class="phase-sub">Header, footer and global styles &mdash; identical across all emails</p>
+            <p class="phase-sub ai-ticker" id="layout-ticker">Choosing a brand-appropriate colour palette&hellip;</p>
           </div>
         </div>
 
@@ -31,7 +31,7 @@
           <span class="phase-dot"></span>
           <div class="phase-content">
             <p class="phase-title">Launch email agents</p>
-            <p class="phase-sub">All agents will run in parallel once the layout is ready</p>
+            <p class="phase-sub">One dedicated agent per email &mdash; all run in parallel once the layout is ready</p>
           </div>
         </div>
 
@@ -41,3 +41,28 @@
   </div>
 
 </div>
+
+<script>
+(function () {
+  var msgs = [
+    "Choosing a brand-appropriate colour palette\u2026",
+    "Setting global typography and link styles\u2026",
+    "Building the shared header with your brand identity\u2026",
+    "Crafting the compliance footer\u2026",
+    "Checking for duplicate elements\u2026",
+    "Validating the shared layout\u2026",
+    "Preparing to launch email agents\u2026"
+  ];
+  var el = document.getElementById('layout-ticker');
+  if (!el) return;
+  var i = 0;
+  setInterval(function () {
+    el.style.opacity = '0';
+    setTimeout(function () {
+      i = (i + 1) % msgs.length;
+      el.textContent = msgs[i];
+      el.style.opacity = '1';
+    }, 200);
+  }, 3200);
+})();
+</script>

@@ -1,76 +1,218 @@
 <!-- Returned instantly by POST /generate. SSE drives the live preview. -->
 
 <style>
-  .single-result-wrap {
-    max-width: 450px;
-    margin: 0 auto;
-  }
+/* ── Two-column layout ── */
+.single-split-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  margin-top: 1.25rem;
+}
 
-  .single-result-col {
-    border: 2px solid #EAE6F7;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #fff;
-    box-shadow: 0 1px 3px rgba(38,4,93,.06), 0 6px 20px rgba(38,4,93,.08);
-    transition: border-color .3s, box-shadow .3s;
-  }
+/* ── Left: step progress panel ── */
+.single-steps-col {
+  flex-shrink: 0;
+  width: 210px;
+  position: sticky;
+  top: 1rem;
+}
 
-  .single-result-col.is-generating {
-    border-color: #7747FF;
-    box-shadow:
-      0 0 0 3px rgba(119,71,255,.15),
-      0 1px 3px rgba(38,4,93,.06),
-      0 6px 20px rgba(38,4,93,.08);
-  }
+.sgl-status-row {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  margin-bottom: 1rem;
+  padding-bottom: .85rem;
+  border-bottom: 1px solid #EAE6F7;
+}
 
-  .single-result-col.is-done { border-color: #82EDA8; }
+.sgl-status-label {
+  font-size: .78rem;
+  font-weight: 700;
+  color: #26045D;
+}
 
-  .single-gen-status {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    font-size: .7rem;
-    font-weight: 700;
-    padding: .28rem .65rem;
-    border-radius: 99px;
-    white-space: nowrap;
-    transition: background .3s, color .3s;
-  }
+.sgl-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
 
-  .single-gen-status.generating {
-    background: rgba(119,71,255,.1);
-    color: #7747FF;
-  }
+.sgl-step {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .48rem .6rem;
+  border-radius: 7px;
+  font-size: .76rem;
+  font-weight: 500;
+  color: #6E5F8A;
+  transition: background .25s, color .25s, opacity .25s;
+  position: relative;
+}
 
-  .single-gen-status.done {
-    background: rgba(130,237,168,.25);
-    color: #1a7a40;
-  }
+.sgl-step + .sgl-step::before {
+  content: "";
+  position: absolute;
+  left: 1.1rem;
+  top: -5px;
+  width: 2px;
+  height: 5px;
+  background: #EAE6F7;
+}
 
-  .status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    animation: blink-dot 1s ease-in-out infinite;
-  }
+.sgl-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #D6C8FF;
+  display: inline-block;
+  transition: border-color .25s, background .25s;
+  position: relative;
+}
 
-  @keyframes blink-dot {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: .25; }
-  }
+/* active: spinning purple ring */
+.sgl-step.is-active { background: rgba(119,71,255,.07); color: #26045D; }
+.sgl-step.is-active .sgl-icon {
+  border-color: #7747FF;
+  border-top-color: transparent;
+  animation: spin .7s linear infinite;
+}
 
-  .single-iframe-wrap { width: 600px; transform-origin: top left; }
-  .single-iframe-wrap iframe { width: 600px; border: none; display: block; }
+/* done: green check */
+.sgl-step.is-done { color: #6E5F8A; }
+.sgl-step.is-done .sgl-icon {
+  border-color: #82EDA8;
+  background: #82EDA8;
+}
+.sgl-step.is-done .sgl-icon::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .5rem;
+  font-weight: 900;
+  color: #26045D;
+}
 
-  .single-waiting {
-    padding: 4rem 1rem;
-    text-align: center;
-    color: #6E5F8A;
-    font-style: italic;
-    font-size: .875rem;
-  }
+/* pending: faded */
+.sgl-step.is-pending { opacity: .38; }
+
+/* ── Right: preview column ── */
+.single-preview-col { flex: 1; min-width: 0; }
+
+.single-result-col {
+  border: 2px solid #EAE6F7;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(38,4,93,.06), 0 6px 20px rgba(38,4,93,.08);
+  transition: border-color .3s, box-shadow .3s;
+  width: 100%;
+  max-width: 600px; /* never wider than the email itself */
+}
+
+.single-result-col.is-generating {
+  border-color: #7747FF;
+  box-shadow:
+    0 0 0 3px rgba(119,71,255,.15),
+    0 1px 3px rgba(38,4,93,.06),
+    0 6px 20px rgba(38,4,93,.08);
+}
+
+.single-result-col.is-done { border-color: #82EDA8; }
+
+/* iframe wrap */
+.single-iframe-wrap { width: 600px; transform-origin: top left; }
+.single-iframe-wrap iframe { width: 600px; border: none; display: block; }
+
+/* ── Email skeleton placeholder ── */
+.email-skeleton {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.esk-block {
+  background: linear-gradient(90deg, #F0EDFA 25%, #E4DEFF 50%, #F0EDFA 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.esk-header { height: 80px; }
+.esk-hero   { height: 140px; margin: 0; background-color: #EAE6F7;
+              background: linear-gradient(90deg, #E4DEFF 25%, #D6C8FF 50%, #E4DEFF 75%);
+              background-size: 800px 100%;
+              animation: shimmer 1.6s ease-in-out infinite; }
+.esk-body   { height: 120px; margin: 0; }
+.esk-cols   {
+  display: flex;
+  gap: 0;
+  height: 100px;
+}
+.esk-col-block {
+  flex: 1;
+  background: linear-gradient(90deg, #F8F6FE 25%, #EAE6F7 50%, #F8F6FE 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+.esk-col-block:nth-child(2) { animation-delay: .2s; }
+.esk-col-block:nth-child(3) { animation-delay: .4s; }
+.esk-cta    { height: 80px; }
+.esk-footer { height: 56px;
+              background: linear-gradient(90deg, #F8F6FE 25%, #F0EDFA 50%, #F8F6FE 75%);
+              background-size: 800px 100%;
+              animation: shimmer 1.6s ease-in-out infinite; }
+
+.esk-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .85rem 1rem;
+  font-size: .72rem;
+  color: #6E5F8A;
+  font-style: italic;
+  border-top: 1px solid #EAE6F7;
+}
+
+/* ── Card header badges ── */
+.single-gen-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .28rem .65rem;
+  border-radius: 99px;
+  white-space: nowrap;
+  transition: background .3s, color .3s;
+}
+
+.single-gen-status.generating { background: rgba(119,71,255,.1); color: #7747FF; }
+.single-gen-status.done       { background: rgba(130,237,168,.25); color: #1a7a40; }
+
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: blink-dot 1s ease-in-out infinite;
+}
+@keyframes blink-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .25; }
+}
 </style>
 
 <section class="card">
@@ -81,29 +223,83 @@
     </span>
   </div>
 
-  <div
-    class="single-result-wrap"
-    hx-ext="sse"
-    sse-connect="/generate-stream?brief={{ brief | urlencode }}"
-    sse-close="close"
-    id="single-gen-card"
-  >
-    <div class="single-result-col is-generating">
-      <div class="single-iframe-wrap" sse-swap="preview" hx-swap="innerHTML">
-        <div class="single-waiting">Agent is starting&hellip;</div>
+  <!-- SSE lives here — steps col and preview col are siblings inside it -->
+  <div id="single-gen-card"
+       class="single-split-layout"
+       hx-ext="sse"
+       sse-connect="/generate-stream?brief={{ brief | urlencode }}"
+       sse-close="close">
+
+    <!-- ── LEFT: persistent step list (never swapped) ── -->
+    <div class="single-steps-col">
+      <div class="sgl-status-row">
+        <span class="phase-spinner" id="sgl-spinner"></span>
+        <p class="sgl-status-label">Building your email&hellip;</p>
+      </div>
+      <ul class="sgl-steps" id="sgl-list">
+        <li class="sgl-step is-active" ><span class="sgl-icon"></span>Subject &amp; preheader</li>
+        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Brand colours &amp; typography</li>
+        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Header banner</li>
+        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Hero section</li>
+        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Value propositions</li>
+        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Social proof</li>
+        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Closing CTA strip</li>
+        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Compliance footer</li>
+        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Quality &amp; duplicate check</li>
+      </ul>
+    </div>
+
+    <!-- ── RIGHT: preview column (only .single-iframe-wrap content is swapped) ── -->
+    <div class="single-preview-col">
+      <div class="single-result-col is-generating" id="single-result-col">
+        <div class="single-iframe-wrap" sse-swap="preview" hx-swap="innerHTML">
+
+          <!-- skeleton shown until the first SSE preview fires -->
+          <div class="email-skeleton">
+            <div class="esk-block esk-header"></div>
+            <div class="esk-block esk-hero"></div>
+            <div class="esk-block esk-body"></div>
+            <div class="esk-cols">
+              <div class="esk-col-block"></div>
+              <div class="esk-col-block"></div>
+              <div class="esk-col-block"></div>
+            </div>
+            <div class="esk-block esk-cta"></div>
+            <div class="esk-block esk-footer"></div>
+            <div class="esk-label">
+              <span class="phase-spinner" style="width:12px;height:12px;border-width:1.5px"></span>
+              Preview will appear as sections are built&hellip;
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
+
+    <!-- Hidden sink for the template-id SSE event — HTMX writes the ID here -->
+    <div id="single-template-id"
+         sse-swap="template-id"
+         hx-swap="innerHTML"
+         style="display:none"></div>
+
   </div>
 </section>
 
 <script>
 (function () {
 
+  /* ── Read template-id from the hidden SSE-swap sink ── */
+  function getTemplateId() {
+    var el = document.getElementById('single-template-id');
+    return el ? el.textContent.trim() : null;
+  }
+
+  /* ── Scale preview iframe to fit its container ── */
   function scalePreview() {
-    var col = document.querySelector('.single-result-col');
+    var col = document.getElementById('single-result-col');
     if (!col) return;
     var w = col.offsetWidth;
-    var scale = w / 600;
+    var scale = Math.min(1, w / 600);
     var wrap = col.querySelector('.single-iframe-wrap');
     if (wrap) {
       wrap.style.transform = 'scale(' + scale + ')';
@@ -116,7 +312,7 @@
   document.body.addEventListener('htmx:afterSwap', function () { setTimeout(scalePreview, 50); });
   document.body.addEventListener('htmx:sseMessage', function (e) {
     setTimeout(scalePreview, 50);
-    var col = e.target && e.target.closest('.single-result-col');
+    var col = document.getElementById('single-result-col');
     if (!col) return;
     var wrap = col.querySelector('.single-iframe-wrap');
     if (!wrap) return;
@@ -128,17 +324,63 @@
     }, { once: true });
   });
 
+  /* ── Auto-advance step list every ~9 s ── */
+  var steps = document.querySelectorAll('#sgl-list .sgl-step');
+  var current = 0;
+  var stepTimer = setInterval(function () {
+    if (current < steps.length - 1) {
+      steps[current].classList.remove('is-active');
+      steps[current].classList.add('is-done');
+      current++;
+      steps[current].classList.remove('is-pending');
+      steps[current].classList.add('is-active');
+    } else {
+      clearInterval(stepTimer);
+    }
+  }, 9000);
+
+  /* ── On completion: mark all done, update badge, show download button ── */
   document.body.addEventListener('htmx:sseClose', function () {
+    clearInterval(stepTimer);
+
+    // Mark all remaining steps as done
+    steps.forEach(function (s) {
+      s.classList.remove('is-active', 'is-pending');
+      s.classList.add('is-done');
+    });
+
+    // Swap spinner for a check in the status row
+    var spinner = document.getElementById('sgl-spinner');
+    if (spinner) {
+      spinner.className = '';   // removes phase-spinner → stops the animation
+      spinner.textContent = '✓';
+      spinner.style.cssText = 'flex-shrink:0;font-size:.9rem;font-weight:900;color:#1a7a40;';
+    }
+    var label = spinner && spinner.nextElementSibling;
+    if (label) label.textContent = 'Email ready!';
+
+    // Update top badge
     var badge = document.getElementById('single-status-badge');
-    if (badge) {
-      badge.className = 'single-gen-status done';
-      badge.textContent = '✓ Done';
+    if (badge) { badge.className = 'single-gen-status done'; badge.textContent = '✓ Done'; }
+
+    // Show download button next to badge
+    var _templateId = getTemplateId();
+    if (_templateId) {
+      var headerRow = badge && badge.parentElement;
+      if (headerRow && !document.getElementById('single-download-btn')) {
+        var a = document.createElement('a');
+        a.id = 'single-download-btn';
+        a.href = '/download-template/' + _templateId;
+        a.download = 'email-' + _templateId.slice(0, 8) + '.json';
+        a.className = 'btn-outline';
+        a.innerHTML = '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Download JSON';
+        headerRow.appendChild(a);
+      }
     }
-    var col = document.querySelector('.single-result-col');
-    if (col) {
-      col.classList.remove('is-generating');
-      col.classList.add('is-done');
-    }
+
+    var col = document.getElementById('single-result-col');
+    if (col) { col.classList.remove('is-generating'); col.classList.add('is-done'); }
+
     scalePreview();
   });
 

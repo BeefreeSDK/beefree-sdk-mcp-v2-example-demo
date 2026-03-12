@@ -11,7 +11,7 @@
         <div class="spinner-ring"></div>
         <div class="planning-text">
           <p class="planning-headline">Planning your email sequence&hellip;</p>
-          <p class="planning-sub">The AI is designing your campaign structure.</p>
+          <p class="planning-sub ai-ticker" id="plan-ticker">Reading your campaign brief&hellip;</p>
         </div>
       </div>
     </section>
@@ -20,3 +20,28 @@
   <div id="execution"></div>
 
 </div>
+
+<script>
+(function () {
+  var msgs = [
+    "Reading your campaign brief\u2026",
+    "Identifying your target audience and goals\u2026",
+    "Mapping the optimal email flow\u2026",
+    "Writing compelling subject lines\u2026",
+    "Deciding the right number of emails\u2026",
+    "Sequencing touchpoints for maximum impact\u2026",
+    "Finalising titles and structure\u2026"
+  ];
+  var el = document.getElementById('plan-ticker');
+  if (!el) return;
+  var i = 0;
+  setInterval(function () {
+    el.style.opacity = '0';
+    setTimeout(function () {
+      i = (i + 1) % msgs.length;
+      el.textContent = msgs[i];
+      el.style.opacity = '1';
+    }, 200);
+  }, 2800);
+})();
+</script>
