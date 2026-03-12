@@ -123,8 +123,23 @@
 <section>
   <div class="seq-header">
     <h2 class="seq-title">{{ plan.sequence_title }}</h2>
-    <span class="plan-badge running">{{ emails_with_ids | length }} agents in parallel</span>
+    <span class="plan-badge running" id="seq-status-badge">{{ emails_with_ids | length }} agents in parallel</span>
+    <a id="seq-download-btn"
+       class="btn-outline"
+       style="display:none;"
+       href="#">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Download All
+    </a>
   </div>
+
+  <p class="demo-disclaimer" style="margin-bottom:1rem;">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:.1rem">
+      <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    </svg>
+    Output quality varies across AI providers and models. This is a showcase of the Beefree Headless MCP integration — not a benchmark. System prompts, model choice, and workflow design can all be tuned to match your specific use case.
+  </p>
 
   <div class="seq-row" id="seq-row">
     {% for email, template_id in emails_with_ids %}
@@ -196,6 +211,16 @@
     if (col) col.classList.add('is-generating');
   });
 
+  // Collect template IDs from SSE connect URLs for later download
+  var _seqTemplateIds = [];
+  document.querySelectorAll('.seq-col[sse-connect]').forEach(function (col) {
+    var url = col.getAttribute('sse-connect');
+    var m = url.match(/\/stream\/([^?]+)/);
+    if (m) _seqTemplateIds.push(m[1]);
+  });
+  var _seqDoneCount = 0;
+  var _seqTotal = document.querySelectorAll('.seq-col').length;
+
   // Flip status pill to Done when SSE stream closes
   document.body.addEventListener('htmx:sseClose', function (e) {
     var col = e.target.closest('.seq-col');
@@ -206,6 +231,18 @@
     if (pill) {
       pill.className = 'seq-status done';
       pill.textContent = '✓ Done';
+    }
+
+    _seqDoneCount++;
+    if (_seqDoneCount >= _seqTotal) {
+      var badge = document.getElementById('seq-status-badge');
+      if (badge) { badge.className = 'plan-badge done'; badge.textContent = '✓ All done'; }
+
+      var dlBtn = document.getElementById('seq-download-btn');
+      if (dlBtn && _seqTemplateIds.length) {
+        dlBtn.href = '/download-all?ids=' + _seqTemplateIds.join(',');
+        dlBtn.style.display = '';
+      }
     }
   });
 

@@ -1,8 +1,11 @@
 import asyncio
 import html as html_lib
 import json
+import logging
 import uuid
 from urllib.parse import quote
+
+log = logging.getLogger(__name__)
 
 import httpx
 from dotenv import load_dotenv
@@ -10,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()  # put .env vars into os.environ so PydanticAI can read them
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, Response, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sse_starlette import EventSourceResponse
@@ -59,66 +62,69 @@ AVAILABLE_LANGUAGES = [
 ]
 
 SEQUENCE_PRESETS: dict[str, list[list[str]]] = {
-    # sections_per_step[email_index] = ordered list of body section descriptions
+    # sections_per_step[email_index] = ordered list of body section descriptions.
+    # Each description is a precise layout brief for the executor: layout type,
+    # element sizes, copy direction, and colour intent are all specified.
+
     "streaming-onboarding": [
-        [  # Email 1 — Welcome
-            "Full-width hero: branded 'Welcome!' headline, atmospheric background image placeholder, large 'Start Watching Now' CTA button",
-            "Content category grid: 4 genre tiles with cover image placeholders and genre labels (Action, Drama, Comedy, Documentaries)",
-            "Featured picks row: 'Hand-picked for you' intro copy + 2–3 show/movie cards with thumbnail placeholder, title, and one-line description",
-            "App download row: 'Watch anywhere' copy + App Store and Google Play button placeholders side by side",
+        [  # Email 1 — Welcome & account confirmed
+            "Hero (1-col, primary-colour bg, 40px v-padding): 600×220 atmospheric placehold.co banner image; 'Welcome to StreamVault' headline (28px bold, white, centred); 'Your account is ready — start watching in seconds.' subheading (15px, #A0A0B0, centred); 'Start Watching Now' CTA button (accent bg, white text, 48px tall, 6px radius, centred)",
+            "Genre grid (2-col, white bg, 28px padding): 'What do you want to watch tonight?' section heading (20px bold, primary colour, centred); 4 genre tiles in a 2×2 grid — Action, Drama, Sci-Fi, Comedy — each tile has a 280×150 placehold.co cover image and a bold genre label (16px) below it",
+            "App download strip (1-col, page-bg, 28px padding): 'Watch on phone, tablet, TV, and laptop.' copy (15px, centred); two side-by-side button placeholders — 'App Store' and 'Google Play' — using placehold.co 130×42 images in a neutral dark tone",
         ],
-        [  # Email 2 — Password Reset
-            "Security alert row: padlock icon + 'Password Reset Request' headline + one line of reassuring intro copy",
-            "Reset action row: clear instruction sentence + large high-contrast 'Reset My Password' CTA button + 'This link expires in 24 hours' notice in small muted text",
-            "Safety notice row: short paragraph — 'Didn't request this? You can safely ignore this email.' + support contact link",
+        [  # Email 2 — Password Reset (functional only)
+            "Security header (1-col, primary-colour bg, 36px padding): 48×48 padlock icon (placehold.co, white on primary); 'Password Reset Request' headline (22px bold, white, centred); 'We received a request to reset your StreamVault password.' subtext (14px, #A0A0B0, centred)",
+            "Action row (1-col, white bg, 44px padding): 'Click the button below — this link expires in 24 hours.' instruction (15px, body colour, centred); 'Reset My Password' CTA button (accent bg, white, 48px tall, centred); 'Didn't request this? You can safely ignore this email — your password will not change.' safety notice (13px, #888888, italic, centred)",
         ],
-        [  # Email 3 — Subscription Confirmation
-            "Plan summary row: plan name badge, billing cycle label, and monthly price displayed prominently with icon accents",
-            "Benefits grid: 3-column icon list — number of screens, downloads, video quality (HD/4K), and ad-free viewing",
-            "Next steps CTA row: 'You're all set!' headline + 'Start exploring now' copy + 'Browse the Catalogue' button + 'Manage your subscription' text link",
+        [  # Email 3 — Subscription Confirmed
+            "Confirmation hero (1-col, accent bg, 36px padding): 48×48 checkmark icon (placehold.co white); 'You're all set — welcome to StreamVault Premium.' headline (24px bold, white, centred); 'Your subscription is active. Next billing: [billing date].' subtext (14px, rgba-white-70, centred)",
+            "Plan benefits (3-col, white bg, 32px padding): 'Everything included in your plan' section heading (20px bold, primary, centred); 3 equal columns — col 1: '4K Ultra HD' with 48×48 icon + 13px caption; col 2: 'Watch on 4 screens' with icon + caption; col 3: 'Unlimited downloads' with icon + caption; all icons use placehold.co 48×48",
+            "Next steps strip (1-col, primary-colour bg, 36px padding): 'Time to find your next obsession.' headline (22px bold, white, centred); 'Explore the Catalogue' primary CTA button (accent bg, white, 48px, centred); 'Manage your subscription' secondary text link below (13px, #A0A0B0, underlined, centred)",
         ],
     ],
+
     "saas-trial-nurture": [
-        [  # Email 1 — Trial Started
-            "Welcome hero: 'Your trial has started' headline, product dashboard screenshot placeholder, 'Open Your Dashboard' CTA button",
-            "Top 3 features grid: 3-column layout — each column has icon, feature name, and one-line benefit (e.g. Task Boards, Time Tracking, Team Collaboration)",
-            "Quick-start CTA row: '3 steps to get started' intro + step-count badges with short action labels + 'Start Your First Project' button",
+        [  # Email 1 — Trial Activated (Day 0)
+            "Hero (1-col, primary-colour bg, 40px padding): 600×220 placehold.co product dashboard screenshot; 'Your Taskflow trial is live.' headline (26px bold, white, centred); 'You have 14 days to explore everything — no credit card needed.' subtext (15px, #90B4D4, centred); 'Open Your Dashboard' CTA (accent bg, white, 48px tall, centred)",
+            "3-feature grid (3-col, page-bg, 32px padding): 'Start with these three features' section heading (18px bold, primary, centred); 3 equal columns — col 1: Task Boards (48×48 icon, 15px bold title, 13px benefit line); col 2: Time Tracking (icon, title, benefit); col 3: Team Collaboration (icon, title, benefit); icons use placehold.co 48×48",
+            "Quick-start checklist (1-col, white bg, 32px padding): 'Get set up in under 5 minutes' heading (18px bold, primary); 3 numbered steps as a tight vertical list — '1. Create your first project', '2. Invite a team member', '3. Set your first deadline' — each step in 15px with a number badge in accent colour; 'Start Your First Project' CTA button (primary bg, white, 44px, below the list)",
         ],
         [  # Email 2 — Day 3 Check-in
-            "Friendly check-in hero: conversational 'How's it going so far?' headline + short personal-tone intro paragraph",
-            "3 actionable tips: numbered list with icon accents — each tip is one concrete task the user can complete today in the tool",
-            "Tutorial resources row: 2 video tutorial cards with thumbnail placeholder, title, and viewing time",
-            "Support CTA row: 'Need a hand?' copy + help docs link + 'Back to Dashboard' button",
+            "Friendly intro (1-col, white bg, 36px padding): 'How's Taskflow working for you?' headline (24px bold, primary, centred); 'Here are three things to try today to get the most from your trial.' body copy (15px, #64748B, centred)",
+            "Tips list (1-col, page-bg, 32px padding): 3 numbered rows — each row has a large colour-coded number badge (accent bg), a bold tip title (15px, primary), and one sentence of practical context (14px, #64748B); tips: 'Turn on notifications', 'Create a recurring task', 'Use the timeline view'",
+            "Tutorial cards (2-col, white bg, 28px padding): 'Watch and learn' section heading (16px bold); 2 video-thumbnail cards side by side — each with a 280×160 placehold.co thumbnail, a video title, and a '3 min' duration label (12px, muted)",
+            "Support strip (1-col, accent bg, 28px padding): 'Stuck? We're here.' headline (20px bold, white, centred); two inline text links — 'View Help Docs' and 'Back to Dashboard' — side by side in white, 15px",
         ],
-        [  # Email 3 — Day 7 Feature Spotlight
-            "Feature hero: bold spotlight headline naming the premium feature, feature screenshot/illustration placeholder, 1-sentence value statement",
-            "Benefits breakdown: 2–3 benefit bullets with icons — concrete outcomes the feature enables for the user's team",
-            "Upgrade CTA block: contrasting background, 'Unlock this feature today' headline, pricing reminder (monthly/annual), 'Upgrade Now' button",
+        [  # Email 3 — Day 7 Feature Spotlight (Automation)
+            "Feature hero (1-col, primary-colour bg, 40px padding): 600×200 placehold.co feature screenshot; 'Meet Automation — the feature that saves your team 5 hours a week.' headline (24px bold, white, centred); 'Available on the paid plan.' one-line value note (14px, #90B4D4, centred)",
+            "Benefits breakdown (1-col, white bg, 32px padding): 'What Automation unlocks for your team' heading (18px bold, primary); 3 benefit rows — each row has a small accent-coloured icon bullet, a bold benefit title (15px), and a concrete one-line outcome (14px, #64748B): 'Auto-assign tasks when a deadline shifts', 'Send instant Slack alerts on status changes', 'Generate weekly progress reports automatically'",
+            "Upgrade CTA block (1-col, accent bg, 36px padding): 'Unlock Automation and 12 more premium features' headline (20px bold, white, centred); pricing note '$12/user/month · or $9/user/month billed annually' (14px, white, centred); 'Upgrade Now' CTA (white bg, accent text, 48px tall, bold, centred); 'Compare all plans →' secondary text link (white, 13px, underlined)",
         ],
-        [  # Email 4 — Trial Ending
-            "Urgency banner: 'Your trial ends soon' headline with clock icon, warm-but-urgent tone intro paragraph",
-            "Value recap: 3 metric/achievement cards showing key outcomes the paid plan unlocks, each with icon accent",
-            "Exclusive offer row: highlighted offer box with discount percentage, promo code in large text, and expiry date",
-            "Final CTA: 'Don't lose access' copy + large 'Upgrade Now' button + 'Compare plans' text link",
+        [  # Email 4 — Trial Ending (Day 14)
+            "Urgency hero (1-col, primary-colour bg, 40px padding): 48×48 clock icon (placehold.co white); 'Your Taskflow trial ends in 3 days.' headline (24px bold, white, centred); 'Everything you've built is here — don't lose access.' subtext (15px, #90B4D4, centred)",
+            "Value recap (3-col, page-bg, 32px padding): 'Here's what you've accomplished' section heading (18px bold, primary, centred); 3 stat cards — 'Projects created', 'Tasks completed', 'Team members added' — each card shows a large metric number (32px bold, accent colour) and a caption label (13px, #64748B); use plausible demo numbers",
+            "Offer box (1-col, white bg, 28px padding): bordered highlight box (#E8F4FD bg, accent border); '20% off your first 3 months — trial users only.' (18px bold, primary); promo code 'TRIAL20' centred in large monospace style (28px bold, primary); 'Expires when your trial does.' expiry note (12px, muted)",
+            "Final CTA (1-col, primary-colour bg, 36px padding): 'Don't lose access to your projects.' copy (16px, white, centred); 'Upgrade Now' primary CTA (accent bg, white, 48px, centred); 'Compare plans →' text link below (13px, #90B4D4, centred)",
         ],
     ],
+
     "black-friday-fashion": [
-        [  # Email 1 — Teaser
-            "Mystery hero: dark atmospheric full-width banner with 'Something extraordinary is coming' headline — no product reveal, pure anticipation",
-            "Countdown visual row: '48 HOURS TO GO' copy with large stylised numeral or graphic countdown placeholder",
-            "Early access CTA: 'Be the first to shop' copy with exclusive subscriber angle + 'Secure Your Early Access' button",
-            "Brand teaser row: two-column layout — fashion editorial image placeholder + 1–2 sentences on craft or exclusivity",
+        [  # Email 1 — Teaser (48 h before launch)
+            "Mystery hero (1-col, primary-colour bg, 48px padding): 600×280 dark editorial placehold.co banner; 'Something extraordinary arrives Friday.' headline (30px bold, white, centred, letter-spacing 2px); 'Our biggest sale of the year. Be first.' subtext (15px, #AAAAAA, centred)",
+            "Countdown strip (1-col, accent bg, 28px padding): '48 HOURS TO GO' in 36px bold uppercase, jet-black text (#0A0A0A), centred, letter-spacing 3px — the high contrast of yellow bg + black text creates maximum visual impact",
+            "Early access CTA (1-col, primary-colour bg, 36px padding): 'VAULTURA subscribers get exclusive early access.' copy (14px, #AAAAAA, centred); 'Secure Early Access' CTA button (accent bg, primary text, 48px tall, bold, centred)",
+            "Brand teaser (2-col, page-bg, 28px padding): left column: 280×320 tall fashion editorial placehold.co image; right column: italic brand statement 'Crafted for the few. Coveted by many.' (18px, #0A0A0A) + 1 sentence on craft/exclusivity (14px, #555555) — vertically centred",
         ],
         [  # Email 2 — Launch Day
-            "Sale hero: bold 'BLACK FRIDAY IS HERE' headline over striking product image placeholder, discount percentage badge overlaid",
-            "Discount code spotlight: high-contrast box with 'USE CODE:' label and promo code in large monospace-style font + expiry notice + 'Shop Now' CTA",
-            "Curated product grid: 3–4 product cards, each with image placeholder, product name, original strikethrough price, and sale price",
-            "Closing CTA row: 'Don't miss out — sale ends midnight' urgency copy + 'Browse All Deals' button",
+            "Sale hero (1-col, primary-colour bg, 44px padding): 600×260 bold editorial product placehold.co banner; 'BLACK FRIDAY IS HERE.' headline (32px bold, white, uppercase, centred, letter-spacing 2px); accent-colour badge '30% OFF EVERYTHING' (accent bg, primary text, 16px bold, inline badge centred below headline)",
+            "Code spotlight (1-col, accent bg, 36px padding): 'USE CODE:' label (12px bold, #0A0A0A, uppercase, letter-spacing 2px, centred); 'VAULT30' in 40px bold monospace-style, jet-black, centred — maximum visual weight; 'Valid until midnight Friday · one use per customer.' (12px, #333333, centred); 'Shop Now →' CTA (primary bg, accent text, 48px tall, bold, centred)",
+            "Product grid (3-col, page-bg, 28px padding): 'Curated picks for you' heading (16px bold, primary, centred); 3 product cards — each with a 190×240 placehold.co product image, product name (14px bold, #0A0A0A), original price struck through (12px, #999999), and sale price (16px bold, #0A0A0A)",
+            "Closing urgency strip (1-col, primary-colour bg, 28px padding): 'Sale ends Friday at midnight.' urgency line (13px, #AAAAAA, centred); 'Browse All Deals' CTA (accent bg, primary text, 48px tall, bold, centred)",
         ],
-        [  # Email 3 — Last Chance
-            "Urgency hero: high-contrast '24 HOURS LEFT' banner, bold all-caps typography, dramatic fashion image placeholder",
-            "Best-sellers grid: 3 product cards with image placeholder, product name, and 'Only X left in stock' scarcity indicator",
-            "Final CTA block: 'This is your last chance to save' copy + promo code reminder + large 'Shop Before It's Gone' button",
+        [  # Email 3 — Last Chance (24 h remaining)
+            "Urgency hero (1-col, primary-colour bg, 48px padding): 600×240 dramatic fashion placehold.co image; '24 HOURS LEFT.' headline (36px bold, white, uppercase, centred, letter-spacing 4px); 'This is your final chance to shop the VAULTURA Black Friday sale.' subtext (14px, #AAAAAA, centred)",
+            "Best-sellers grid (3-col, page-bg, 28px padding): '3 styles still available' heading (16px bold, primary, centred); 3 product cards — each with 190×220 placehold.co image, product name (14px bold), sale price (15px bold), and a scarcity label 'Only 4 left' (12px, red #DC2626, bold)",
+            "Final CTA block (1-col, accent bg, 44px padding): 'Don't leave it too late.' headline (26px bold, #0A0A0A, centred); promo code reminder 'VAULT30' (18px monospace bold, #0A0A0A, centred); 'Shop Before It's Gone' CTA (primary bg, accent text, 48px tall, bold, centred)",
         ],
     ],
 }
@@ -308,6 +314,30 @@ async def download_template(template_id: str):
         content=json.dumps(template, indent=2),
         media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get("/download-all")
+async def download_all(ids: str):
+    """Return a ZIP file containing all template JSONs for a sequence."""
+    import io
+    import zipfile
+
+    settings = get_settings()
+    template_ids = [tid.strip() for tid in ids.split(",") if tid.strip()]
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for i, tid in enumerate(template_ids, 1):
+            data = await get_template(tid, settings)
+            template = data.get("template", data)
+            zf.writestr(f"email-{i:02d}-{tid[:8]}.json", json.dumps(template, indent=2))
+    buf.seek(0)
+
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="email-sequence.zip"'},
     )
 
 
@@ -554,8 +584,11 @@ async def execute_stream(request: Request, plan_json: str):
     async def generator():
         try:
             # Phase 1 — shared layout (blocks until done)
-            header_row_id, footer_row_id, layout_json = (
-                await build_shared_layout(email_plan.sequence_title, settings)
+            # Use the max section count across all emails so the shared template
+            # has enough placeholder rows for the email that needs the most.
+            num_sections = max((e.body_section_count for e in email_plan.emails), default=3)
+            header_row_id, footer_row_id, placeholder_row_ids, layout_json = (
+                await build_shared_layout(email_plan.sequence_title, settings, num_sections)
             )
 
             # Signal layout complete so the UI flips to phase 2
@@ -568,7 +601,7 @@ async def execute_stream(request: Request, plan_json: str):
                     '<div class="phase-content">'
                     '<p class="phase-title">Shared layout ready</p>'
                     "<p class='phase-sub'>"
-                    "Header, footer and global styles applied"
+                    f"Header, {num_sections} placeholder section(s), footer and global styles applied"
                     "</p></div></div>"
                     '<div class="exec-phase is-active">'
                     '<span class="phase-spinner"></span>'
@@ -590,11 +623,15 @@ async def execute_stream(request: Request, plan_json: str):
                 ]
             )
 
-            # Register footer_row_id per template so the proxy can inject it
+            # Register row IDs per template for the proxy.
+            # mode="sequence" causes the proxy to block beefree_add_section entirely,
+            # enforcing that executor agents can only edit existing placeholder rows.
             for tid in template_ids:
                 template_layouts[tid] = {
                     "header_row_id": header_row_id,
                     "footer_row_id": footer_row_id,
+                    "placeholder_row_ids": placeholder_row_ids,
+                    "mode": "sequence",
                 }
 
             enriched_emails = [
@@ -602,8 +639,9 @@ async def execute_stream(request: Request, plan_json: str):
                     step=e.step,
                     title=e.title,
                     subject_line=e.subject_line,
+                    body_section_count=e.body_section_count,
                     agent_prompt=append_layout_context(
-                        e.agent_prompt, header_row_id, footer_row_id
+                        e.agent_prompt, header_row_id, footer_row_id, placeholder_row_ids
                     ),
                 )
                 for e in email_plan.emails
@@ -634,25 +672,64 @@ async def execute_stream(request: Request, plan_json: str):
 async def mcp_proxy(request: Request):
     """Transparent MCP proxy that enforces footer position.
 
-    Intercepts every beefree_add_section call and injects
-    before_row_id = footer_row_id when the parameter is absent,
-    ensuring the footer row always stays last.
+    Intercepts every beefree_add_section call and forces
+    before_row_id = footer_row_id, ensuring the footer row always stays last.
     All other calls are forwarded untouched.
     """
     body = await request.json()
     template_id = request.headers.get("x-bee-template-id", "")
-    footer_row_id = template_layouts.get(template_id, {}).get("footer_row_id")
+    layout = template_layouts.get(template_id, {})
+    footer_row_id = layout.get("footer_row_id")
 
-    # Intercept beefree_add_section — handle single and batch JSON-RPC
+    # Log + intercept every tools/call so we can see what the model is calling
     def _maybe_inject(msg: dict) -> None:
-        if (
-            footer_row_id
-            and msg.get("method") == "tools/call"
-            and msg.get("params", {}).get("name") == "beefree_add_section"
-        ):
-            args = msg["params"].setdefault("arguments", {})
-            if "before_row_id" not in args:
-                args["before_row_id"] = footer_row_id
+        if msg.get("method") != "tools/call":
+            return
+        name = msg.get("params", {}).get("name", "")
+        args = msg.get("params", {}).get("arguments", {})
+        log.info(
+            "MCP tool call [tpl=%s]: %s  args=%s",
+            template_id, name, json.dumps(args)[:300],
+        )
+        if name == "beefree_add_section" and footer_row_id:
+            full_args = msg["params"].setdefault("arguments", {})
+            # Always force before_row_id = footer_row_id regardless of what
+            # the model passed (absent, header ID, made-up ID, etc.).
+            full_args["before_row_id"] = footer_row_id
+            log.info("  → injected before_row_id=%s", footer_row_id)
+
+    # In sequence mode, block beefree_add_section entirely before forwarding.
+    # Executor agents must only edit the pre-built placeholder rows.
+    def _blocked_add_section_response(req_id) -> JSONResponse:
+        return JSONResponse({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "content": [{
+                    "type": "text",
+                    "text": (
+                        "Error: beefree_add_section is disabled in sequence mode. "
+                        "The row layout is fixed — edit the existing placeholder rows instead."
+                    ),
+                }],
+                "isError": True,
+            },
+        })
+
+    if layout.get("mode") == "sequence":
+        # Check single request
+        if isinstance(body, dict):
+            if (body.get("method") == "tools/call"
+                    and body.get("params", {}).get("name") == "beefree_add_section"):
+                log.info("MCP proxy [tpl=%s]: blocked beefree_add_section (sequence mode)", template_id)
+                return _blocked_add_section_response(body.get("id"))
+        # Check batch request — block the whole batch if any item is beefree_add_section
+        elif isinstance(body, list):
+            for item in body:
+                if (item.get("method") == "tools/call"
+                        and item.get("params", {}).get("name") == "beefree_add_section"):
+                    log.info("MCP proxy [tpl=%s]: blocked beefree_add_section (sequence mode, batch)", template_id)
+                    return _blocked_add_section_response(item.get("id"))
 
     if isinstance(body, list):
         for item in body:
@@ -660,8 +737,12 @@ async def mcp_proxy(request: Request):
     else:
         _maybe_inject(body)
 
-    # Forward to Beefree — pass all original headers except hop-by-hop ones
-    skip_req = {"host", "content-length", "transfer-encoding", "content-type"}
+    # Forward to Beefree — strip hop-by-hop headers that must not be proxied
+    skip_req = {
+        "host", "content-length", "transfer-encoding",
+        "content-type", "connection", "keep-alive",
+        "accept-encoding", "te", "trailers", "upgrade",
+    }
     fwd_headers = {
         k: v for k, v in request.headers.items()
         if k.lower() not in skip_req
@@ -672,15 +753,20 @@ async def mcp_proxy(request: Request):
     upstream = client.build_request(
         "POST",
         f"{settings.bee_api_base}/v2/sdk/mcp",
-        json=body,
+        json=body,           # httpx serialises + sets Content-Type: application/json
         headers=fwd_headers,
     )
     resp = await client.send(upstream, stream=True)
 
-    skip_resp = {
-        "transfer-encoding", "content-encoding",
-        "content-length", "content-type",
-    }
+    if resp.status_code >= 400:
+        body_bytes = await resp.aread()
+        await client.aclose()
+        log.error(
+            "MCP proxy upstream → %d: %s",
+            resp.status_code, body_bytes[:500],
+        )
+
+    skip_resp = {"transfer-encoding", "content-encoding", "content-length", "content-type"}
     resp_headers = {
         k: v for k, v in resp.headers.items()
         if k.lower() not in skip_resp

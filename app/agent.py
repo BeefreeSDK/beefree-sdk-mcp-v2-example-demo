@@ -54,6 +54,7 @@ class EmailStep(BaseModel):
     title: str
     subject_line: str
     agent_prompt: str
+    body_section_count: int = 3
 
 
 class EmailPlan(BaseModel):
@@ -64,221 +65,160 @@ class EmailPlan(BaseModel):
 
 # --- System prompts -----------------------------------------------------------
 
-PLANNER_SKELETON_PROMPT = """You are an expert email marketing strategist.
-
-Given a campaign brief, output ONLY the sequence structure — no detailed copy.
-Determine the right number of emails from the brief: follow the user exactly
-if they specify a count, otherwise decide based on campaign needs.
+PLANNER_SKELETON_PROMPT = """Given a campaign brief, output the email sequence structure.
 
 Rules:
-- `sequence_title` must be <= 50 characters.
-- `title` for each email should be short and descriptive (<= 40 characters).
-- `subject_line` must be concise and compelling (<= 60 characters).
-- Do NOT write body copy or design instructions — only titles and subjects.
+- sequence_title: max 50 chars
+- title: max 40 chars
+- subject_line: max 60 chars
+- No body copy, no design instructions
+- Follow the stated email count exactly
 """
 
-LAYOUT_AGENT_SYSTEM_PROMPT = """You are building the shared visual identity for an email sequence.
-Choose ONE bold, distinctive colour palette from the campaign brief and apply it in every step.
+def _build_layout_agent_system_prompt(num_sections: int) -> str:
+    """Build the layout-agent system prompt with the exact number of placeholder body rows."""
+    placeholder_ids = ", ".join(f'"<id of placeholder {i+1}>"' for i in range(num_sections))
+    return f"""You are building a shared base template for an email sequence.
+The final template must have exactly {2 + num_sections} rows in this order:
+  Row 1: header
+  Rows 2-{num_sections + 1}: body placeholders ({num_sections} rows)
+  Row {num_sections + 2}: footer
 
-COLOUR FORMULA — decide all six values before calling any tool.
-Match the campaign domain using the table below as a guide:
+Read the campaign brief and decide before calling any tool:
+- BRAND: the product/company name (from the brief)
+- SHORT: 2-4 char uppercase abbreviation (e.g. "ACME", "STVT") — used in the logo image
+- primary, accent, page_bg: pick from this table based on the campaign domain:
+    B2B/SaaS:   primary=#1A3A6B  accent=#0EA5E9  page_bg=#EFF6FF
+    Streaming:  primary=#0F1729  accent=#E50914   page_bg=#F4F4F4
+    E-commerce: primary=#1A1A2E  accent=#F97316   page_bg=#FFF8F0
+    Health:     primary=#0A4D68  accent=#22C55E   page_bg=#F0FFF4
+    Finance:    primary=#0F2A4A  accent=#0EA5E9   page_bg=#F0F7FF
+    Fashion:    primary=#1C1033  accent=#C084FC   page_bg=#FDF4FF
+    Education:  primary=#312E81  accent=#F59E0B   page_bg=#FFFBEF
+    Travel:     primary=#0C3547  accent=#06B6D4   page_bg=#F0FDFF
 
-  Domain              primary    accent     page_bg
-  ─────────────────────────────────────────────────────
-  B2B SaaS / tech     #1E3A5F    #0EA5E9    #F0F6FF
-  E-commerce/retail   #1A1A2E    #F97316    #FFF8F0
-  Food & beverage     #7C2D12    #FB923C    #FFF7ED
-  Eco / wellness      #1A3D2B    #40916C    #F0FFF4
-  Healthcare          #0A4D68    #0EA5E9    #F0FAFF
-  Finance             #0F2A4A    #22C55E    #F0F7FF
-  Fashion / luxury    #2D1B69    #EC4899    #FDF4FF
-  Education           #1E3A5F    #F59E0B    #FFFBF0
-  Travel              #0C3547    #06B6D4    #F0FDFF
-
-  text      : #1A1A2E (never change)
-  text_muted: #64748B (never change)
-
-Pick the closest domain match; adjust hue/saturation to better fit the brief.
-Never use generic grey, beige, or unmodified default navy.
-
-STEP 1 — GLOBAL STYLES:
+STEP 1 — SET GLOBAL STYLES
 Call beefree_set_template_styles with:
-- Page background  → page_bg
-- Content area bg  → #FFFFFF
-- Content width    → 600 px
-- Font family      → "Helvetica Neue, Helvetica, Arial, sans-serif"
-- Body text colour → #1A1A2E
-- Link colour      → accent
-Then call beefree_check_template.
+  page_bg, content_bg=#FFFFFF, width=600, font="Helvetica Neue, Helvetica, Arial, sans-serif", text=#1A1A2E, links=accent
+Call beefree_check_template.
 
-STEP 2 — HEADER ROW:
-Add ONE full-width single-column header row. This is the brand banner — make it visually striking.
+STEP 2 — ADD HEADER ROW
+Add one full-width single-column row with these properties:
+  background: primary
+  image (centred): https://placehold.co/160x44/XXXXXX/FFFFFF?text=SHORT
+    where XXXXXX = primary colour WITHOUT the # (e.g. primary #0F1729 → XXXXXX is 0F1729)
+    alt text: "BRAND logo"
+  text (centred, below image): BRAND · colour #FFFFFF · bold · 18px
+  column padding: 36px top, 36px bottom, 20px left, 20px right
+  row border-bottom: 3px solid accent
+Call beefree_check_template.
 
-Construction rules:
-1. Set the ROW background to the primary colour.
-2. Logo image, centred:
-   - Build the placehold.co URL so the image background matches primary and the text is white.
-     Format: https://placehold.co/160x44/{PRIMARY_HEX_NO_HASH}/FFFFFF?text=LOGO
-     Example — if primary is #1E3A5F → https://placehold.co/160x44/1E3A5F/FFFFFF?text=LOGO
-   - This makes the placeholder invisible against the row background, simulating a white logo.
-   - Alt text: "Brand logo"
-3. Brand / company name (inferred from the brief) as a text element below the logo:
-   - Colour: #FFFFFF · Bold · 18 px · Centred · Letter-spacing: 1 px
-4. Column padding: 36 px top · 36 px bottom · 20 px left/right.
-5. Add a 3 px solid border in the accent colour at the bottom of the row.
-Then call beefree_check_template.
+STEP 3 — ADD FOOTER ROW
+Add one full-width single-column row with these properties:
+  background: page_bg
+  row border-top: 1px solid #E2E8F0
+  text (centred): "BRAND · 123 Main St, City · © 2025 · Unsubscribe" · 12px · #64748B
+  column padding: 24px top, 24px bottom
+Call beefree_check_template.
 
-STEP 3 — FOOTER ROW:
-Add ONE clean compliance footer row.
+STEP 4 — ADD {num_sections} PLACEHOLDER ROWS
+Add {num_sections} rows, one at a time, each inserted before the footer row.
+For each row (n = 1, 2, … {num_sections}):
+  1. Call beefree_add_section with before_row_id = <the footer row ID from step 3>
+  2. background: #FFFFFF
+  3. Add one text element: "Placeholder n" · centred · 12px · colour #CBD5E1 · italic · 40px top padding · 40px bottom padding
+  4. Write down the row ID returned — you need all {num_sections} IDs for the output
+Call beefree_check_template after all {num_sections} rows are added.
 
-Construction rules:
-1. Set the ROW background to page_bg.
-2. Add a 1 px solid #E2E8F0 top border to the row.
-3. Two text elements, both centred:
-   LINE 1 — Company name (inferred from brief), 13 px, #1A1A2E, semi-bold.
-   LINE 2 — Address and legal: "123 Campaign St, City, Country  ·  © 2025  ·  Unsubscribe"
-             12 px, text_muted (#64748B), normal weight.
-4. Column padding: 24 px top · 24 px bottom.
-Then call beefree_check_template.
+STEP 5 — VERIFY STRUCTURE
+Call beefree_get_content_hierarchy.
+Count the rows. There must be exactly {2 + num_sections} rows.
+If there are more, delete the extra rows. Call beefree_check_template.
 
-STEP 4 — DUPLICATE CHECK:
-Call beefree_get_content_hierarchy and verify:
-- The template contains exactly 2 rows (header + footer) — no extra rows.
-- The header row contains exactly 1 image (the logo) and exactly 1 text block (brand name).
-- The footer row contains exactly 1 text block (the two-line company/address/unsubscribe copy).
-If any element appears more than once inside the same row, it was inserted twice.
-Remove every duplicate by deleting the extra element, keeping only the first occurrence.
-Then call beefree_check_template once more.
-
-RULES:
-- Header and footer only — never add body content, hero sections, or CTAs.
-- When done, end your response with ONLY this JSON block (no markdown, no extra text after it):
-  {"header_row_id": "<id of the header row>", "footer_row_id": "<id of the footer row>"}
+OUTPUT — last line of your response, nothing after it:
+{{"header_row_id": "<id>", "footer_row_id": "<id>", "placeholder_row_ids": [{placeholder_ids}]}}
 """
 
-EXECUTOR_SYSTEM_PROMPT = """You are an expert email design and copy assistant building the body of one email in a sequence.
-The template already has a shared header (top) and footer (bottom) — never touch them.
+EXECUTOR_SYSTEM_PROMPT = """You are filling body content into an email template.
 
-YOUR ONLY JOB: set email metadata, then add the required body rows between header and footer.
+The template already has:
+  - Row 1: shared header (do NOT touch)
+  - Middle rows: placeholder rows (you will replace these)
+  - Last row: shared footer (do NOT touch)
 
-━━━ CORE PRINCIPLES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Clarity: one primary message, one primary CTA per email.
-- Brevity: 3 body rows maximum — every row must earn its place.
-- Scannability: short copy, strong headings, 24–32 px row padding.
-- Value first: lead every section with benefits, not features.
-- Accessibility: 14 px+ body text, 44 px+ CTA buttons, descriptive alt text on all images.
+Your prompt tells you:
+  - The subject line and campaign brief
+  - The placeholder row IDs in order
+  - The exact content to build in each row (BODY SECTIONS list)
 
-━━━ PROTECTED ROWS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-The header row ID and footer row ID in your prompt are protected.
-NEVER pass them to any tool. NEVER recreate, edit, or delete them.
+Follow these steps in order:
 
-━━━ STEP 0 — EMAIL METADATA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Before adding any rows, call beefree_set_email_metadata:
-- subject:   use the subject line provided in the prompt (verbatim)
-- preheader: write a compelling 40–90 character preview that complements the subject
+STEP 1 — SET METADATA
+Call beefree_set_email_metadata:
+  subject: copy the subject line from your prompt exactly
+  preheader: write a short preview text (50-90 chars) that complements the subject
 
-━━━ INSERTION RULE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Every body row MUST be inserted BEFORE the footer row using the footer row ID.
-Never append to the end of the template.
+STEP 2 — FILL EACH PLACEHOLDER ROW
+Process each placeholder row ID from your prompt, in order:
+  a. Call beefree_get_content_hierarchy — find the text element ID inside that placeholder row
+  b. Delete that text element with beefree_delete_section
+  c. Build the section content described in the BODY SECTIONS list into that row
+     Follow the section description exactly — layout, colours, sizes, copy
+  d. Call beefree_check_template
 
-━━━ REQUIRED SECTIONS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-If the prompt lists "REQUIRED BODY SECTIONS", build exactly those rows — one row
-per item, in order. No extra rows. No skipped rows. No reordering.
+If there are more placeholder rows than body sections, delete the extra rows with beefree_delete_section.
 
-━━━ ROW TYPES — pick the right layout for each row ━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANT:
+  - Do NOT call beefree_add_section — row count is fixed
+  - Do NOT modify the header row or footer row
+  - Build one section per placeholder row, in the listed order
 
-HERO ROW (always the first body row):
-  Layout: 1 full-width column
-  - Full-width image: https://placehold.co/600x200?text=Topic (max 200 px tall, descriptive alt)
-  - Headline: ≤8 words, benefit-led, 26 px bold, primary colour, centred
-  - Subheadline: 1 sentence, 15 px, #64748B, centred
-  - CTA button: centred, primary bg, white text, 14 px top/bottom · 32 px left/right,
-    border-radius 6 px, 15 px bold
-
-FEATURE ROW (for showcasing 2–3 benefits/items side by side):
-  Layout: 2 or 3 equal columns
-  - Each column: icon (https://placehold.co/48x48?text=✓, descriptive alt) + bold title
-    (16 px) + 1-line description (14 px, #64748B)
-  - Row has a section heading above: 20 px bold, primary colour, centred
-  - Background: white or page_bg
-
-TEXT + CTA ROW (for narrative + conversion):
-  Layout: 1 column, centred content
-  - Heading: ≤8 words, 22 px bold, primary colour
-  - Body: 2–3 sentences max, 15 px, #1A1A2E, line-height 1.6
-  - CTA button (same spec as hero CTA)
-  - Background: primary colour (makes it stand out) with all text in white
-
-PROOF ROW (for a testimonial or key stat):
-  Layout: 1 column, centred
-  - Option A — Quote: large opening quotation mark (decorative), 1–2 sentence quote,
-    attributed name + role/company in small muted text (13 px, #64748B)
-  - Option B — Stat: metric in large bold text (36 px, primary colour) + 1-line caption
-  - Background: page_bg · 28 px top/bottom padding — keep it compact
-
-━━━ COPY STANDARDS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Headlines: ≤8 words, benefit-led ("Start watching in 60 seconds")
-- Body copy: 2–3 sentences per row — never more. Prefer bullet lists for features.
-- CTAs: action verb + specific outcome ("Start Free Trial", "Get 30% Off")
-- Never lorem ipsum. Generate real, campaign-appropriate copy.
-
-━━━ DESIGN STANDARDS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-COMPACT: 24–32 px top/bottom padding per row. No standalone spacer rows.
-
-COLOURS: use the global palette — never introduce new colours:
-- Section backgrounds: white (#FFFFFF) or page_bg tint, except TEXT+CTA rows (primary)
-- Headlines: primary colour (white if on primary background)
-- Body copy: #1A1A2E, 15–16 px, line-height 1.6 (white if on primary background)
-
-━━━ WORKFLOW ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Call beefree_set_email_metadata (subject + preheader).
-2. Add each body row in order before the footer. Call beefree_check_template after each row.
-3. DUPLICATE CHECK — call beefree_get_content_hierarchy and verify:
-   - The number of body rows equals exactly the number of REQUIRED BODY SECTIONS.
-   - No row contains more than one image with the same src URL.
-   - No row contains more than one button with identical label text.
-   - No two adjacent rows are structurally identical (same layout + same content type).
-   If any duplicate is found, delete the extra element/row before proceeding.
-4. When the hierarchy looks clean and beefree_check_template passes, respond with: "Done."
+STEP 3 — VERIFY
+Call beefree_get_content_hierarchy.
+When beefree_check_template passes, respond with: "Done."
 """
 
-SINGLE_EMAIL_AGENT_SYSTEM_PROMPT = """You are an expert email design and copy assistant powered by the Beefree SDK.
-Build one complete, conversion-focused email from scratch following the steps below.
-
-━━━ CORE PRINCIPLES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Clarity: one primary message, one primary CTA.
-- Brevity: 4 body rows maximum — readable in under 90 seconds.
-- Scannability: short copy, strong headings, tight padding.
-- Value first: lead with benefits, support with features.
-- Accessibility: 14 px+ body text, 44 px+ CTA buttons, descriptive alt text on every image.
-- Compliance: unsubscribe link + physical address in the footer.
+SINGLE_EMAIL_AGENT_SYSTEM_PROMPT = """You are an expert email copywriter and designer powered by the Beefree SDK.
+Build one complete, high-quality, conversion-focused email from scratch.
+This email will be shown as a professional example — quality, real copy, and visual polish matter.
 
 Follow ALL steps in order — never skip, never reorder.
 
-── STEP 1 · EMAIL METADATA ─────────────────────────────────────────────────
-Call beefree_set_email_metadata:
-- subject:   compelling subject line (≤60 chars) derived from the brief
-- preheader: 40–90 character preview text that complements the subject
+━━━ BEFORE CALLING ANY TOOL — DECLARE YOUR DECISIONS ━━━━━━━━━━━━━━━━━━━━━━━
+Read the brief and write out these decisions before touching any tool:
 
-── STEP 2 · GLOBAL STYLES ──────────────────────────────────────────────────
-Choose a bold, distinctive palette from the brief context using this table:
+  BRAND_NAME : company/product name inferred from the brief
+  BRAND_SHORT: 2–6 char UPPERCASE abbreviation for the logo placeholder (never "LOGO")
+  TAGLINE    : 3–6 word brand tagline inferred from the brief
+  primary    : hex from the table below (no # in URLs)
+  accent     : hex from the table below
+  page_bg    : hex from the table below
 
+COLOUR TABLE:
   Domain              primary    accent     page_bg
   ─────────────────────────────────────────────────────
-  B2B SaaS / tech     #1E3A5F    #0EA5E9    #F0F6FF
+  B2B SaaS / tech     #1A3A6B    #0EA5E9    #EFF6FF
   E-commerce/retail   #1A1A2E    #F97316    #FFF8F0
   Food & beverage     #7C2D12    #FB923C    #FFF7ED
-  Eco / wellness      #1A3D2B    #40916C    #F0FFF4
-  Healthcare          #0A4D68    #0EA5E9    #F0FAFF
-  Finance             #0F2A4A    #22C55E    #F0F7FF
-  Fashion / luxury    #2D1B69    #EC4899    #FDF4FF
-  Education           #1E3A5F    #F59E0B    #FFFBF0
+  Eco / wellness      #14532D    #22C55E    #F0FFF4
+  Healthcare          #0A4D68    #06B6D4    #F0FDFF
+  Finance / fintech   #0F2A4A    #22C55E    #F0F7EE
+  Fashion / luxury    #1C1033    #C084FC    #FDF4FF
+  Education           #312E81    #F59E0B    #FFFBEF
   Travel              #0C3547    #06B6D4    #F0FDFF
+  Sports / fitness    #1A1A2E    #EF4444    #FFF5F5
 
-  text: #1A1A2E · text_muted: #64748B (never change these)
+  text: #1A1A2E · text_muted: #64748B (never change)
 
-Pick the closest domain match; adjust hue/saturation to fit the brief.
+Adjust chosen palette ±15% hue/saturation to fit the brief personality. Never use plain grey or beige.
 
+── STEP 1 · EMAIL METADATA ─────────────────────────────────────────────────
+Call beefree_set_email_metadata:
+- subject:   compelling subject line ≤60 chars derived from the brief
+             Use a curiosity gap, direct benefit, or social-proof pattern.
+- preheader: 50–90 char preview that adds a hook not in the subject line
+
+── STEP 2 · GLOBAL STYLES ──────────────────────────────────────────────────
 Call beefree_set_template_styles:
 - Page bg: page_bg · Content area: #FFFFFF · Width: 600 px
 - Font: "Helvetica Neue, Helvetica, Arial, sans-serif"
@@ -286,88 +226,93 @@ Call beefree_set_template_styles:
 Then call beefree_check_template.
 
 ── STEP 3 · HEADER ──────────────────────────────────────────────────────────
-One full-width single-column header row — the brand banner, make it striking.
-1. Set the ROW background to the primary colour.
+One full-width single-column header row — the brand banner.
+1. ROW background: primary.
 2. Logo image, centred:
-   - Build the URL so image bg matches primary and text is white:
-     https://placehold.co/160x44/{PRIMARY_HEX_NO_HASH}/FFFFFF?text=LOGO
-     Example — primary #1E3A5F → https://placehold.co/160x44/1E3A5F/FFFFFF?text=LOGO
-   - Alt text: "Brand logo"
-3. Brand name text below logo: white, bold, 18 px, centred, letter-spacing 1 px.
-4. Column padding: 36 px top · 36 px bottom · 20 px left/right.
-5. 3 px solid accent-colour border at the bottom of the row.
+   URL: https://placehold.co/180x48/PRIMARY_NO_HASH/FFFFFF?text=BRAND_SHORT
+   (PRIMARY_NO_HASH = your primary hex without the # symbol; BRAND_SHORT = your abbreviation)
+   Example — primary #1A3A6B, brand "NXT" → https://placehold.co/180x48/1A3A6B/FFFFFF?text=NXT
+   Alt text: BRAND_NAME + " logo"
+3. Brand name text: #FFFFFF · Bold · 20 px · Centred · Letter-spacing: 2 px · Uppercase
+4. Tagline text: accent tone (or rgba(255,255,255,0.8)) · 13 px · Italic · Centred
+5. Column padding: 40 px top · 32 px bottom · 24 px left/right.
+6. 4 px solid accent border at the bottom of the row.
 Then call beefree_check_template.
 
 ── STEP 4 · HERO ────────────────────────────────────────────────────────────
 One full-width single-column hero row — the primary conversion moment.
-1. Full-width image: https://placehold.co/600x200?text=Hero+Image
-   - Max 200 px tall · alt text must describe the actual email topic (not "hero image")
-2. Headline: ≤8 words, benefit-led, 28 px bold, primary colour, centred
-3. Subheadline: 1 sentence only, 15 px, #64748B, centred
-4. CTA button: centred, action verb + outcome ("Get 30% Off", "Start Free Trial")
-   Primary bg · white text · border-radius 6 px · 14 px top/bottom · 32 px left/right
-5. Row padding: 32 px top/bottom · background white
+1. Full-width image: https://placehold.co/600x220?text=SHORT+TOPIC
+   Replace SHORT+TOPIC with 2–4 words describing the email topic (use + for spaces).
+   Alt text: describe the actual content (not "hero image").
+2. Headline: ≤8 words · benefit-led · 28 px bold · primary colour · centred
+   Good: "Cut your setup time in half"   Bad: "Introducing our new feature"
+3. Subheadline: 1 sentence · 16 px · #64748B · centred — expand on the headline benefit
+4. CTA button: action verb + specific outcome · primary bg · white text
+   Bold 15 px · 14 px top/bottom · 36 px left/right · border-radius 6 px · centred
+5. Row bg: #FFFFFF · 36 px top/bottom padding
 Then call beefree_check_template.
 
 ── STEP 5 · VALUE PROPS ─────────────────────────────────────────────────────
 One row with 2–3 equal columns — scannable benefits at a glance.
-1. Section heading above columns: ≤6 words, 20 px bold, primary colour, centred
-2. Each column contains:
-   - Icon: https://placehold.co/48x48?text=Icon (descriptive alt text, e.g. "Fast delivery icon")
-   - Title: 2–4 words, 15 px bold, #1A1A2E
-   - Description: 1 tight sentence, 14 px, #64748B
+1. Section heading above columns: ≤6 words · 20 px bold · primary · centred
+2. Each column:
+   - Icon: https://placehold.co/52x52?text=XX (XX = 1–2 char symbol, e.g. ⚡ ✓ ★)
+     Alt text: describe the benefit this icon represents
+   - Title: 2–4 words · 15 px bold · #1A1A2E
+   - Body: exactly 1 sentence · 14 px · #64748B · line-height 1.5
 3. Lead with the most compelling benefit first
-4. Background: page_bg · row padding 28 px top/bottom
+4. Row bg: page_bg · 28 px top/bottom padding
 Then call beefree_check_template.
 
 ── STEP 6 · SOCIAL PROOF ────────────────────────────────────────────────────
-One compact proof row — maximum 3 lines of text total.
-Choose the format that fits the brief best:
-  A) Quote: opening large " mark (decorative) + 1–2 sentence customer quote
-     + attribution line: "— Name, Role at Company" (13 px, #64748B)
-  B) Stat: one large metric (36 px bold, primary colour) + 1-line caption below (14 px, #64748B)
-Background: page_bg · 24 px top/bottom padding · no image needed
+One compact trust row.
+Choose the format that fits the brief:
+  A) QUOTE: decorative " (40 px · primary) + 1–2 sentence customer quote (16 px · italic · centred)
+     + "— Name, Role at Company" (13 px · #64748B · centred)
+     Make the quote specific — a concrete outcome, not generic praise.
+     Good: "We cut onboarding from 2 weeks to 3 days"   Bad: "Amazing product, love it"
+  B) STAT:  large metric (40 px bold · primary · centred) + 1-line caption (15 px · #64748B)
+            Use a number that signals scale, speed, or trust.
+Row bg: #F8FAFC · 32 px top/bottom padding
 Then call beefree_check_template.
 
 ── STEP 7 · CLOSING CTA ─────────────────────────────────────────────────────
-One punchy closing strip — drive the final conversion.
-1. ROW background: primary colour (full width)
-2. Headline: ≤6 words, white, 22 px bold, centred — create urgency or reinforce the offer
-3. CTA button: same spec as hero, white bg with primary text OR inverted accent style
-4. Row padding: 32 px top/bottom — no other copy, no distractions
+One punchy closing strip — the final conversion push.
+1. ROW background: primary (full width)
+2. Headline: ≤6 words · #FFFFFF · 22 px bold · centred · create urgency or reinforce the offer
+3. CTA button: white bg · primary text · same size spec as hero button
+4. Row padding: 40 px top/bottom — no other copy
 Then call beefree_check_template.
 
 ── STEP 8 · FOOTER ──────────────────────────────────────────────────────────
 One compliance footer row:
 1. ROW background: page_bg · 1 px solid #E2E8F0 top border.
-2. LINE 1 — Company name (from the brief): 13 px, #1A1A2E, semi-bold, centred.
-3. LINE 2 — "123 Campaign St, City, Country  ·  © 2025  ·  Unsubscribe"
-   12 px, #64748B, normal, centred.
-4. Column padding: 24 px top · 24 px bottom.
+2. LINE 1 — BRAND_NAME: 13 px · #1A1A2E · semi-bold · centred.
+3. LINE 2 — "100 Innovation Drive, San Francisco, CA 94107": 12 px · #64748B · centred.
+4. LINE 3 — "© 2025 BRAND_NAME · All rights reserved · Unsubscribe · Privacy Policy"
+   11 px · #64748B · centred.
+5. Column padding: 28 px top · 28 px bottom.
 Then call beefree_check_template.
 
 ── STEP 9 · FINAL VALIDATION ────────────────────────────────────────────────
-1. Call beefree_check_template.
-2. Call beefree_get_content_hierarchy and scan for duplicates:
+1. Call beefree_get_content_hierarchy and verify:
    - Total rows: exactly 6 (Header · Hero · Value Props · Social Proof · Closing CTA · Footer).
-   - Logo image appears exactly once (inside the header row only).
-   - Brand name text appears exactly once (inside the header row only).
-   - Each CTA button label appears at most twice (hero + closing strip share the same action — that's intentional and fine).
+   - Logo image appears exactly once (header row only).
    - No row contains more than one image with the same src URL.
+   - CTA button label is consistent between hero and closing strip.
    - No two rows have identical content type AND identical heading text.
-   If any unintended duplicate is found, remove the extra occurrence, then call beefree_check_template again.
-3. When hierarchy is clean and the final check passes, respond with: "Done."
+   Remove any unintended duplicates, then call beefree_check_template.
+2. When hierarchy is clean and check passes, respond with: "Done."
 
-━━━ DESIGN RULES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Total email body: 4 rows (Hero + Value Props + Social Proof + Closing CTA). No extras.
-- All images: https://placehold.co with descriptive alt text. Never leave src empty.
-- All copy: real, campaign-relevant content — no lorem ipsum.
-- Body copy: 15–16 px, line-height 1.6, max 3 sentences per row.
-- Feature / value sections: 2–3 column layout, not bullet lists in prose.
-- Every CTA: action verb + specific outcome ("Get 30% Off" not "Learn More").
-- One primary CTA per email — hero and closing strip share the same action.
+━━━ QUALITY RULES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- All copy: real, campaign-specific — zero lorem ipsum, zero placeholder phrases.
+- Headlines: benefit-led, never start with the brand name or "Introducing".
+- CTAs: action verb + specific outcome ("Start Free Trial" not "Learn More").
+- Avoid all clichés: "game-changing", "revolutionary", "unlock your potential".
+- Body copy: 15–16 px · line-height 1.6 · max 3 sentences per row · active voice · second person.
+- Alternate row backgrounds (white → page_bg → primary → page_bg) for visual rhythm.
 - No standalone spacer rows — use row padding for breathing room.
-- If in doubt, cut it — a shorter email always outperforms a long one.
+- One primary CTA per email: hero and closing strip use the same action.
 """
 
 
@@ -378,30 +323,24 @@ def _build_executor_prompt(
     s: EmailSkeleton,
     sequence_title: str,
     campaign_goal: str,
+    total_emails: int = 1,
     sections: list[str] | None = None,
 ) -> str:
-    """Build the executor prompt from a template — no LLM, instant."""
+    """Build the executor prompt — no LLM call, instant."""
     base = (
         f"Campaign: {sequence_title}\n"
-        f"Email {s.step}: {s.title}\n"
-        f"Subject line: {s.subject_line}\n\n"
-        f"Brief: {campaign_goal}\n\n"
-        "Build a complete, professional email that matches the campaign brand and tone."
+        f"Email {s.step} of {total_emails}: {s.title}\n"
+        f"Subject line: {s.subject_line}\n"
+        f"Brief: {campaign_goal}\n"
     )
     if sections:
         numbered = "\n".join(f"  {i + 1}. {sec}" for i, sec in enumerate(sections))
         base += (
-            f"\n\nREQUIRED BODY SECTIONS — build exactly {len(sections)} rows in this order:\n"
-            f"{numbered}\n\n"
-            "You MUST build every section listed above, in the exact order shown. "
-            "Do NOT add extra rows. Do NOT skip any row. Do NOT change the order. "
-            "Each listed section corresponds to exactly one body row inserted before the footer."
+            f"\nBODY SECTIONS — fill the {len(sections)} placeholder rows in this exact order:\n"
+            f"{numbered}"
         )
     else:
-        base += (
-            " Include a hero section, body copy, primary CTA button, and supporting "
-            "content. Apply consistent typography, colours, and spacing throughout."
-        )
+        base += "\nBuild a hero section, a value/features section, and a closing CTA section."
     return base
 
 
@@ -420,20 +359,27 @@ async def generate_plan(
         model=settings.llm_planner_model,
         output_type=EmailSkeletonPlan,
         system_prompt=PLANNER_SKELETON_PROMPT,
-        retries=3,
+        retries=6,
     )
     result = await skeleton_agent.run(goal)
     skeleton = result.output
 
+    total_emails = len(skeleton.emails)
     emails = [
         EmailStep(
             step=s.step,
             title=s.title,
             subject_line=s.subject_line,
+            body_section_count=(
+                len(sections_per_step[s.step - 1])
+                if sections_per_step and s.step - 1 < len(sections_per_step)
+                else 3
+            ),
             agent_prompt=_build_executor_prompt(
                 s,
                 skeleton.sequence_title,
                 goal,
+                total_emails=total_emails,
                 sections=sections_per_step[s.step - 1]
                 if sections_per_step and s.step - 1 < len(sections_per_step)
                 else None,
@@ -450,20 +396,20 @@ async def generate_plan(
 async def build_shared_layout(
     sequence_title: str,
     settings: Settings,
-) -> tuple[str, str, dict]:
-    """Run the layout agent once to build a shared header + footer.
+    num_sections: int = 3,
+) -> tuple[str, str, list[str], dict]:
+    """Run the layout agent once to build a shared header, placeholder body rows, and footer.
 
-    Returns (header_row_id, footer_row_id, template_json).
+    Returns (header_row_id, footer_row_id, placeholder_row_ids, template_json).
     The template_json can be used to seed each email template so they all
-    start with the identical header and footer.
+    start with the identical structure.
 
-    The agent returns plain text ending with a JSON block containing the row IDs.
+    The agent returns plain text ending with a JSON block containing all row IDs.
     We parse that block rather than using structured output, which avoids a
     Gemini API limitation that rejects the combination of tool schemas + response
     schema when the total constraint state count is too large.
     """
     import json as _json
-    import re as _re
     from .beefree import create_template, get_template
 
     layout_template_id = await create_template(settings)
@@ -474,62 +420,82 @@ async def build_shared_layout(
             "Authorization": f"Bearer {settings.bee_api_key}",
             "x-bee-template-id": layout_template_id,
         },
-        max_retries=3,
+        max_retries=5,
+        timeout=60,
+        read_timeout=300,
     )
     layout_agent: Agent[None, str] = Agent(
         model=settings.llm_layout_model,
         toolsets=[mcp],
-        system_prompt=LAYOUT_AGENT_SYSTEM_PROMPT,
-        retries=2,
+        system_prompt=_build_layout_agent_system_prompt(num_sections),
+        retries=6,
     )
 
     result = await layout_agent.run(
-        f"Build the shared header and footer for the '{sequence_title}' campaign."
+        f"Build the shared header, {num_sections} placeholder body row(s), and footer "
+        f"for the '{sequence_title}' campaign."
     )
     text = result.output
 
     # Extract the row-ID JSON block the agent was instructed to append.
-    match = _re.search(
-        r'\{\s*"header_row_id"\s*:\s*"([^"]+)"\s*,\s*"footer_row_id"\s*:\s*"([^"]+)"\s*\}',
-        text,
-    ) or _re.search(
-        r'\{\s*"footer_row_id"\s*:\s*"([^"]+)"\s*,\s*"header_row_id"\s*:\s*"([^"]+)"\s*\}',
-        text,
-    )
-    if match:
-        # Prefer the named-group approach: just parse the whole JSON object
-        json_str = match.group(0)
-        ids = _json.loads(json_str)
-        header_row_id = ids["header_row_id"]
-        footer_row_id = ids["footer_row_id"]
-    else:
+    # Use JSONDecoder.raw_decode scanning backwards for the last valid JSON object
+    # that contains 'header_row_id' — handles the nested array in placeholder_row_ids.
+    decoder = _json.JSONDecoder()
+    ids: dict | None = None
+    idx = len(text) - 1
+    while idx >= 0:
+        idx = text.rfind("{", 0, idx + 1)
+        if idx < 0:
+            break
+        try:
+            obj, _ = decoder.raw_decode(text, idx)
+            if isinstance(obj, dict) and "header_row_id" in obj:
+                ids = obj
+                break
+        except _json.JSONDecodeError:
+            pass
+        idx -= 1
+
+    if ids is None:
         raise ValueError(
             f"Layout agent did not return row IDs in the expected format. "
             f"Response tail: {text[-300:]!r}"
         )
 
+    header_row_id: str = ids["header_row_id"]
+    footer_row_id: str = ids["footer_row_id"]
+    placeholder_row_ids: list[str] = ids.get("placeholder_row_ids", [])
+
     template_data = await get_template(layout_template_id, settings)
     template_json = template_data.get("template", template_data)
 
-    return header_row_id, footer_row_id, template_json
+    return header_row_id, footer_row_id, placeholder_row_ids, template_json
 
 
 def append_layout_context(
     prompt: str,
     header_row_id: str,
     footer_row_id: str,
+    placeholder_row_ids: list[str],
 ) -> str:
-    """Append protected row IDs and insertion instructions to an executor prompt."""
+    """Append protected row IDs and placeholder editing instructions to an executor prompt."""
+    numbered = "\n".join(
+        f"  Placeholder {i + 1}: {rid}" for i, rid in enumerate(placeholder_row_ids)
+    )
     return (
         prompt + "\n\n"
         "SHARED LAYOUT — already in the template:\n"
         f"  Header row ID (top):    {header_row_id}\n"
         f"  Footer row ID (bottom): {footer_row_id}\n\n"
         "Protected row IDs — NEVER delete, modify, or pass to destructive tools.\n\n"
-        "INSERTION RULE — this is mandatory:\n"
-        f"Every body row you add MUST be inserted BEFORE row {footer_row_id}.\n"
-        "Never append rows to the end — that places them after the footer.\n"
-        "The footer must always be the last row in the template."
+        f"PLACEHOLDER BODY ROWS — fill these {len(placeholder_row_ids)} row(s) with real content:\n"
+        f"{numbered}\n\n"
+        "RULES — this is mandatory:\n"
+        "- Work through the placeholder rows in the order listed above.\n"
+        "- Delete each placeholder's existing text element, then add real content to that row.\n"
+        "- NEVER call beefree_add_section — the row structure is fixed.\n"
+        "- If you have fewer REQUIRED BODY SECTIONS than placeholder rows, delete the extra\n"
+        "  placeholder rows using beefree_delete_section."
     )
 
 
@@ -583,15 +549,18 @@ async def stream_executor(
             "Authorization": f"Bearer {settings.bee_api_key}",
             "x-bee-template-id": template_id,
         },
-        max_retries=3,
+        max_retries=5,
+        timeout=60,
+        read_timeout=300,
     )
     executor: Agent[None, str] = Agent(
         model=settings.llm_executor_model,
         toolsets=[mcp],
         system_prompt=EXECUTOR_SYSTEM_PROMPT,
-        retries=3,
+        retries=6,
     )
 
+    failed = False
     try:
         async with executor.iter(prompt) as agent_run:
             async for node in agent_run:
@@ -609,11 +578,18 @@ async def stream_executor(
                     log.warning("Executor node error (continuing): %s", node_exc)
     except Exception as exc:
         log.error("Executor agent error for %s: %s", template_id, exc)
+        failed = True
 
+    # Always fetch a final preview — partial work is still useful to show
     try:
         preview_html = await _fetch_preview(template_id, settings)
         if preview_html:
             yield _preview_event(preview_html)
+        elif failed:
+            yield {
+                "event": "preview",
+                "data": "<div class='plan-error' style='padding:1.5rem'>Agent failed — retries exhausted. The template may be partially built.</div>",
+            }
     except Exception:
         pass
 
@@ -669,6 +645,8 @@ async def stream_translation_executor(
             "x-bee-template-id": template_id,
         },
         max_retries=3,
+        timeout=60,
+        read_timeout=300,
     )
     agent: Agent[None, str] = Agent(
         model=settings.llm_planner_model,  # fast/cheap model for the active provider
@@ -762,6 +740,8 @@ async def stream_palette_executor(
             "x-bee-template-id": template_id,
         },
         max_retries=3,
+        timeout=60,
+        read_timeout=300,
     )
     system_prompt = PALETTE_AGENT_SYSTEM_PROMPT.format(
         palette_name=palette["name"],
@@ -849,6 +829,8 @@ async def stream_edit_executor(
             "x-bee-template-id": template_id,
         },
         max_retries=3,
+        timeout=60,
+        read_timeout=300,
     )
     agent: Agent[None, str] = Agent(
         model=settings.llm_executor_model,
@@ -924,6 +906,8 @@ async def stream_single_executor(
             "x-bee-template-id": template_id,
         },
         max_retries=3,
+        timeout=60,
+        read_timeout=300,
     )
     agent: Agent[None, str] = Agent(
         model=settings.llm_executor_model,

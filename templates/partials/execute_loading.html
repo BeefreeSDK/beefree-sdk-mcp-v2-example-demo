@@ -10,14 +10,11 @@
     <section class="card exec-progress-card">
       <div class="exec-progress-header">
         <h3 class="exec-progress-title">Building your email sequence&hellip;</h3>
-        <p class="exec-progress-sub">
-          The shared layout is built first &mdash; one consistent header, footer and colour
-          palette that all emails inherit. Then every email agent runs in parallel.
-        </p>
+        <p class="exec-progress-sub" id="exec-progress-sub" style="min-height:2.8em;"></p>
       </div>
 
       <!-- Phase list — inner content replaced by the "layout-done" SSE event -->
-      <div class="exec-phases" sse-swap="layout-done" hx-swap="innerHTML">
+      <div class="exec-phases" id="exec-phases" style="opacity:0;transition:opacity .4s ease;" sse-swap="layout-done" hx-swap="innerHTML">
 
         <div class="exec-phase is-active">
           <span class="phase-spinner"></span>
@@ -44,6 +41,30 @@
 
 <script>
 (function () {
+
+  /* ── Typewriter for the subtitle ── */
+  var FULL_TEXT = "The shared layout is built first \u2014 one consistent header, footer and colour palette that all emails inherit. Then every email agent runs in parallel, starting from the same template.";
+  var subEl = document.getElementById('exec-progress-sub');
+  var phasesEl = document.getElementById('exec-phases');
+
+  if (subEl) {
+    var idx = 0;
+    var CHAR_DELAY = 18; // ms per character — fast enough to feel snappy
+
+    function typeNext() {
+      if (idx < FULL_TEXT.length) {
+        subEl.textContent = FULL_TEXT.slice(0, ++idx);
+        setTimeout(typeNext, CHAR_DELAY);
+      } else {
+        // Reveal the phase list with a fade once typing is done
+        if (phasesEl) phasesEl.style.opacity = '1';
+      }
+    }
+    // Tiny delay so the card itself has rendered before we start
+    setTimeout(typeNext, 120);
+  }
+
+  /* ── Rotating ticker inside the phase list ── */
   var msgs = [
     "Choosing a brand-appropriate colour palette\u2026",
     "Setting global typography and link styles\u2026",
@@ -53,16 +74,17 @@
     "Validating the shared layout\u2026",
     "Preparing to launch email agents\u2026"
   ];
-  var el = document.getElementById('layout-ticker');
-  if (!el) return;
+  var tickerEl = document.getElementById('layout-ticker');
+  if (!tickerEl) return;
   var i = 0;
   setInterval(function () {
-    el.style.opacity = '0';
+    tickerEl.style.opacity = '0';
     setTimeout(function () {
       i = (i + 1) % msgs.length;
-      el.textContent = msgs[i];
-      el.style.opacity = '1';
+      tickerEl.textContent = msgs[i];
+      tickerEl.style.opacity = '1';
     }, 200);
   }, 3200);
+
 })();
 </script>

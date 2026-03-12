@@ -43,7 +43,7 @@ body {
   padding: 0 1.5rem;
 }
 
-main.container { flex: 1; padding-top: 2rem; padding-bottom: 3rem; }
+main.container { flex: 1; padding-top: 3rem; padding-bottom: 3rem; }
 
 /* ─── Header ────────────────────────────────────────────────────────────────── */
 
@@ -282,6 +282,12 @@ textarea { resize: vertical; }
   background: var(--accent);
   color: var(--dark);
   animation: pulse-badge 1.5s ease-in-out infinite;
+}
+
+.plan-badge.done {
+  background: rgba(130,237,168,.25);
+  color: #1a7a40;
+  animation: none;
 }
 
 @keyframes pulse-badge {
@@ -1230,6 +1236,22 @@ textarea { resize: vertical; }
 }
 
 /* ─── Responsive ─────────────────────────────────────────────────────────────── */
+
+/* ─── Demo disclaimer ────────────────────────────────────────────────────────── */
+
+.demo-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  margin: 1rem 0 0;
+  padding: .65rem .9rem;
+  background: rgba(119,71,255,.05);
+  border: 1px solid rgba(119,71,255,.15);
+  border-radius: 8px;
+  font-size: .8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
 
 @media (max-width: 900px) {
   .edit-workspace { grid-template-columns: 1fr; }
