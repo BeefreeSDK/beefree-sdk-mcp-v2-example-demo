@@ -53,6 +53,16 @@ main.container { flex: 1; padding-top: 3rem; padding-bottom: 3rem; }
   padding: 1.25rem 0;
 }
 
+.site-header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .75rem;
+}
+
+.header-left { flex: 1; min-width: 0; }
+
 .header-brand {
   display: flex;
   align-items: center;
@@ -77,6 +87,36 @@ main.container { flex: 1; padding-top: 3rem; padding-bottom: 3rem; }
   color: var(--primary-lt);
   font-size: .875rem;
   margin-top: .25rem;
+}
+
+.header-tokens {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: .15rem;
+  flex-shrink: 0;
+}
+
+.token-badge {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 99px;
+  padding: .3rem .75rem;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.token-badge svg { opacity: .75; flex-shrink: 0; }
+
+.token-breakdown {
+  font-size: .7rem;
+  color: var(--primary-lt);
+  text-align: right;
 }
 
 /* ─── Card ──────────────────────────────────────────────────────────────────── */
@@ -978,7 +1018,7 @@ textarea { resize: vertical; }
   border: 1.5px solid var(--border);
   border-radius: 10px;
   background: var(--surface);
-  overflow: hidden;
+  overflow-y: auto;
   height: 320px;
 }
 

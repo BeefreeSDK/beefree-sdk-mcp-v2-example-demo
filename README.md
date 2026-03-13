@@ -31,18 +31,21 @@ Browser → FastAPI (app/main.py)
 | File | Responsibility |
 |------|---------------|
 | `app/main.py` | FastAPI routes, SSE endpoints, session stores |
-| `app/agent.py` | PydanticAI agents (planner, layout, executor, translation, palette, edit) |
+| `app/agent.py` | PydanticAI agents (planner, layout, executor, translation, palette, edit, single) |
 | `app/beefree.py` | Thin async HTTP wrapper around the Beefree REST API |
 | `app/config.py` | `pydantic-settings` config — reads `.env`, resolves model defaults per provider |
 | `templates/` | Jinja2 HTML templates for the web UI |
+| `static/` | CSS and JS assets (including `tokens.js` for live token tracking) |
 
 ### Features
 
-- **Campaign generator** — describe a campaign and choose a preset; the AI builds a full multi-email sequence simultaneously, with live previews streamed per email.
+- **Campaign generator** — describe a campaign and choose a preset; the AI builds a full multi-email sequence simultaneously, with live previews streamed per email. Includes 3 built-in presets (streaming onboarding, SaaS trial nurture, Black Friday fashion).
 - **Single email generator** — generate a standalone email from a free-form prompt.
-- **Bulk translation** — translate an existing Beefree template into multiple languages in parallel.
-- **Palette swap** — apply a colour palette to an existing template.
-- **Email editor** — chat with an AI agent to iteratively edit an existing template.
+- **Bulk translation** — translate an existing Beefree template into multiple languages in parallel. Supports 33 languages.
+- **Palette swap** — apply one or more of 10 built-in color palettes to an existing template in parallel.
+- **Email editor** — chat with an AI agent to iteratively edit an existing template through multi-turn conversation.
+- **Export** — download generated templates as Beefree JSON, rendered HTML, or a full sequence as a ZIP file.
+- **Token counter** — live token usage tracker in the page header, accumulated across all agent calls and persisted across mode switches within the same browser session.
 - **Multi-provider AI** — switch between Anthropic, OpenAI, and Google Gemini by changing one env var.
 
 ---
@@ -86,14 +89,14 @@ AI_PROVIDER=anthropic
 # Add the key for your chosen provider:
 ANTHROPIC_API_KEY=your_anthropic_key_here
 # OPENAI_API_KEY=your_openai_key_here
-# GEMINI_API_KEY=your_google_ai_studio_key_here
+# GOOGLE_API_KEY=your_google_ai_studio_key_here
 ```
 
 #### Provider defaults
 
 | `AI_PROVIDER` | Main model (layout + executor) | Fast model (planner) |
 |---|---|---|
-| `anthropic` | `claude-sonnet-4-6` | `claude-haiku-4-5` |
+| `anthropic` | `claude-sonnet-4-6` | `claude-haiku-4-5-20251001` |
 | `openai` | `o4-mini` | `gpt-4o-mini` |
 | `google` | `gemini-2.5-pro` | `gemini-2.5-flash` |
 
@@ -135,11 +138,15 @@ uv run uvicorn app.main:app --reload
 │   ├── agent.py         # PydanticAI agents
 │   ├── beefree.py       # Beefree REST API client
 │   └── config.py        # Settings (pydantic-settings)
-├── templates/           # Jinja2 HTML templates
-│   ├── index.html       # Campaign generator UI
+├── templates/
+│   ├── landing.html     # Home page — mode selection
+│   ├── index.html       # Campaign sequence generator UI
 │   ├── single.html      # Single email generator UI
 │   ├── translate.html   # Bulk translation UI
 │   ├── palette.html     # Palette swap UI
-│   └── edit.html        # Email editor UI
-└── static/              # Static assets (CSS, JS)
+│   ├── edit.html        # Email editor UI
+│   └── partials/        # HTMX partial templates (SSE targets, loading states)
+└── static/
+    ├── style.css        # Application styles
+    └── tokens.js        # Live token usage counter (sessionStorage-backed)
 ```

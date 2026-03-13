@@ -10,29 +10,39 @@
   <link rel="stylesheet" href="/static/style.css" />
   <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
   <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+  <script src="/static/tokens.js"></script>
 </head>
 <body>
 
   <header class="site-header">
     <div class="container">
-      <div class="header-brand">
-        <a href="/" class="back-link" aria-label="Back to home">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M11 14L6 9l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <div class="header-left">
+        <div class="header-brand">
+          <a href="/" class="back-link" aria-label="Back to home">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M11 14L6 9l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="#7747FF"/>
+            <path d="M16 6c-2 0-6 2-6 6 0 2 1 3 2 4-1 1-2 3-2 5 0 4 3 7 6 7s6-3 6-7c0-2-1-4-2-5 1-1 2-2 2-4 0-4-4-6-6-6z" fill="#82EDA8"/>
+            <circle cx="13" cy="13" r="1.5" fill="#26045D"/>
+            <circle cx="19" cy="13" r="1.5" fill="#26045D"/>
           </svg>
-        </a>
-        <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-          <rect width="32" height="32" rx="8" fill="#7747FF"/>
-          <path d="M16 6c-2 0-6 2-6 6 0 2 1 3 2 4-1 1-2 3-2 5 0 4 3 7 6 7s6-3 6-7c0-2-1-4-2-5 1-1 2-2 2-4 0-4-4-6-6-6z" fill="#82EDA8"/>
-          <circle cx="13" cy="13" r="1.5" fill="#26045D"/>
-          <circle cx="19" cy="13" r="1.5" fill="#26045D"/>
-        </svg>
-        <span class="brand-name">Beefree SDK</span>
-        <span class="brand-tag">Edit an Email</span>
+          <span class="brand-name">Beefree SDK</span>
+          <span class="brand-tag">Edit an Email</span>
+        </div>
+        <p class="header-sub">
+          Chat with the AI agent to iteratively refine any email template — each message triggers a live edit via MCP.
+        </p>
       </div>
-      <p class="header-sub">
-        Chat with the AI agent to iteratively refine any email template — each message triggers a live edit via MCP.
-      </p>
+      <div class="header-tokens">
+        <div class="token-badge">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 4.5H15l-4 3 1.5 4.5L8 10.5 3.5 13 5 8.5 1 5.5h5z" fill="currentColor"/></svg>
+          <span id="token-total">0 tokens</span>
+        </div>
+        <div class="token-breakdown" id="token-breakdown"></div>
+      </div>
     </div>
   </header>
 

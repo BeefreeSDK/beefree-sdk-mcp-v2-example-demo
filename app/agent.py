@@ -23,13 +23,14 @@ events to their own card in the browser.
 """
 
 import html as html_module
+import json as _json
 import logging
 from typing import AsyncIterator
 
 log = logging.getLogger(__name__)
 
 from pydantic import BaseModel
-from pydantic_ai import Agent, ModelRequestNode
+from pydantic_ai import Agent, CallToolsNode, ModelRequestNode
 from pydantic_ai.mcp import MCPServerStreamableHTTP
 
 from .config import Settings
@@ -294,7 +295,7 @@ async def generate_plan(
         )
         for s in skeleton.emails
     ]
-    return EmailPlan(sequence_title=skeleton.sequence_title, emails=emails)
+    return EmailPlan(sequence_title=skeleton.sequence_title, emails=emails), result.usage()
 
 
 # --- Shared layout agent -----------------------------------------------------
@@ -342,6 +343,7 @@ async def build_shared_layout(
         f"Build the shared header, {num_sections} placeholder body row(s), and footer "
         f"for the '{sequence_title}' campaign."
     )
+    layout_usage = result.usage()
     text = result.output
 
     # Extract the row-ID JSON block the agent was instructed to append.
@@ -376,7 +378,7 @@ async def build_shared_layout(
     template_data = await get_template(layout_template_id, settings)
     template_json = template_data.get("template", template_data)
 
-    return header_row_id, footer_row_id, placeholder_row_ids, template_json
+    return header_row_id, footer_row_id, placeholder_row_ids, template_json, layout_usage
 
 
 def append_layout_context(
@@ -407,6 +409,19 @@ def append_layout_context(
 
 
 # --- SSE helpers --------------------------------------------------------------
+
+
+def _tokens_event(usage) -> dict | None:
+    """Build a tokens SSE event from a PydanticAI usage object. Returns None if no usage."""
+    if usage is None:
+        return None
+    return {
+        "event": "tokens",
+        "data": _json.dumps({
+            "input": usage.input_tokens or 0,
+            "output": usage.output_tokens or 0,
+        }),
+    }
 
 
 def _preview_event(email_html: str) -> dict:
@@ -472,6 +487,10 @@ async def stream_executor(
         async with executor.iter(prompt) as agent_run:
             async for node in agent_run:
                 try:
+                    if isinstance(node, CallToolsNode):
+                        tok = _tokens_event(node.model_response.usage)
+                        if tok:
+                            yield tok
                     if isinstance(node, ModelRequestNode):
                         has_tool_returns = any(
                             getattr(p, "part_kind", "") == "tool-return"
@@ -568,6 +587,10 @@ async def stream_translation_executor(
         ) as agent_run:
             async for node in agent_run:
                 try:
+                    if isinstance(node, CallToolsNode):
+                        tok = _tokens_event(node.model_response.usage)
+                        if tok:
+                            yield tok
                     if isinstance(node, ModelRequestNode):
                         has_tool_returns = any(
                             getattr(p, "part_kind", "") == "tool-return"
@@ -667,6 +690,10 @@ async def stream_palette_executor(
         ) as agent_run:
             async for node in agent_run:
                 try:
+                    if isinstance(node, CallToolsNode):
+                        tok = _tokens_event(node.model_response.usage)
+                        if tok:
+                            yield tok
                     if isinstance(node, ModelRequestNode):
                         has_tool_returns = any(
                             getattr(p, "part_kind", "") == "tool-return"
@@ -753,6 +780,10 @@ async def stream_edit_executor(
         ) as agent_run:
             async for node in agent_run:
                 try:
+                    if isinstance(node, CallToolsNode):
+                        tok = _tokens_event(node.model_response.usage)
+                        if tok:
+                            yield tok
                     if isinstance(node, ModelRequestNode):
                         has_tool_returns = any(
                             getattr(p, "part_kind", "") == "tool-return"
@@ -827,6 +858,10 @@ async def stream_single_executor(
         async with agent.iter(brief) as agent_run:
             async for node in agent_run:
                 try:
+                    if isinstance(node, CallToolsNode):
+                        tok = _tokens_event(node.model_response.usage)
+                        if tok:
+                            yield tok
                     if isinstance(node, ModelRequestNode):
                         has_tool_returns = any(
                             getattr(p, "part_kind", "") == "tool-return"

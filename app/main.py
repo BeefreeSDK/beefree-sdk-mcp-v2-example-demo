@@ -21,6 +21,7 @@ from sse_starlette import EventSourceResponse
 from .agent import (
     EmailPlan,
     EmailStep,
+    _tokens_event,
     append_layout_context,
     build_shared_layout,
     generate_plan,
@@ -563,11 +564,14 @@ async def plan_stream(request: Request, goal: str, preset_id: str = ""):
 
     async def generator():
         try:
-            email_plan = await generate_plan(goal, settings, sections_per_step)
+            email_plan, plan_usage = await generate_plan(goal, settings, sections_per_step)
             plan_json = email_plan.model_dump_json()
             tmpl = templates.env.get_template("partials/plan.html")
             plan_html = tmpl.render(plan=email_plan, plan_json=plan_json)
             yield {"event": "plan", "data": plan_html}
+            tok = _tokens_event(plan_usage)
+            if tok:
+                yield tok
         except Exception as exc:
             import logging
             logging.getLogger(__name__).error("Planner error: %s", exc)
@@ -603,9 +607,12 @@ async def execute_stream(request: Request, plan_json: str):
             # Use the max section count across all emails so the shared template
             # has enough placeholder rows for the email that needs the most.
             num_sections = max((e.body_section_count for e in email_plan.emails), default=3)
-            header_row_id, footer_row_id, placeholder_row_ids, layout_json = (
+            header_row_id, footer_row_id, placeholder_row_ids, layout_json, layout_usage = (
                 await build_shared_layout(email_plan.sequence_title, settings, num_sections)
             )
+            tok = _tokens_event(layout_usage)
+            if tok:
+                yield tok
 
             # Signal layout complete so the UI flips to phase 2
             s = "s" if n != 1 else ""
