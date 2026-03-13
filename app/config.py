@@ -11,11 +11,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # You can override any individual model in .env without changing AI_PROVIDER:
 #   LLM_EXECUTOR_MODEL=openai:o3
 #   LLM_LAYOUT_MODEL=openai:o4-mini
-#   LLM_PLANNER_MODEL=openai:gpt-4o-mini
+#   LLM_PLANNER_MODEL=openai:gpt-4.1-mini
 #
 # OpenAI reasoning models:    openai:o4-mini  openai:o3  openai:o1
+# OpenAI GPT models:          openai:gpt-5  openai:gpt-4.1  openai:gpt-4.1-mini
 # Google thinking models:     google-gla:gemini-2.5-pro  google-gla:gemini-2.5-flash
-# Anthropic:                  anthropic:claude-sonnet-4-6  anthropic:claude-opus-4-5
+# Google preview models:      google-gla:gemini-3.1-pro-preview  google-gla:gemini-3.1-flash-lite-preview
+# Anthropic:                  anthropic:claude-sonnet-4-6  anthropic:claude-opus-4-6
 _PROVIDER_MODELS: dict[str, dict[str, str]] = {
     "anthropic": {
         "main": "anthropic:claude-sonnet-4-6",
@@ -25,11 +27,12 @@ _PROVIDER_MODELS: dict[str, dict[str, str]] = {
         # o4-mini is OpenAI's latest compact reasoning model — significantly
         # better than gpt-4o at structured multi-step tool use tasks like this.
         "main": "openai:o4-mini",
-        "fast": "openai:gpt-4o-mini",
+        # gpt-4.1-mini is newer and more capable than gpt-4o-mini.
+        "fast": "openai:gpt-4.1-mini",
     },
     "google": {
         # gemini-2.5-pro has thinking enabled by default and outperforms flash
-        # on complex layout/content generation.
+        # on complex layout/content generation. Latest stable model.
         "main": "google-gla:gemini-2.5-pro",
         "fast": "google-gla:gemini-2.5-flash",
     },

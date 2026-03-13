@@ -32,6 +32,14 @@ log = logging.getLogger(__name__)
 from pydantic import BaseModel
 from pydantic_ai import Agent, CallToolsNode, ModelRequestNode
 from pydantic_ai.mcp import MCPServerStreamableHTTP
+from pydantic_ai.models.anthropic import AnthropicModelSettings
+
+# Applied to every agent — Anthropic-prefixed keys are ignored by other providers.
+_CACHE_SETTINGS = AnthropicModelSettings(
+    anthropic_cache_instructions=True,       # cache the (large) system prompt
+    anthropic_cache_tool_definitions=True,   # cache MCP tool schema list
+    anthropic_cache_messages=True,           # cache conversation history between rounds
+)
 
 from .config import Settings
 
@@ -267,6 +275,7 @@ async def generate_plan(
         model=settings.llm_planner_model,
         output_type=EmailSkeletonPlan,
         system_prompt=PLANNER_SKELETON_PROMPT,
+        model_settings=_CACHE_SETTINGS,
         retries=6,
     )
     result = await skeleton_agent.run(goal)
@@ -336,6 +345,7 @@ async def build_shared_layout(
         model=settings.llm_layout_model,
         toolsets=[mcp],
         system_prompt=_build_layout_agent_system_prompt(num_sections),
+        model_settings=_CACHE_SETTINGS,
         retries=6,
     )
 
@@ -420,6 +430,8 @@ def _tokens_event(usage) -> dict | None:
         "data": _json.dumps({
             "input": usage.input_tokens or 0,
             "output": usage.output_tokens or 0,
+            "cache_write": usage.cache_write_tokens or 0,
+            "cache_read": usage.cache_read_tokens or 0,
         }),
     }
 
@@ -479,6 +491,7 @@ async def stream_executor(
         model=settings.llm_executor_model,
         toolsets=[mcp],
         system_prompt=EXECUTOR_SYSTEM_PROMPT,
+        model_settings=_CACHE_SETTINGS,
         retries=6,
     )
 
@@ -578,6 +591,7 @@ async def stream_translation_executor(
         model=settings.llm_planner_model,  # fast/cheap model for the active provider
         toolsets=[mcp],
         system_prompt=TRANSLATION_AGENT_SYSTEM_PROMPT.format(language=language),
+        model_settings=_CACHE_SETTINGS,
         retries=3,
     )
 
@@ -681,6 +695,7 @@ async def stream_palette_executor(
         model=settings.llm_executor_model,
         toolsets=[mcp],
         system_prompt=system_prompt,
+        model_settings=_CACHE_SETTINGS,
         retries=3,
     )
 
@@ -770,6 +785,7 @@ async def stream_edit_executor(
         model=settings.llm_executor_model,
         toolsets=[mcp],
         system_prompt=EDIT_AGENT_SYSTEM_PROMPT,
+        model_settings=_CACHE_SETTINGS,
         retries=2,
     )
 
@@ -851,6 +867,7 @@ async def stream_single_executor(
         model=settings.llm_executor_model,
         toolsets=[mcp],
         system_prompt=SINGLE_EMAIL_AGENT_SYSTEM_PROMPT,
+        model_settings=_CACHE_SETTINGS,
         retries=3,
     )
 

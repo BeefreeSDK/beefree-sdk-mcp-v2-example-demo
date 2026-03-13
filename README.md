@@ -97,14 +97,14 @@ ANTHROPIC_API_KEY=your_anthropic_key_here
 | `AI_PROVIDER` | Main model (layout + executor) | Fast model (planner) |
 |---|---|---|
 | `anthropic` | `claude-sonnet-4-6` | `claude-haiku-4-5-20251001` |
-| `openai` | `o4-mini` | `gpt-4o-mini` |
+| `openai` | `o4-mini` | `gpt-4.1-mini` |
 | `google` | `gemini-2.5-pro` | `gemini-2.5-flash` |
 
 You can override individual models without changing the provider:
 
 ```dotenv
 LLM_EXECUTOR_MODEL=openai:o3
-LLM_PLANNER_MODEL=openai:gpt-4o-mini
+LLM_PLANNER_MODEL=openai:gpt-4.1-mini
 ```
 
 ---

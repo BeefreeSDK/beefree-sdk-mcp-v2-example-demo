@@ -4,9 +4,9 @@
 
   function load() {
     try {
-      return JSON.parse(sessionStorage.getItem(KEY)) || { input: 0, output: 0 };
+      return JSON.parse(sessionStorage.getItem(KEY)) || { input: 0, output: 0, cache_write: 0, cache_read: 0 };
     } catch (_) {
-      return { input: 0, output: 0 };
+      return { input: 0, output: 0, cache_write: 0, cache_read: 0 };
     }
   }
 
@@ -27,23 +27,31 @@
     if (!badge) return;
     badge.textContent = fmt(total) + ' tokens';
     if (breakdown) {
-      breakdown.textContent = total > 0
-        ? 'in: ' + fmt(data.input) + ' · out: ' + fmt(data.output)
-        : '';
+      if (total === 0) {
+        breakdown.textContent = '';
+        return;
+      }
+      var parts = ['in: ' + fmt(data.input), 'out: ' + fmt(data.output)];
+      if (data.cache_write > 0) parts.push('↑cache: ' + fmt(data.cache_write));
+      if (data.cache_read  > 0) parts.push('↓cache: ' + fmt(data.cache_read));
+      breakdown.textContent = parts.join(' · ');
     }
   }
 
   function add(delta) {
     var data = load();
-    data.input += (delta.input || 0);
-    data.output += (delta.output || 0);
+    data.input       += (delta.input       || 0);
+    data.output      += (delta.output      || 0);
+    data.cache_write += (delta.cache_write || 0);
+    data.cache_read  += (delta.cache_read  || 0);
     save(data);
     render(data);
   }
 
   function reset() {
-    save({ input: 0, output: 0 });
-    render({ input: 0, output: 0 });
+    var empty = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+    save(empty);
+    render(empty);
   }
 
   // Expose reset globally so the inline onclick button can call it
