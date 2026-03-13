@@ -119,6 +119,28 @@ main.container { flex: 1; padding-top: 3rem; padding-bottom: 3rem; }
   text-align: right;
 }
 
+.token-reset-btn {
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 50%;
+  color: rgba(255,255,255,.75);
+  font-size: .9rem;
+  cursor: pointer;
+  padding: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  margin-left: .2rem;
+  transition: background .15s, color .15s;
+}
+.token-reset-btn:hover {
+  background: rgba(255,255,255,.25);
+  color: #fff;
+}
+
 /* ─── Card ──────────────────────────────────────────────────────────────────── */
 
 .card {

@@ -41,6 +41,14 @@
     render(data);
   }
 
+  function reset() {
+    save({ input: 0, output: 0 });
+    render({ input: 0, output: 0 });
+  }
+
+  // Expose reset globally so the inline onclick button can call it
+  window.beeTokensReset = reset;
+
   // Render on page load (defer until DOM is ready — script loads in <head>)
   document.addEventListener('DOMContentLoaded', function () { render(load()); });
 
