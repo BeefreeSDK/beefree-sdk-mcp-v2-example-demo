@@ -154,7 +154,7 @@
     function rescaleThumbs() {
       document.querySelectorAll('.thumb-viewport').forEach(vp => {
         const w = vp.offsetWidth;
-        const scale = w / 600;
+        const scale = w / 700;
         const inner = vp.querySelector('.thumb-inner');
         if (inner) inner.style.transform = 'scale(' + scale + ')';
       });

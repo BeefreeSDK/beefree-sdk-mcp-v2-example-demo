@@ -1060,7 +1060,7 @@ textarea { resize: vertical; }
 }
 
 .tpl-preview-wrap {
-  width: 600px;
+  width: 700px;
   transform-origin: top left;
   overflow: hidden;
 }
@@ -1281,20 +1281,20 @@ textarea { resize: vertical; }
 /* Preview panel */
 .edit-preview-wrap {
   padding: 1rem;
-  width: calc(600px + 2rem);
+  width: calc(700px + 2rem);
   height: 650px;
   overflow-x: hidden;
   overflow-y: auto;
 }
 
 .edit-iframe-wrap {
-  width: 600px;
+  width: 700px;
 }
 
 .edit-iframe-wrap iframe {
   display: block;
   border: none;
-  width: 600px;
+  width: 700px;
 }
 
 /* ─── Responsive ─────────────────────────────────────────────────────────────── */
@@ -1305,7 +1305,7 @@ textarea { resize: vertical; }
   display: flex;
   align-items: flex-start;
   gap: .5rem;
-  margin: 1rem 0 0;
+  margin: 1rem 0;
   padding: .65rem .9rem;
   background: rgba(119,71,255,.05);
   border: 1px solid rgba(119,71,255,.15);

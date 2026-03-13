@@ -113,7 +113,7 @@
   box-shadow: 0 1px 3px rgba(38,4,93,.06), 0 6px 20px rgba(38,4,93,.08);
   transition: border-color .3s, box-shadow .3s;
   width: 100%;
-  max-width: 600px; /* never wider than the email itself */
+  max-width: 700px; /* never wider than the email itself */
 }
 
 .single-result-col.is-generating {
@@ -127,8 +127,8 @@
 .single-result-col.is-done { border-color: #82EDA8; }
 
 /* iframe wrap */
-.single-iframe-wrap { width: 600px; transform-origin: top left; }
-.single-iframe-wrap iframe { width: 600px; border: none; display: block; }
+.single-iframe-wrap { width: 700px; transform-origin: top left; }
+.single-iframe-wrap iframe { width: 700px; border: none; display: block; }
 
 /* ── Email skeleton placeholder ── */
 .email-skeleton {
@@ -299,7 +299,7 @@
     var col = document.getElementById('single-result-col');
     if (!col) return;
     var w = col.offsetWidth;
-    var scale = Math.min(1, w / 600);
+    var scale = Math.min(1, w / 700);
     var wrap = col.querySelector('.single-iframe-wrap');
     if (wrap) {
       wrap.style.transform = 'scale(' + scale + ')';
@@ -368,13 +368,22 @@
     if (_templateId) {
       var headerRow = badge && badge.parentElement;
       if (headerRow && !document.getElementById('single-download-btn')) {
+        var svgIcon = '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> ';
+
         var a = document.createElement('a');
         a.id = 'single-download-btn';
         a.href = '/download-template/' + _templateId;
         a.download = 'email-' + _templateId.slice(0, 8) + '.json';
         a.className = 'btn-outline';
-        a.innerHTML = '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Download JSON';
+        a.innerHTML = svgIcon + 'Download JSON';
         headerRow.appendChild(a);
+
+        var b = document.createElement('a');
+        b.href = '/download-html/' + _templateId;
+        b.download = 'email-' + _templateId.slice(0, 8) + '.html';
+        b.className = 'btn-outline';
+        b.innerHTML = svgIcon + 'Download HTML';
+        headerRow.appendChild(b);
       }
     }
 

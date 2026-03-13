@@ -358,6 +358,33 @@ async def download_all(ids: str):
     )
 
 
+@app.get("/download-all-html")
+async def download_all_html(ids: str):
+    """Return a ZIP file containing all rendered HTML emails for a sequence."""
+    import io
+    import zipfile
+
+    from .beefree import render_html as _render_html
+
+    settings = get_settings()
+    template_ids = [tid.strip() for tid in ids.split(",") if tid.strip()]
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for i, tid in enumerate(template_ids, 1):
+            data = await get_template(tid, settings)
+            template = data.get("template", data)
+            html_content = await _render_html(template, settings)
+            zf.writestr(f"email-{i:02d}-{tid[:8]}.html", html_content)
+    buf.seek(0)
+
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="email-sequence.zip"'},
+    )
+
+
 @app.post("/preview-template", response_class=HTMLResponse)
 async def preview_template(request: Request, template_json: str = Form(...)):
     """Render a pasted/uploaded Beefree template JSON and return a scaled iframe."""
@@ -371,7 +398,7 @@ async def preview_template(request: Request, template_json: str = Form(...)):
         return HTMLResponse(
             '<div class="tpl-preview-wrap">'
             f'<iframe srcdoc="{escaped}" sandbox="allow-same-origin" '
-            'style="width:600px;height:1200px;border:none;display:block;" '
+            'style="width:700px;height:1200px;border:none;display:block;" '
             'title="Template preview"></iframe>'
             '</div>'
         )
@@ -841,7 +868,7 @@ async def edit_start(request: Request, template_json: str = Form(...)):
     escaped = html_lib.escape(rendered, quote=True)
     initial_preview = (
         f'<iframe srcdoc="{escaped}" sandbox="allow-same-origin" '
-        'style="width:600px;height:1200px;border:none;display:block;" '
+        'style="width:700px;height:1200px;border:none;display:block;" '
         'title="Email preview"></iframe>'
     )
 

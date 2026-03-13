@@ -32,14 +32,15 @@ log = logging.getLogger(__name__)
 from pydantic import BaseModel
 from pydantic_ai import Agent, CallToolsNode, ModelRequestNode
 from pydantic_ai.mcp import MCPServerStreamableHTTP
-from pydantic_ai.models.anthropic import AnthropicModelSettings
-
-# Applied to every agent — Anthropic-prefixed keys are ignored by other providers.
-_CACHE_SETTINGS = AnthropicModelSettings(
-    anthropic_cache_instructions=True,       # cache the (large) system prompt
-    anthropic_cache_tool_definitions=True,   # cache MCP tool schema list
-    anthropic_cache_messages=True,           # cache conversation history between rounds
-)
+# Applied to every agent — provider-prefixed keys are silently ignored by other providers.
+_CACHE_SETTINGS: dict = {
+    # Anthropic — explicit prompt caching
+    "anthropic_cache_instructions":    True,  # cache the (large) system prompt
+    "anthropic_cache_tool_definitions": True,  # cache MCP tool schema list
+    "anthropic_cache_messages":        True,  # cache conversation history between rounds
+    # Google — cap thinking tokens to keep latency/cost reasonable
+    "google_thinking_config": {"thinking_budget": 256},
+}
 
 from .config import Settings
 
@@ -272,7 +273,7 @@ async def generate_plan(
     exactly the prescribed rows and nothing else.
     """
     skeleton_agent: Agent[None, EmailSkeletonPlan] = Agent(
-        model=settings.llm_planner_model,
+        model=settings.llm_model,
         output_type=EmailSkeletonPlan,
         system_prompt=PLANNER_SKELETON_PROMPT,
         model_settings=_CACHE_SETTINGS,
@@ -342,7 +343,7 @@ async def build_shared_layout(
         read_timeout=300,
     )
     layout_agent: Agent[None, str] = Agent(
-        model=settings.llm_layout_model,
+        model=settings.llm_model,
         toolsets=[mcp],
         system_prompt=_build_layout_agent_system_prompt(num_sections),
         model_settings=_CACHE_SETTINGS,
@@ -442,7 +443,7 @@ def _preview_event(email_html: str) -> dict:
     iframe = (
         f'<iframe srcdoc="{escaped}" '
         f'sandbox="allow-same-origin" '
-        f'style="width:600px;height:800px;border:none;display:block;" '
+        f'style="width:700px;height:800px;border:none;display:block;" '
         f'title="Email preview"></iframe>'
     )
     return {"event": "preview", "data": iframe}
@@ -488,7 +489,7 @@ async def stream_executor(
         read_timeout=300,
     )
     executor: Agent[None, str] = Agent(
-        model=settings.llm_executor_model,
+        model=settings.llm_model,
         toolsets=[mcp],
         system_prompt=EXECUTOR_SYSTEM_PROMPT,
         model_settings=_CACHE_SETTINGS,
@@ -588,7 +589,7 @@ async def stream_translation_executor(
         read_timeout=300,
     )
     agent: Agent[None, str] = Agent(
-        model=settings.llm_planner_model,  # fast/cheap model for the active provider
+        model=settings.llm_model,
         toolsets=[mcp],
         system_prompt=TRANSLATION_AGENT_SYSTEM_PROMPT.format(language=language),
         model_settings=_CACHE_SETTINGS,
@@ -692,7 +693,7 @@ async def stream_palette_executor(
         **palette["colors"],
     )
     agent: Agent[None, str] = Agent(
-        model=settings.llm_executor_model,
+        model=settings.llm_model,
         toolsets=[mcp],
         system_prompt=system_prompt,
         model_settings=_CACHE_SETTINGS,
@@ -782,7 +783,7 @@ async def stream_edit_executor(
         read_timeout=300,
     )
     agent: Agent[None, str] = Agent(
-        model=settings.llm_executor_model,
+        model=settings.llm_model,
         toolsets=[mcp],
         system_prompt=EDIT_AGENT_SYSTEM_PROMPT,
         model_settings=_CACHE_SETTINGS,
@@ -864,7 +865,7 @@ async def stream_single_executor(
         read_timeout=300,
     )
     agent: Agent[None, str] = Agent(
-        model=settings.llm_executor_model,
+        model=settings.llm_model,
         toolsets=[mcp],
         system_prompt=SINGLE_EMAIL_AGENT_SYSTEM_PROMPT,
         model_settings=_CACHE_SETTINGS,

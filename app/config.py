@@ -4,38 +4,16 @@ from typing import Literal
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Default models per provider
-# "main"  → used for layout agent, executor agents, single-email agent
-# "fast"  → used for planner and translation agent (lower latency / cost)
+# Best model per provider — used for all agents.
+# Override with LLM_MODEL in .env if needed.
 #
-# You can override any individual model in .env without changing AI_PROVIDER:
-#   LLM_EXECUTOR_MODEL=openai:o3
-#   LLM_LAYOUT_MODEL=openai:o4-mini
-#   LLM_PLANNER_MODEL=openai:gpt-4.1-mini
-#
-# OpenAI reasoning models:    openai:o4-mini  openai:o3  openai:o1
-# OpenAI GPT models:          openai:gpt-5  openai:gpt-4.1  openai:gpt-4.1-mini
-# Google thinking models:     google-gla:gemini-2.5-pro  google-gla:gemini-2.5-flash
-# Google preview models:      google-gla:gemini-3.1-pro-preview  google-gla:gemini-3.1-flash-lite-preview
-# Anthropic:                  anthropic:claude-sonnet-4-6  anthropic:claude-opus-4-6
-_PROVIDER_MODELS: dict[str, dict[str, str]] = {
-    "anthropic": {
-        "main": "anthropic:claude-sonnet-4-6",
-        "fast": "anthropic:claude-haiku-4-5-20251001",
-    },
-    "openai": {
-        # o4-mini is OpenAI's latest compact reasoning model — significantly
-        # better than gpt-4o at structured multi-step tool use tasks like this.
-        "main": "openai:o4-mini",
-        # gpt-4.1-mini is newer and more capable than gpt-4o-mini.
-        "fast": "openai:gpt-4.1-mini",
-    },
-    "google": {
-        # gemini-2.5-pro has thinking enabled by default and outperforms flash
-        # on complex layout/content generation. Latest stable model.
-        "main": "google-gla:gemini-2.5-pro",
-        "fast": "google-gla:gemini-2.5-flash",
-    },
+# OpenAI:    openai:o4-mini  openai:o3  openai:gpt-4.1
+# Google:    google-gla:gemini-2.5-pro  google-gla:gemini-2.5-flash
+# Anthropic: anthropic:claude-sonnet-4-6  anthropic:claude-opus-4-6
+_PROVIDER_MODEL: dict[str, str] = {
+    "anthropic": "anthropic:claude-sonnet-4-6",
+    "openai":    "openai:gpt-5.2",
+    "google":    "google-gla:gemini-2.5-pro",
 }
 
 
@@ -44,28 +22,16 @@ class Settings(BaseSettings):
     bee_api_base: str = "https://api.getbee.io"
 
     # Set AI_PROVIDER in .env to switch between anthropic / openai / google.
-    # The four model fields below are auto-populated from the provider defaults
-    # unless you explicitly override them in .env.
     ai_provider: Literal["anthropic", "openai", "google"] = "anthropic"
 
     llm_model: str = ""
-    llm_planner_model: str = ""
-    llm_layout_model: str = ""
-    llm_executor_model: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @model_validator(mode="after")
-    def resolve_models(self) -> "Settings":
-        defaults = _PROVIDER_MODELS.get(self.ai_provider, _PROVIDER_MODELS["anthropic"])
+    def resolve_model(self) -> "Settings":
         if not self.llm_model:
-            self.llm_model = defaults["main"]
-        if not self.llm_planner_model:
-            self.llm_planner_model = defaults["fast"]
-        if not self.llm_layout_model:
-            self.llm_layout_model = defaults["main"]
-        if not self.llm_executor_model:
-            self.llm_executor_model = defaults["main"]
+            self.llm_model = _PROVIDER_MODEL.get(self.ai_provider, _PROVIDER_MODEL["anthropic"])
         return self
 
 

@@ -107,8 +107,8 @@
   }
 
   /* ── Preview area ── */
-  .seq-iframe-wrap { width:600px; transform-origin:top left; }
-  .seq-iframe-wrap iframe { width:600px; border:none; display:block; }
+  .seq-iframe-wrap { width:700px; transform-origin:top left; }
+  .seq-iframe-wrap iframe { width:700px; border:none; display:block; }
 
 
   .seq-placeholder {
@@ -129,7 +129,14 @@
        style="display:none;"
        href="#">
       <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Download All
+      Download JSON
+    </a>
+    <a id="seq-download-html-btn"
+       class="btn-outline"
+       style="display:none;"
+       href="#">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Download HTML
     </a>
   </div>
 
@@ -178,7 +185,7 @@
     if (!row) return;
     row.querySelectorAll('.seq-col').forEach(function (col) {
       var w = col.offsetWidth;
-      var scale = w / 600;
+      var scale = w / 700;
       var wrap = col.querySelector('.seq-iframe-wrap');
       if (wrap) {
         wrap.style.transform = 'scale(' + scale + ')';
@@ -238,10 +245,16 @@
       var badge = document.getElementById('seq-status-badge');
       if (badge) { badge.className = 'plan-badge done'; badge.textContent = '✓ All done'; }
 
+      var ids = _seqTemplateIds.join(',');
       var dlBtn = document.getElementById('seq-download-btn');
-      if (dlBtn && _seqTemplateIds.length) {
-        dlBtn.href = '/download-all?ids=' + _seqTemplateIds.join(',');
+      if (dlBtn && ids) {
+        dlBtn.href = '/download-all?ids=' + ids;
         dlBtn.style.display = '';
+      }
+      var dlHtmlBtn = document.getElementById('seq-download-html-btn');
+      if (dlHtmlBtn && ids) {
+        dlHtmlBtn.href = '/download-all-html?ids=' + ids;
+        dlHtmlBtn.style.display = '';
       }
     }
   });
