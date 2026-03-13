@@ -317,6 +317,22 @@ async def download_template(template_id: str):
     )
 
 
+@app.get("/download-html/{template_id}")
+async def download_html(template_id: str):
+    """Return the rendered email HTML as a downloadable file."""
+    from .beefree import render_html as _render_html
+    settings = get_settings()
+    data = await get_template(template_id, settings)
+    template = data.get("template", data)
+    html_content = await _render_html(template, settings)
+    filename = f"email-{template_id[:8]}.html"
+    return Response(
+        content=html_content,
+        media_type="text/html",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.get("/download-all")
 async def download_all(ids: str):
     """Return a ZIP file containing all template JSONs for a sequence."""

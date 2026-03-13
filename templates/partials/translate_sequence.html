@@ -119,6 +119,7 @@
     {% for language, template_id in languages_with_ids %}
     <div
       class="trans-col"
+      data-template-id="{{ template_id }}"
       hx-ext="sse"
       sse-connect="/stream-translate/{{ template_id }}?language={{ language | urlencode }}"
       sse-close="close"
@@ -128,9 +129,29 @@
           <span class="trans-col-label">Language</span>
           <span class="trans-col-lang" title="{{ language }}">{{ language }}</span>
         </div>
-        <span class="trans-status translating">
-          <span class="status-dot"></span>Translating&hellip;
-        </span>
+        <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;">
+          <span class="trans-status translating">
+            <span class="status-dot"></span>Translating&hellip;
+          </span>
+          <div class="col-dl-bar" style="display:none;gap:.3rem;align-items:center;">
+            <a href="/download-template/{{ template_id }}"
+               download="email-{{ template_id[:8] }}.json"
+               class="btn-outline"
+               style="font-size:.72rem;padding:.22rem .55rem;display:inline-flex;align-items:center;gap:.3rem;">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>JSON
+            </a>
+            <a href="/download-html/{{ template_id }}"
+               download="email-{{ template_id[:8] }}.html"
+               class="btn-outline"
+               style="font-size:.72rem;padding:.22rem .55rem;display:inline-flex;align-items:center;gap:.3rem;">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>HTML
+            </a>
+          </div>
+        </div>
       </div>
 
       <div class="trans-iframe-wrap" sse-swap="preview" hx-swap="innerHTML">
@@ -189,6 +210,8 @@
       pill.className = 'trans-status done';
       pill.textContent = '✓ Done';
     }
+    var dlBar = col.querySelector('.col-dl-bar');
+    if (dlBar) dlBar.style.display = 'flex';
   });
 
 })();

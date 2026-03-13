@@ -119,6 +119,7 @@
     {% for palette, template_id in palettes_with_ids %}
     <div
       class="pal-col"
+      data-template-id="{{ template_id }}"
       hx-ext="sse"
       sse-connect="/stream-palette/{{ template_id }}?palette_id={{ palette.id }}"
       sse-close="close"
@@ -132,9 +133,29 @@
             {% endfor %}
           </div>
         </div>
-        <span class="pal-status styling">
-          <span class="status-dot"></span>Styling&hellip;
-        </span>
+        <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;">
+          <span class="pal-status styling">
+            <span class="status-dot"></span>Styling&hellip;
+          </span>
+          <div class="col-dl-bar" style="display:none;gap:.3rem;align-items:center;">
+            <a href="/download-template/{{ template_id }}"
+               download="email-{{ template_id[:8] }}.json"
+               class="btn-outline"
+               style="font-size:.72rem;padding:.22rem .55rem;display:inline-flex;align-items:center;gap:.3rem;">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>JSON
+            </a>
+            <a href="/download-html/{{ template_id }}"
+               download="email-{{ template_id[:8] }}.html"
+               class="btn-outline"
+               style="font-size:.72rem;padding:.22rem .55rem;display:inline-flex;align-items:center;gap:.3rem;">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>HTML
+            </a>
+          </div>
+        </div>
       </div>
 
       <div class="pal-iframe-wrap" sse-swap="preview" hx-swap="innerHTML">
@@ -193,6 +214,8 @@
       pill.className = 'pal-status done';
       pill.textContent = '✓ Done';
     }
+    var dlBar = col.querySelector('.col-dl-bar');
+    if (dlBar) dlBar.style.display = 'flex';
   });
 
 })();

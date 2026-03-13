@@ -67,7 +67,18 @@
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0">
             <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          Download JSON
+          JSON
+        </a>
+        <a
+          href="/download-html/{{ template_id }}"
+          download="email-{{ template_id[:8] }}.html"
+          class="btn-outline"
+          style="font-size:.75rem;padding:.25rem .65rem;"
+        >
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0">
+            <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          HTML
         </a>
       </div>
     </div>
@@ -92,13 +103,31 @@
   var previewOuter = document.getElementById('edit-preview-outer');
   var currentEs    = null;
 
-  /* ── Fix iframe: disable its own scrollbar, make it tall enough ── */
+  /* ── Size iframe to its actual content so nothing is cut off ── */
   function fixIframe() {
     var iframe = previewDiv.querySelector('iframe');
     if (!iframe) return;
     iframe.setAttribute('scrolling', 'no');
-    iframe.style.height = '3000px';
     iframe.style.overflow = 'hidden';
+
+    function applyHeight() {
+      try {
+        var doc = iframe.contentDocument || iframe.contentWindow.document;
+        var h = doc.body ? doc.body.scrollHeight : 0;
+        iframe.style.height = Math.max(h, 400) + 'px';
+      } catch (e) {
+        iframe.style.height = '3000px'; // cross-origin fallback
+      }
+    }
+
+    // Fire on load, then again shortly after (images may still be loading)
+    iframe.addEventListener('load', function () {
+      applyHeight();
+      setTimeout(applyHeight, 300);
+    });
+    // Also apply immediately if already loaded (srcdoc swap)
+    applyHeight();
+    setTimeout(applyHeight, 100);
   }
 
   fixIframe();
