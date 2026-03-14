@@ -113,14 +113,58 @@ Call beefree_set_template_styles with:
 Call beefree_check_template.
 
 STEP 2 — ADD HEADER ROW
-Add one full-width single-column row with these properties:
-  background: primary
-  image (centred): https://placehold.co/160x44/XXXXXX/FFFFFF?text=SHORT
-    where XXXXXX = primary colour WITHOUT the # (e.g. primary #0F1729 → XXXXXX is 0F1729)
-    alt text: "BRAND logo"
-  text (centred, below image): BRAND · colour #FFFFFF · bold · 18px
-  column padding: 36px top, 36px bottom, 20px left, 20px right
-  row border-bottom: 3px solid accent
+Design a distinctive header that reflects the brand's personality and campaign type.
+Read the campaign brief and choose the header style that best fits — do NOT default to the same pattern every time.
+
+  STYLE A — Minimal nav bar (B2B / SaaS / transactional / productivity tools)
+    background: primary
+    image (left-aligned): placehold.co 140×36/XXXXXX/FFFFFF?text=SHORT  ·  alt: "BRAND logo"
+    text (right-aligned, same row baseline): BRAND  ·  #FFFFFF  ·  bold  ·  16px
+    column padding: 24px top, 24px bottom, 32px left, 32px right
+    row border-bottom: 3px solid accent
+
+  STYLE B — Bold editorial masthead (fashion / luxury / lifestyle / e-commerce)
+    background: primary
+    top accent stripe: 1-col row with background=accent, height 6px (add as a sub-element inside the row using a coloured divider block or short spacer with accent bg)
+    image (centred): placehold.co 200×52/XXXXXX/FFFFFF?text=SHORT  ·  alt: "BRAND logo"
+    tagline text (centred, below image): brand tagline in ALL CAPS  ·  11px  ·  letter-spacing 3px  ·  color #ffffff99
+    column padding: 32px top, 28px bottom, 20px left, 20px right
+    row border-bottom: 4px solid accent
+
+  STYLE C — Cinematic wide banner (streaming / entertainment / media / events)
+    background: primary
+    image (centred, wide): placehold.co 600×72/XXXXXX/FFFFFF?text=SHORT  ·  alt: "BRAND logo"
+    text (centred, overlapping effect via close spacing): BRAND  ·  #FFFFFF  ·  bold  ·  22px
+    subtext (centred): campaign tagline in 12px  ·  color accent  ·  italic
+    column padding: 28px top, 28px bottom, 0px left, 0px right
+    row border-bottom: 4px solid accent
+
+  STYLE D — Newsletter masthead (newsletters / digests / content / media brands)
+    background: #FFFFFF
+    top rule: 4px solid primary across full width (use a divider element at the very top)
+    text (left-aligned, large): BRAND  ·  primary colour  ·  bold  ·  28px  ·  letter-spacing -1px
+    text (left-aligned, below): edition tagline or date in 12px  ·  #64748B  ·  normal weight
+    right side of same row: placehold.co 100×28/XXXXXX/FFFFFF?text=SHORT image, right-aligned
+    column padding: 20px top, 20px bottom, 32px left, 32px right
+    row border-bottom: 1px solid #E2E8F0
+
+  STYLE E — Gradient hero header (fintech / startup / modern consumer apps)
+    background: CSS gradient from primary to accent (simulate by using primary as row bg and accent as a subtle overlay — in practice set row bg to primary)
+    image (centred): placehold.co 160×44/XXXXXX/FFFFFF?text=SHORT  ·  alt: "BRAND logo"
+    text (centred, below image): BRAND  ·  #FFFFFF  ·  bold  ·  20px  ·  letter-spacing 1px
+    subtext (centred): one short brand promise in 13px  ·  color rgba-white-80 (#FFFFFFCC)  ·  normal weight
+    column padding: 36px top, 32px bottom, 24px left, 24px right
+    row border-bottom: 3px solid accent
+
+  STYLE F — Split two-column identity bar (health / wellness / education / non-profit)
+    background: page_bg (light)
+    left column (60%): text BRAND  ·  primary  ·  bold  ·  22px; below it a short mission line in 12px  ·  #64748B
+    right column (40%): placehold.co 120×40/XXXXXX/FFFFFF?text=SHORT image  ·  right-aligned
+    column padding: 24px top, 24px bottom, 32px left/right
+    row border-bottom: 2px solid accent
+
+Choose the most fitting style based on the campaign brief. Adapt copy (tagline, subtext) to match the brand voice.
+XXXXXX = primary colour WITHOUT the # (e.g. primary #0F1729 → XXXXXX is 0F1729).
 Call beefree_check_template.
 
 STEP 3 — ADD FOOTER ROW

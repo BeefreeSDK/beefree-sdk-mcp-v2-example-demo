@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # Google:    google-gla:gemini-2.5-pro  google-gla:gemini-2.5-flash
 # Anthropic: anthropic:claude-sonnet-4-6  anthropic:claude-opus-4-6
 _PROVIDER_MODEL: dict[str, str] = {
-    "anthropic": "anthropic:claude-sonnet-4-6",
+    "anthropic": "anthropic:claude-haiku-4-6",
     "openai":    "openai:gpt-5.2",
     "google":    "google-gla:gemini-2.5-pro",
 }

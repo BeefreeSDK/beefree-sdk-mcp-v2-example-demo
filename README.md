@@ -9,10 +9,10 @@ A FastAPI web application that demonstrates AI-powered email campaign generation
 ```
 Browser → FastAPI (app/main.py)
               │
-              ├─ PydanticAI Planner agent  (fast LLM: Haiku / Flash / GPT-4o-mini)
+              ├─ PydanticAI Planner agent
               │     └─ generates an email sequence skeleton (titles, subject lines)
               │
-              ├─ PydanticAI Layout agent   (main LLM: Sonnet / Gemini Pro / o4-mini)
+              ├─ PydanticAI Layout agent
               │     └─ creates a blank Beefree template via REST, then calls MCP tools
               │        to add a shared header/footer layout
               │
@@ -90,21 +90,25 @@ AI_PROVIDER=anthropic
 ANTHROPIC_API_KEY=your_anthropic_key_here
 # OPENAI_API_KEY=your_openai_key_here
 # GOOGLE_API_KEY=your_google_ai_studio_key_here
+
+# Optional — override the model used by all agents
+# LLM_MODEL=anthropic:claude-sonnet-4-6
 ```
 
 #### Provider defaults
 
-| `AI_PROVIDER` | Main model (layout + executor) | Fast model (planner) |
-|---|---|---|
-| `anthropic` | `claude-sonnet-4-6` | `claude-haiku-4-5-20251001` |
-| `openai` | `o4-mini` | `gpt-4.1-mini` |
-| `google` | `gemini-2.5-pro` | `gemini-2.5-flash` |
+All agents use a single model per provider. Prompt caching is enabled automatically for all providers (explicit cache markers for Anthropic, implicit/automatic for Google and OpenAI).
 
-You can override individual models without changing the provider:
+| `AI_PROVIDER` | Model | Notes |
+|---|---|---|
+| `anthropic` | `claude-sonnet-4-6` | Explicit prompt caching via cache markers |
+| `openai` | `gpt-5.2` | Automatic 50% input token discount on cached prompts |
+| `google` | `gemini-2.5-pro` | Implicit caching + `thinking_budget=256` |
+
+You can override the model for all agents with a single env var:
 
 ```dotenv
-LLM_EXECUTOR_MODEL=openai:o3
-LLM_PLANNER_MODEL=openai:gpt-4.1-mini
+LLM_MODEL=anthropic:claude-sonnet-4-6
 ```
 
 ---

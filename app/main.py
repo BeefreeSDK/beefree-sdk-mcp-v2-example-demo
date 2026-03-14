@@ -66,6 +66,25 @@ SEQUENCE_PRESETS: dict[str, list[list[str]]] = {
     # sections_per_step[email_index] = ordered list of body section descriptions.
     # Each description is a precise layout brief for the executor: layout type,
     # element sizes, copy direction, and colour intent are all specified.
+    "black-friday-fashion": [
+        [  # Email 1 — Teaser (48 h before launch)
+            "Mystery hero (1-col, primary-colour bg, 48px padding): 600×280 dark editorial placehold.co banner; 'Something extraordinary arrives Friday.' headline (30px bold, white, centred, letter-spacing 2px); 'Our biggest sale of the year. Be first.' subtext (15px, #AAAAAA, centred)",
+            "Countdown strip (1-col, accent bg, 28px padding): '48 HOURS TO GO' in 36px bold uppercase, jet-black text (#0A0A0A), centred, letter-spacing 3px — the high contrast of yellow bg + black text creates maximum visual impact",
+            "Early access CTA (1-col, primary-colour bg, 36px padding): 'VAULTURA subscribers get exclusive early access.' copy (14px, #AAAAAA, centred); 'Secure Early Access' CTA button (accent bg, primary text, 48px tall, bold, centred)",
+            "Brand teaser (2-col, page-bg, 28px padding): left column: 280×320 tall fashion editorial placehold.co image; right column: italic brand statement 'Crafted for the few. Coveted by many.' (18px, #0A0A0A) + 1 sentence on craft/exclusivity (14px, #555555) — vertically centred",
+        ],
+        [  # Email 2 — Launch Day
+            "Sale hero (1-col, primary-colour bg, 44px padding): 600×260 bold editorial product placehold.co banner; 'BLACK FRIDAY IS HERE.' headline (32px bold, white, uppercase, centred, letter-spacing 2px); accent-colour badge '30% OFF EVERYTHING' (accent bg, primary text, 16px bold, inline badge centred below headline)",
+            "Code spotlight (1-col, accent bg, 36px padding): 'USE CODE:' label (12px bold, #0A0A0A, uppercase, letter-spacing 2px, centred); 'VAULT30' in 40px bold monospace-style, jet-black, centred — maximum visual weight; 'Valid until midnight Friday · one use per customer.' (12px, #333333, centred); 'Shop Now →' CTA (primary bg, accent text, 48px tall, bold, centred)",
+            "Product grid (3-col, page-bg, 28px padding): 'Curated picks for you' heading (16px bold, primary, centred); 3 product cards — each with a 190×240 placehold.co product image, product name (14px bold, #0A0A0A), original price struck through (12px, #999999), and sale price (16px bold, #0A0A0A)",
+            "Closing urgency strip (1-col, primary-colour bg, 28px padding): 'Sale ends Friday at midnight.' urgency line (13px, #AAAAAA, centred); 'Browse All Deals' CTA (accent bg, primary text, 48px tall, bold, centred)",
+        ],
+        [  # Email 3 — Last Chance (24 h remaining)
+            "Urgency hero (1-col, primary-colour bg, 48px padding): 600×240 dramatic fashion placehold.co image; '24 HOURS LEFT.' headline (36px bold, white, uppercase, centred, letter-spacing 4px); 'This is your final chance to shop the VAULTURA Black Friday sale.' subtext (14px, #AAAAAA, centred)",
+            "Best-sellers grid (3-col, page-bg, 28px padding): '3 styles still available' heading (16px bold, primary, centred); 3 product cards — each with 190×220 placehold.co image, product name (14px bold), sale price (15px bold), and a scarcity label 'Only 4 left' (12px, red #DC2626, bold)",
+            "Final CTA block (1-col, accent bg, 44px padding): 'Don't leave it too late.' headline (26px bold, #0A0A0A, centred); promo code reminder 'VAULT30' (18px monospace bold, #0A0A0A, centred); 'Shop Before It's Gone' CTA (primary bg, accent text, 48px tall, bold, centred)",
+        ],
+    ],
 
     "streaming-onboarding": [
         [  # Email 1 — Welcome & account confirmed
@@ -106,26 +125,6 @@ SEQUENCE_PRESETS: dict[str, list[list[str]]] = {
             "Value recap (3-col, page-bg, 32px padding): 'Here's what you've accomplished' section heading (18px bold, primary, centred); 3 stat cards — 'Projects created', 'Tasks completed', 'Team members added' — each card shows a large metric number (32px bold, accent colour) and a caption label (13px, #64748B); use plausible demo numbers",
             "Offer box (1-col, white bg, 28px padding): bordered highlight box (#E8F4FD bg, accent border); '20% off your first 3 months — trial users only.' (18px bold, primary); promo code 'TRIAL20' centred in large monospace style (28px bold, primary); 'Expires when your trial does.' expiry note (12px, muted)",
             "Final CTA (1-col, primary-colour bg, 36px padding): 'Don't lose access to your projects.' copy (16px, white, centred); 'Upgrade Now' primary CTA (accent bg, white, 48px, centred); 'Compare plans →' text link below (13px, #90B4D4, centred)",
-        ],
-    ],
-
-    "black-friday-fashion": [
-        [  # Email 1 — Teaser (48 h before launch)
-            "Mystery hero (1-col, primary-colour bg, 48px padding): 600×280 dark editorial placehold.co banner; 'Something extraordinary arrives Friday.' headline (30px bold, white, centred, letter-spacing 2px); 'Our biggest sale of the year. Be first.' subtext (15px, #AAAAAA, centred)",
-            "Countdown strip (1-col, accent bg, 28px padding): '48 HOURS TO GO' in 36px bold uppercase, jet-black text (#0A0A0A), centred, letter-spacing 3px — the high contrast of yellow bg + black text creates maximum visual impact",
-            "Early access CTA (1-col, primary-colour bg, 36px padding): 'VAULTURA subscribers get exclusive early access.' copy (14px, #AAAAAA, centred); 'Secure Early Access' CTA button (accent bg, primary text, 48px tall, bold, centred)",
-            "Brand teaser (2-col, page-bg, 28px padding): left column: 280×320 tall fashion editorial placehold.co image; right column: italic brand statement 'Crafted for the few. Coveted by many.' (18px, #0A0A0A) + 1 sentence on craft/exclusivity (14px, #555555) — vertically centred",
-        ],
-        [  # Email 2 — Launch Day
-            "Sale hero (1-col, primary-colour bg, 44px padding): 600×260 bold editorial product placehold.co banner; 'BLACK FRIDAY IS HERE.' headline (32px bold, white, uppercase, centred, letter-spacing 2px); accent-colour badge '30% OFF EVERYTHING' (accent bg, primary text, 16px bold, inline badge centred below headline)",
-            "Code spotlight (1-col, accent bg, 36px padding): 'USE CODE:' label (12px bold, #0A0A0A, uppercase, letter-spacing 2px, centred); 'VAULT30' in 40px bold monospace-style, jet-black, centred — maximum visual weight; 'Valid until midnight Friday · one use per customer.' (12px, #333333, centred); 'Shop Now →' CTA (primary bg, accent text, 48px tall, bold, centred)",
-            "Product grid (3-col, page-bg, 28px padding): 'Curated picks for you' heading (16px bold, primary, centred); 3 product cards — each with a 190×240 placehold.co product image, product name (14px bold, #0A0A0A), original price struck through (12px, #999999), and sale price (16px bold, #0A0A0A)",
-            "Closing urgency strip (1-col, primary-colour bg, 28px padding): 'Sale ends Friday at midnight.' urgency line (13px, #AAAAAA, centred); 'Browse All Deals' CTA (accent bg, primary text, 48px tall, bold, centred)",
-        ],
-        [  # Email 3 — Last Chance (24 h remaining)
-            "Urgency hero (1-col, primary-colour bg, 48px padding): 600×240 dramatic fashion placehold.co image; '24 HOURS LEFT.' headline (36px bold, white, uppercase, centred, letter-spacing 4px); 'This is your final chance to shop the VAULTURA Black Friday sale.' subtext (14px, #AAAAAA, centred)",
-            "Best-sellers grid (3-col, page-bg, 28px padding): '3 styles still available' heading (16px bold, primary, centred); 3 product cards — each with 190×220 placehold.co image, product name (14px bold), sale price (15px bold), and a scarcity label 'Only 4 left' (12px, red #DC2626, bold)",
-            "Final CTA block (1-col, accent bg, 44px padding): 'Don't leave it too late.' headline (26px bold, #0A0A0A, centred); promo code reminder 'VAULT30' (18px monospace bold, #0A0A0A, centred); 'Shop Before It's Gone' CTA (primary bg, accent text, 48px tall, bold, centred)",
         ],
     ],
 }
