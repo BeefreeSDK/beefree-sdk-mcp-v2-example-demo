@@ -4,52 +4,6 @@ A FastAPI web application that demonstrates AI-powered email campaign generation
 
 ---
 
-## How it works
-
-```
-Browser → FastAPI (app/main.py)
-              │
-              ├─ PydanticAI Planner agent
-              │     └─ generates an email sequence skeleton (titles, subject lines)
-              │
-              ├─ PydanticAI Layout agent
-              │     └─ creates a blank Beefree template via REST, then calls MCP tools
-              │        to add a shared header/footer layout
-              │
-              ├─ PydanticAI Executor agents  (one per email, run concurrently)
-              │     └─ each agent calls Beefree MCP tools to build the email body,
-              │        streaming HTML previews back to the browser via SSE
-              │
-              └─ Beefree REST API  (api.getbee.io)
-                    ├─ POST /v2/sdk/mcp/template   — create / seed a template session
-                    ├─ GET  /v2/sdk/mcp/template/:id — read current template JSON
-                    └─ POST /v1/message/html         — render template to email HTML
-```
-
-### Key modules
-
-| File | Responsibility |
-|------|---------------|
-| `app/main.py` | FastAPI routes, SSE endpoints, session stores |
-| `app/agent.py` | PydanticAI agents (planner, layout, executor, translation, palette, edit, single) |
-| `app/beefree.py` | Thin async HTTP wrapper around the Beefree REST API |
-| `app/config.py` | `pydantic-settings` config — reads `.env`, resolves model defaults per provider |
-| `templates/` | Jinja2 HTML templates for the web UI |
-| `static/` | CSS and JS assets (including `tokens.js` for live token tracking) |
-
-### Features
-
-- **Campaign generator** — describe a campaign and choose a preset; the AI builds a full multi-email sequence simultaneously, with live previews streamed per email. Includes 3 built-in presets (streaming onboarding, SaaS trial nurture, Black Friday fashion).
-- **Single email generator** — generate a standalone email from a free-form prompt.
-- **Bulk translation** — translate an existing Beefree template into multiple languages in parallel. Supports 33 languages.
-- **Palette swap** — apply one or more of 10 built-in color palettes to an existing template in parallel.
-- **Email editor** — chat with an AI agent to iteratively edit an existing template through multi-turn conversation.
-- **Export** — download generated templates as Beefree JSON, rendered HTML, or a full sequence as a ZIP file.
-- **Token counter** — live token usage tracker in the page header, accumulated across all agent calls and persisted across mode switches within the same browser session.
-- **Multi-provider AI** — switch between Anthropic, OpenAI, and Google Gemini by changing one env var.
-
----
-
 ## Prerequisites
 
 - Python ≥ 3.11
@@ -154,3 +108,48 @@ uv run uvicorn app.main:app --reload
     ├── style.css        # Application styles
     └── tokens.js        # Live token usage counter (sessionStorage-backed)
 ```
+---
+
+## How it works
+
+```
+Browser → FastAPI (app/main.py)
+              │
+              ├─ PydanticAI Planner agent
+              │     └─ generates an email sequence skeleton (titles, subject lines)
+              │
+              ├─ PydanticAI Layout agent
+              │     └─ creates a blank Beefree template via REST, then calls MCP tools
+              │        to add a shared header/footer layout
+              │
+              ├─ PydanticAI Executor agents  (one per email, run concurrently)
+              │     └─ each agent calls Beefree MCP tools to build the email body,
+              │        streaming HTML previews back to the browser via SSE
+              │
+              └─ Beefree REST API  (api.getbee.io)
+                    ├─ POST /v2/sdk/mcp/template   — create / seed a template session
+                    ├─ GET  /v2/sdk/mcp/template/:id — read current template JSON
+                    └─ POST /v1/message/html         — render template to email HTML
+```
+
+### Key modules
+
+| File | Responsibility |
+|------|---------------|
+| `app/main.py` | FastAPI routes, SSE endpoints, session stores |
+| `app/agent.py` | PydanticAI agents (planner, layout, executor, translation, palette, edit, single) |
+| `app/beefree.py` | Thin async HTTP wrapper around the Beefree REST API |
+| `app/config.py` | `pydantic-settings` config — reads `.env`, resolves model defaults per provider |
+| `templates/` | Jinja2 HTML templates for the web UI |
+| `static/` | CSS and JS assets (including `tokens.js` for live token tracking) |
+
+### Features
+
+- **Campaign generator** — describe a campaign and choose a preset; the AI builds a full multi-email sequence simultaneously, with live previews streamed per email. Includes 3 built-in presets (streaming onboarding, SaaS trial nurture, Black Friday fashion).
+- **Single email generator** — generate a standalone email from a free-form prompt.
+- **Bulk translation** — translate an existing Beefree template into multiple languages in parallel. Supports 33 languages.
+- **Palette swap** — apply one or more of 10 built-in color palettes to an existing template in parallel.
+- **Email editor** — chat with an AI agent to iteratively edit an existing template through multi-turn conversation.
+- **Export** — download generated templates as Beefree JSON, rendered HTML, or a full sequence as a ZIP file.
+- **Token counter** — live token usage tracker in the page header, accumulated across all agent calls and persisted across mode switches within the same browser session.
+- **Multi-provider AI** — switch between Anthropic, OpenAI, and Google Gemini by changing one env var.
