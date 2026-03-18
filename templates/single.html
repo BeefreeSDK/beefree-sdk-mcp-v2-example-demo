@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Beefree Headless MCP v2 — Sequence Demo</title>
+  <title>Beefree Headless MCP v2 — Single Email</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -42,10 +42,10 @@
               <clipPath id="clip0_7680_11003"><rect width="163.105" height="32" fill="white"/></clipPath>
             </defs>
           </svg>
-          <span class="brand-tag">Email Sequence</span>
+          <span class="brand-tag">Single Email</span>
         </div>
         <p class="header-sub">
-          Generate a full email sequence in parallel — no browser required.
+          Generate one complete, stunning email with a single AI agent.
         </p>
       </div>
       <div class="header-tokens">
@@ -61,10 +61,9 @@
 
   <main class="container">
 
-    <!-- ── Campaign form ── -->
     <section class="card form-card" id="form-section">
       <div class="card-header-row">
-        <h2 class="card-title">Design your campaign</h2>
+        <h2 class="card-title">Design your email</h2>
         <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -74,69 +73,92 @@
 
       <div class="card-body">
         <div>
-          <form
-            hx-post="/plan"
-            hx-target="#workspace"
-            hx-swap="innerHTML"
-            hx-indicator="#spinner"
-            onsubmit="return !!document.getElementById('goal').value"
-          >
-            <input type="hidden" id="goal" name="goal" value="" />
-            <input type="hidden" id="preset_id" name="preset_id" value="" />
+        <form
+          hx-post="/generate"
+          hx-target="#workspace"
+          hx-swap="innerHTML"
+          hx-indicator="#spinner"
+          class="campaign-form"
+          onsubmit="return !!document.getElementById('brief').value.trim()"
+        >
+          <input type="hidden" id="brief" name="brief" value="" />
 
+          <!-- ── Preset cards ── -->
+          <div class="field full">
+            <label>Start from a preset <span class="label-count" id="preset-label"></span></label>
             <div class="seq-prompt-grid">
-              <!-- Preset 1: E-commerce Black Friday -->
-              <button type="button" class="seq-prompt-card" onclick="selectPrompt(this)" data-preset-id="black-friday-fashion"
-                data-prompt="Campaign: 3-email Black Friday campaign for VAULTURA — a premium fashion e-commerce brand. Brand: VAULTURA · Primary #0A0A0A (jet black) · Accent #F5E642 (electric yellow) · Background #FAFAF8 (near-white) · Font: bold, editorial · Tone: exclusive, high-fashion, urgency-driven. Audience: existing customers and subscribers; fashion-forward, respond strongly to exclusivity and scarcity. Email 1 — Teaser (48 h before launch): build maximum anticipation without revealing the deal; drive early-access sign-ups. Key message: 'Something extraordinary arrives Friday.' CTA: 'Secure Early Access'. Email 2 — Launch day: hero announcement, promo code VAULT30 reveal, curated 3-product grid, maximum urgency. CTA: 'Shop Now'. Email 3 — Last chance (24 h remaining): all-in on urgency and scarcity; showcase 3 best-sellers still in stock, reinforce promo code, drive the final conversion. CTA: 'Shop Before It&apos;s Gone'.">
+
+              <button type="button" class="seq-prompt-card" onclick="selectPreset(this)"
+                data-prompt="Goal: Welcome email&#10;Audience: New subscribers of a premium artisan coffee subscription (think Blue Bottle or Nespresso)&#10;Brand voice: Warm, exclusive, artisan&#10;Offer: First bag curated by our head roaster — free shipping on the first order&#10;Primary CTA: &quot;Start Your First Order&quot; → https://example.com/start&#10;Brand colors: #3B1A08 primary, #1A0A00 text, #FDF6EE background&#10;Include: hero with full-width coffee image placeholder, 3 benefit highlights (quality beans, flexible delivery, barista tips) in a two-column layout, a personalised sign-off from the founder, footer with unsubscribe/address&#10;Notes: keep copy warm and personal; one primary CTA; rich imagery with deep espresso browns and creamy off-whites.">
                 <div class="seq-prompt-header">
-                  <span class="seq-prompt-tag">Promotional · 3 emails</span>
+                  <span class="seq-prompt-tag">Welcome · E-commerce</span>
                   <span class="seq-prompt-check">
                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </span>
                 </div>
-                <h3 class="seq-prompt-title">Black Friday Fashion Campaign</h3>
-                <p class="seq-prompt-desc">Teaser, launch day, and last-chance emails for VAULTURA — a premium fashion brand.</p>
+                <h3 class="seq-prompt-title">Premium Coffee Welcome</h3>
+                <p class="seq-prompt-desc">Artisan welcome email for a high-end coffee subscription brand.</p>
               </button>
 
-              <!-- Preset 2: SaaS trial nurture -->
-              <button type="button" class="seq-prompt-card" onclick="selectPrompt(this)" data-preset-id="saas-trial-nurture"
-                data-prompt="Campaign: 4-email trial-to-paid nurture for Taskflow — a B2B project management SaaS (think Asana or Linear). Brand: Taskflow · Primary #1E3A5F (slate blue) · Accent #0EA5E9 (electric blue) · Background #F8FAFC (light grey-white) · Tone: professional, encouraging, results-focused. Audience: free-trial users at mid-size tech companies; signed up but need to form a habit and see ROI. Email 1 — Trial activated (Day 0): welcome + quick-start; make the first meaningful action obvious. CTA: 'Open Your Dashboard'. Email 2 — Day 3 check-in: 3 actionable tips to maximise the trial + 2 short tutorial resources; reduce friction and build a habit. CTA: 'Back to Dashboard'. Email 3 — Day 7 feature spotlight: showcase the single premium feature (Automation) they haven't discovered yet; plant upgrade intent with concrete ROI. CTA: 'Upgrade Now'. Email 4 — Trial ending (Day 14): create urgency, recap what they've built, present a time-limited 20% discount offer. CTA: 'Upgrade Now'.">
+              <button type="button" class="seq-prompt-card" onclick="selectPreset(this)"
+                data-prompt="Goal: Limited-drop flash sale&#10;Audience: Sneaker enthusiasts and returning customers of a premium streetwear brand&#10;Brand voice: Energetic, exclusive, street culture&#10;Offer: 48-hour exclusive drop — use code DROP48 at checkout&#10;Primary CTA: &quot;Shop the Drop&quot; → https://example.com/drop&#10;Brand colors: #000000 primary, #CCFF00 accent, #111111 background&#10;Include: full-width hero image placeholder of the featured sneaker, product highlights in a 3-column grid with image placeholders, urgency block (&quot;48 hours only&quot;), large high-contrast CTA button, footer with legal/unsubscribe&#10;Notes: bold typography, maximum urgency; mobile-first spacing with 44px+ buttons.">
                 <div class="seq-prompt-header">
-                  <span class="seq-prompt-tag">Nurture · 4 emails</span>
+                  <span class="seq-prompt-tag">Promotional · Fashion</span>
                   <span class="seq-prompt-check">
                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </span>
                 </div>
-                <h3 class="seq-prompt-title">SaaS Trial-to-Paid Nurture</h3>
-                <p class="seq-prompt-desc">4-step sequence converting Taskflow free-trial users into paid subscribers.</p>
+                <h3 class="seq-prompt-title">Sneaker Drop Flash Sale</h3>
+                <p class="seq-prompt-desc">High-energy limited-drop announcement for a premium sneaker brand.</p>
               </button>
 
-              <!-- Preset 3: Streaming service onboarding -->
-              <button type="button" class="seq-prompt-card" onclick="selectPrompt(this)" data-preset-id="streaming-onboarding"
-                data-prompt="Campaign: 3 transactional emails for StreamVault — a premium dark-themed streaming platform. Brand: StreamVault · Primary #1C1C2E (deep navy) · Accent #E94560 (crimson red) · Background #F5F5F0 (off-white) · Font: modern sans-serif · Tone: cinematic, warm, confidence-building. Audience: new subscribers who just created an account. Email 1 — Welcome &amp; account confirmed: celebrate the sign-up, surface the top content genres, drive the very first watch session. Key message: 'Your StreamVault account is ready.' CTA: 'Start Watching Now'. Email 2 — Password reset (purely functional, zero marketing): secure and reassuring, prominent reset CTA, 24-hour expiry notice, ignore-if-not-you note. CTA: 'Reset My Password'. Email 3 — Subscription confirmed: recap the active plan and next billing date, communicate full subscription value (screens, quality, downloads), invite catalogue exploration. CTA: 'Explore the Catalogue'.">
+              <button type="button" class="seq-prompt-card" onclick="selectPreset(this)"
+                data-prompt="Goal: Product launch&#10;Audience: Product managers and engineering leads at mid-size B2B SaaS companies&#10;Brand voice: Modern, authoritative, data-driven&#10;Product: AI-powered analytics dashboard that cuts reporting time by 60%&#10;Primary CTA: &quot;Book a demo&quot; → https://example.com/demo&#10;Brand colors: #2563EB primary, #1E293B text, #F8FAFC background&#10;Include: hero with dashboard screenshot placeholder and CTA, 3 feature highlights (real-time insights, one-click reports, team sharing), customer quote, pricing tiers overview, social proof badges, FAQ teaser, compliant footer with unsubscribe/address&#10;Notes: keep copy concise and scannable; mobile-first spacing; 44px+ buttons.">
                 <div class="seq-prompt-header">
-                  <span class="seq-prompt-tag">Transactional · 3 emails</span>
+                  <span class="seq-prompt-tag">Product Launch · SaaS</span>
                   <span class="seq-prompt-check">
                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </span>
                 </div>
-                <h3 class="seq-prompt-title">Streaming Service Onboarding</h3>
-                <p class="seq-prompt-desc">Welcome, password reset, and subscription confirmation for StreamVault — a Netflix-style platform.</p>
+                <h3 class="seq-prompt-title">SaaS Product Launch</h3>
+                <p class="seq-prompt-desc">Full product launch email for a B2B analytics platform.</p>
               </button>
+
             </div>
+          </div>
 
-            <div class="field full actions" style="margin-top:1.25rem;">
-              <button type="submit" class="btn btn-primary" id="seq-submit" disabled>
-                Generate Sequence
-                <span id="spinner" class="htmx-indicator spinner"></span>
-              </button>
-            </div>
-          </form>
+          <!-- ── Custom prompt ── -->
+          <div class="field full" style="margin-top:.25rem;">
+            <label for="custom-brief">Or write your own brief</label>
+            <textarea
+              id="custom-brief"
+              rows="8"
+              placeholder="Goal: …&#10;Audience: …&#10;Brand voice: …&#10;Offer / message: …&#10;Primary CTA: "Button label" → https://…&#10;Brand colors: #… primary, #… text&#10;Include: hero, sections, footer…&#10;Notes: …"
+              oninput="onCustomInput(this)"
+              style="resize:vertical;"
+            ></textarea>
+          </div>
+
+          <div class="field full actions">
+            <button type="submit" class="btn btn-primary" id="single-submit" disabled>
+              Generate Email
+              <span id="spinner" class="htmx-indicator spinner"></span>
+            </button>
+          </div>
+        </form>
         </div>
       </div>
     </section>
 
-    <!-- ── Dynamic workspace (plan → execution) ── -->
+    <!-- ── Disclaimer ── -->
+    <p class="demo-disclaimer">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:.1rem">
+        <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+      </svg>
+      Output quality varies across AI providers and models. This is a showcase of the Beefree Headless MCP integration — not a benchmark. System prompts, model choice, and workflow design can all be tuned to match your specific use case.
+    </p>
+
     <div id="workspace"></div>
 
   </main>
@@ -149,48 +171,73 @@
   </footer>
 
   <script>
-    /* ── Preset prompt selection ── */
-    function selectPrompt(el) {
+    /* ── Inject prompt hints + tooltips into preset cards ── */
+    document.querySelectorAll('.seq-prompt-card[data-prompt]').forEach(function (card) {
+      var hint = document.createElement('span');
+      hint.className = 'prompt-hint';
+      hint.textContent = 'Hover to read full prompt';
+      card.appendChild(hint);
+
+      var tip = document.createElement('div');
+      tip.className = 'prompt-tooltip';
+      tip.innerHTML =
+        '<p class="prompt-tooltip-label">Full prompt</p>' +
+        '<p class="prompt-tooltip-text"></p>';
+      tip.querySelector('.prompt-tooltip-text').textContent = card.dataset.prompt;
+      card.appendChild(tip);
+    });
+
+    var activePreset = null;
+
+    function selectPreset(el) {
+      /* deselect previous */
       document.querySelectorAll('.seq-prompt-card').forEach(function(c) {
         c.classList.remove('seq-prompt-card-selected');
       });
+
+      if (activePreset === el) {
+        /* clicking the same card again = deselect */
+        activePreset = null;
+        document.getElementById('brief').value = '';
+        document.getElementById('preset-label').textContent = '';
+        updateSubmit();
+        return;
+      }
+
       el.classList.add('seq-prompt-card-selected');
-      document.getElementById('goal').value = el.dataset.prompt;
-      document.getElementById('preset_id').value = el.dataset.presetId || '';
-      document.getElementById('seq-submit').disabled = false;
+      activePreset = el;
+      document.getElementById('brief').value = el.dataset.prompt;
+      document.getElementById('custom-brief').value = '';
+      document.getElementById('preset-label').textContent = 'selected';
+      updateSubmit();
     }
 
-    /* ── Thumbnail rescaling ── */
-    function rescaleThumbs() {
-      document.querySelectorAll('.thumb-viewport').forEach(vp => {
-        const w = vp.offsetWidth;
-        const scale = w / 700;
-        const inner = vp.querySelector('.thumb-inner');
-        if (inner) inner.style.transform = 'scale(' + scale + ')';
-      });
+    function onCustomInput(ta) {
+      /* typing in custom field deselects any preset */
+      if (activePreset) {
+        activePreset.classList.remove('seq-prompt-card-selected');
+        activePreset = null;
+        document.getElementById('preset-label').textContent = '';
+      }
+      document.getElementById('brief').value = ta.value;
+      updateSubmit();
     }
-    window.addEventListener('resize', rescaleThumbs);
 
-    /* ── Section collapse ── */
+    function updateSubmit() {
+      var val = document.getElementById('brief').value.trim();
+      document.getElementById('single-submit').disabled = !val;
+    }
+
     function toggleCard(card) {
       if (card) card.classList.toggle('is-collapsed');
     }
 
     document.body.addEventListener('htmx:afterSwap', function(e) {
-      setTimeout(rescaleThumbs, 50);
       var tgt = e.detail && e.detail.target;
       if (!tgt) return;
-
-      // Plan appeared → collapse the campaign form
       if (tgt.id === 'workspace') {
         var fs = document.getElementById('form-section');
         if (fs) fs.classList.add('is-collapsed');
-      }
-
-      // Execute started → collapse the plan card
-      if (tgt.id === 'execution') {
-        var pc = document.querySelector('.plan-card');
-        if (pc) pc.classList.add('is-collapsed');
       }
     });
   </script>

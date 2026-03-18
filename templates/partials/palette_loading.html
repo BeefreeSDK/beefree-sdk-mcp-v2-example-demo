@@ -1,0 +1,14 @@
+<!-- Returned instantly by POST /palette-submit. SSE drives the column grid. -->
+
+<div hx-ext="sse"
+     sse-connect="/palette-stream?session_id={{ session_id }}"
+     sse-close="close">
+
+  <div id="palette-content" sse-swap="ready" hx-swap="innerHTML">
+    <div style="display:flex;align-items:center;gap:.75rem;padding:1.5rem 0;color:var(--text-muted);font-size:.9rem;">
+      <span class="spinner-ring" style="width:18px;height:18px;border-width:2px;"></span>
+      Preparing {{ palettes | length }} palette variation{{ 's' if palettes | length != 1 else '' }}&hellip;
+    </div>
+  </div>
+
+</div>

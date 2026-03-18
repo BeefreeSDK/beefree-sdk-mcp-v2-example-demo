@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Beefree Headless MCP v2 — Sequence Demo</title>
+  <title>Beefree Headless MCP v2 — Edit an Email</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -42,10 +42,10 @@
               <clipPath id="clip0_7680_11003"><rect width="163.105" height="32" fill="white"/></clipPath>
             </defs>
           </svg>
-          <span class="brand-tag">Email Sequence</span>
+          <span class="brand-tag">Edit an Email</span>
         </div>
         <p class="header-sub">
-          Generate a full email sequence in parallel — no browser required.
+          Chat with the AI agent to iteratively refine any email template — each message triggers a live edit via MCP.
         </p>
       </div>
       <div class="header-tokens">
@@ -61,10 +61,9 @@
 
   <main class="container">
 
-    <!-- ── Campaign form ── -->
     <section class="card form-card" id="form-section">
       <div class="card-header-row">
-        <h2 class="card-title">Design your campaign</h2>
+        <h2 class="card-title">Load your template</h2>
         <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -75,68 +74,68 @@
       <div class="card-body">
         <div>
           <form
-            hx-post="/plan"
+            hx-post="/edit-start"
             hx-target="#workspace"
             hx-swap="innerHTML"
             hx-indicator="#spinner"
-            onsubmit="return !!document.getElementById('goal').value"
+            class="campaign-form"
+            onsubmit="return validateForm()"
           >
-            <input type="hidden" id="goal" name="goal" value="" />
-            <input type="hidden" id="preset_id" name="preset_id" value="" />
 
-            <div class="seq-prompt-grid">
-              <!-- Preset 1: E-commerce Black Friday -->
-              <button type="button" class="seq-prompt-card" onclick="selectPrompt(this)" data-preset-id="black-friday-fashion"
-                data-prompt="Campaign: 3-email Black Friday campaign for VAULTURA — a premium fashion e-commerce brand. Brand: VAULTURA · Primary #0A0A0A (jet black) · Accent #F5E642 (electric yellow) · Background #FAFAF8 (near-white) · Font: bold, editorial · Tone: exclusive, high-fashion, urgency-driven. Audience: existing customers and subscribers; fashion-forward, respond strongly to exclusivity and scarcity. Email 1 — Teaser (48 h before launch): build maximum anticipation without revealing the deal; drive early-access sign-ups. Key message: 'Something extraordinary arrives Friday.' CTA: 'Secure Early Access'. Email 2 — Launch day: hero announcement, promo code VAULT30 reveal, curated 3-product grid, maximum urgency. CTA: 'Shop Now'. Email 3 — Last chance (24 h remaining): all-in on urgency and scarcity; showcase 3 best-sellers still in stock, reinforce promo code, drive the final conversion. CTA: 'Shop Before It&apos;s Gone'.">
-                <div class="seq-prompt-header">
-                  <span class="seq-prompt-tag">Promotional · 3 emails</span>
-                  <span class="seq-prompt-check">
-                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  </span>
+            <!-- ── Template JSON ── -->
+            <div class="field full">
+              <label>Template JSON</label>
+              <div class="tpl-input-preview-row">
+                <div class="tpl-input-side">
+                  <textarea
+                    id="template_json"
+                    name="template_json"
+                    rows="12"
+                    placeholder='Paste your Beefree template JSON here, or use the upload button below…'
+                    required
+                    spellcheck="false"
+                    style="font-family: var(--mono); font-size: .8rem; height:100%; min-height:220px;"
+                    hx-post="/preview-template"
+                    hx-trigger="input changed delay:600ms"
+                    hx-target="#tpl-preview"
+                    hx-swap="innerHTML"
+                  ></textarea>
+                  <div class="json-toolbar">
+                    <button type="button" class="btn-outline" onclick="document.getElementById('file-upload').click()">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M7 1v8M4 4l3-3 3 3M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      Upload .json
+                    </button>
+                    <input type="file" id="file-upload" accept=".json" style="display:none" onchange="loadFile(this)" />
+                    <span id="json-status" class="json-status"></span>
+                  </div>
                 </div>
-                <h3 class="seq-prompt-title">Black Friday Fashion Campaign</h3>
-                <p class="seq-prompt-desc">Teaser, launch day, and last-chance emails for VAULTURA — a premium fashion brand.</p>
-              </button>
-
-              <!-- Preset 2: SaaS trial nurture -->
-              <button type="button" class="seq-prompt-card" onclick="selectPrompt(this)" data-preset-id="saas-trial-nurture"
-                data-prompt="Campaign: 4-email trial-to-paid nurture for Taskflow — a B2B project management SaaS (think Asana or Linear). Brand: Taskflow · Primary #1E3A5F (slate blue) · Accent #0EA5E9 (electric blue) · Background #F8FAFC (light grey-white) · Tone: professional, encouraging, results-focused. Audience: free-trial users at mid-size tech companies; signed up but need to form a habit and see ROI. Email 1 — Trial activated (Day 0): welcome + quick-start; make the first meaningful action obvious. CTA: 'Open Your Dashboard'. Email 2 — Day 3 check-in: 3 actionable tips to maximise the trial + 2 short tutorial resources; reduce friction and build a habit. CTA: 'Back to Dashboard'. Email 3 — Day 7 feature spotlight: showcase the single premium feature (Automation) they haven't discovered yet; plant upgrade intent with concrete ROI. CTA: 'Upgrade Now'. Email 4 — Trial ending (Day 14): create urgency, recap what they've built, present a time-limited 20% discount offer. CTA: 'Upgrade Now'.">
-                <div class="seq-prompt-header">
-                  <span class="seq-prompt-tag">Nurture · 4 emails</span>
-                  <span class="seq-prompt-check">
-                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  </span>
+                <div class="tpl-preview-panel" id="tpl-preview">
+                  <div class="tpl-preview-placeholder">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="opacity:.35">
+                      <rect x="4" y="6" width="24" height="20" rx="4" stroke="currentColor" stroke-width="2"/>
+                      <path d="M4 10l12 8 12-8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    </svg>
+                    <p>Paste or upload a template<br>to see a preview</p>
+                  </div>
                 </div>
-                <h3 class="seq-prompt-title">SaaS Trial-to-Paid Nurture</h3>
-                <p class="seq-prompt-desc">4-step sequence converting Taskflow free-trial users into paid subscribers.</p>
-              </button>
-
-              <!-- Preset 3: Streaming service onboarding -->
-              <button type="button" class="seq-prompt-card" onclick="selectPrompt(this)" data-preset-id="streaming-onboarding"
-                data-prompt="Campaign: 3 transactional emails for StreamVault — a premium dark-themed streaming platform. Brand: StreamVault · Primary #1C1C2E (deep navy) · Accent #E94560 (crimson red) · Background #F5F5F0 (off-white) · Font: modern sans-serif · Tone: cinematic, warm, confidence-building. Audience: new subscribers who just created an account. Email 1 — Welcome &amp; account confirmed: celebrate the sign-up, surface the top content genres, drive the very first watch session. Key message: 'Your StreamVault account is ready.' CTA: 'Start Watching Now'. Email 2 — Password reset (purely functional, zero marketing): secure and reassuring, prominent reset CTA, 24-hour expiry notice, ignore-if-not-you note. CTA: 'Reset My Password'. Email 3 — Subscription confirmed: recap the active plan and next billing date, communicate full subscription value (screens, quality, downloads), invite catalogue exploration. CTA: 'Explore the Catalogue'.">
-                <div class="seq-prompt-header">
-                  <span class="seq-prompt-tag">Transactional · 3 emails</span>
-                  <span class="seq-prompt-check">
-                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  </span>
-                </div>
-                <h3 class="seq-prompt-title">Streaming Service Onboarding</h3>
-                <p class="seq-prompt-desc">Welcome, password reset, and subscription confirmation for StreamVault — a Netflix-style platform.</p>
-              </button>
+              </div>
             </div>
 
-            <div class="field full actions" style="margin-top:1.25rem;">
-              <button type="submit" class="btn btn-primary" id="seq-submit" disabled>
-                Generate Sequence
+            <!-- ── Actions ── -->
+            <div class="field full actions">
+              <button type="submit" class="btn btn-primary" id="submit-btn">
+                Start Editing
                 <span id="spinner" class="htmx-indicator spinner"></span>
               </button>
             </div>
+
           </form>
         </div>
       </div>
     </section>
 
-    <!-- ── Dynamic workspace (plan → execution) ── -->
     <div id="workspace"></div>
 
   </main>
@@ -149,50 +148,67 @@
   </footer>
 
   <script>
-    /* ── Preset prompt selection ── */
-    function selectPrompt(el) {
-      document.querySelectorAll('.seq-prompt-card').forEach(function(c) {
-        c.classList.remove('seq-prompt-card-selected');
-      });
-      el.classList.add('seq-prompt-card-selected');
-      document.getElementById('goal').value = el.dataset.prompt;
-      document.getElementById('preset_id').value = el.dataset.presetId || '';
-      document.getElementById('seq-submit').disabled = false;
+    function loadFile(input) {
+      var file = input.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var statusEl = document.getElementById('json-status');
+        try {
+          var parsed = JSON.parse(e.target.result);
+          var ta = document.getElementById('template_json');
+          ta.value = JSON.stringify(parsed, null, 2);
+          statusEl.textContent = '✓ Valid JSON';
+          statusEl.className = 'json-status is-valid';
+          ta.dispatchEvent(new Event('input'));
+        } catch (err) {
+          statusEl.textContent = '✗ Invalid JSON';
+          statusEl.className = 'json-status is-error';
+        }
+      };
+      reader.readAsText(file);
+      input.value = '';
     }
 
-    /* ── Thumbnail rescaling ── */
-    function rescaleThumbs() {
-      document.querySelectorAll('.thumb-viewport').forEach(vp => {
-        const w = vp.offsetWidth;
-        const scale = w / 700;
-        const inner = vp.querySelector('.thumb-inner');
-        if (inner) inner.style.transform = 'scale(' + scale + ')';
-      });
-    }
-    window.addEventListener('resize', rescaleThumbs);
-
-    /* ── Section collapse ── */
-    function toggleCard(card) {
-      if (card) card.classList.toggle('is-collapsed');
+    function scaleTplPreview() {
+      var wrap = document.querySelector('#tpl-preview .tpl-preview-wrap');
+      if (!wrap) return;
+      var panel = document.getElementById('tpl-preview');
+      if (!panel) return;
+      var w = panel.offsetWidth;
+      var scale = w / 700;
+      wrap.style.transform = 'scale(' + scale + ')';
+      wrap.style.transformOrigin = 'top left';
     }
 
-    document.body.addEventListener('htmx:afterSwap', function(e) {
-      setTimeout(rescaleThumbs, 50);
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      if (e.detail && e.detail.target && e.detail.target.id === 'tpl-preview') {
+        setTimeout(scaleTplPreview, 50);
+      }
       var tgt = e.detail && e.detail.target;
-      if (!tgt) return;
-
-      // Plan appeared → collapse the campaign form
-      if (tgt.id === 'workspace') {
+      if (tgt && tgt.id === 'workspace') {
         var fs = document.getElementById('form-section');
         if (fs) fs.classList.add('is-collapsed');
       }
-
-      // Execute started → collapse the plan card
-      if (tgt.id === 'execution') {
-        var pc = document.querySelector('.plan-card');
-        if (pc) pc.classList.add('is-collapsed');
-      }
     });
+    window.addEventListener('resize', scaleTplPreview);
+
+    function validateForm() {
+      var json = document.getElementById('template_json').value.trim();
+      if (!json) {
+        alert('Please paste or upload a template JSON.');
+        return false;
+      }
+      try { JSON.parse(json); } catch (e) {
+        alert('The template JSON is not valid. Please check and try again.');
+        return false;
+      }
+      return true;
+    }
+
+    function toggleCard(card) {
+      if (card) card.classList.toggle('is-collapsed');
+    }
   </script>
 
 </body>
