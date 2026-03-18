@@ -4,6 +4,19 @@ A FastAPI web application that demonstrates AI-powered email campaign generation
 
 ---
 
+## Features
+
+- **Campaign generator** — describe a campaign and choose a preset; the AI builds a full multi-email sequence simultaneously, with live previews streamed per email. Includes 3 built-in presets (streaming onboarding, SaaS trial nurture, Black Friday fashion).
+- **Single email generator** — generate a standalone email from a free-form prompt.
+- **Bulk translation** — translate an existing Beefree template into multiple languages in parallel. Supports 29 languages.
+- **Palette swap** — apply one or more of 10 built-in color palettes to an existing template in parallel.
+- **Email editor** — chat with an AI agent to iteratively edit an existing template through multi-turn conversation.
+- **Export** — download generated templates as Beefree JSON, rendered HTML, or a full sequence as a ZIP file.
+- **Token counter** — live token usage tracker in the page header showing input, output, cache-write (↑cache), and cache-read (↓cache) tokens. Accumulated across all agent calls and persisted across mode switches within the same browser session.
+- **Multi-provider AI** — switch between Anthropic, OpenAI, and Google Gemini by changing one env var.
+
+---
+
 ## Prerequisites
 
 - Python ≥ 3.11
@@ -144,13 +157,3 @@ Browser → FastAPI (app/main.py)
 | `templates/` | Jinja2 HTML templates for the web UI |
 | `static/` | CSS and JS assets (including `tokens.js` for live token tracking) |
 
-### Features
-
-- **Campaign generator** — describe a campaign and choose a preset; the AI builds a full multi-email sequence simultaneously, with live previews streamed per email. Includes 3 built-in presets (streaming onboarding, SaaS trial nurture, Black Friday fashion).
-- **Single email generator** — generate a standalone email from a free-form prompt.
-- **Bulk translation** — translate an existing Beefree template into multiple languages in parallel. Supports 29 languages.
-- **Palette swap** — apply one or more of 10 built-in color palettes to an existing template in parallel.
-- **Email editor** — chat with an AI agent to iteratively edit an existing template through multi-turn conversation.
-- **Export** — download generated templates as Beefree JSON, rendered HTML, or a full sequence as a ZIP file.
-- **Token counter** — live token usage tracker in the page header showing input, output, cache-write (↑cache), and cache-read (↓cache) tokens. Accumulated across all agent calls and persisted across mode switches within the same browser session.
-- **Multi-provider AI** — switch between Anthropic, OpenAI, and Google Gemini by changing one env var.
