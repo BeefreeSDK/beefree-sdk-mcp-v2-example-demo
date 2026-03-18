@@ -1,27 +1,3 @@
-"""PydanticAI agents: planner (structured output) and executor (MCP tools + SSE).
-
-Planner strategy (single fast LLM call)
------------------------------------------
-One Haiku call generates the sequence skeleton: titles and subject lines only
-(minimal token output, ~1-3 s).  The executor prompt is then built from a
-code template — zero additional LLM calls, instant.
-
-Executor streaming strategy
-----------------------------
-We use `Agent.iter()` (the graph-node iterator) which yields each node
-BEFORE it executes. This means:
-
-- When `CallToolsNode` is yielded the LLM has just decided to call tools
-  but the tools have NOT yet run -> we emit a status update.
-- When the *next* `ModelRequestNode` is yielded the tools have completed ->
-  we fetch the current template, render it to HTML, and emit a "preview" SSE
-  event so the user sees the email being built progressively.
-
-Because each SSE endpoint (/stream/{template_id}) is an independent async
-generator, N email agents run as N concurrent asyncio tasks, each streaming
-events to their own card in the browser.
-"""
-
 import html as html_module
 import json as _json
 import logging
