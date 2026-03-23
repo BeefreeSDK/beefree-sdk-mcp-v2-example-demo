@@ -126,6 +126,21 @@
 
 .single-result-col.is-done { border-color: #82EDA8; }
 
+.single-result-col.is-error {
+  border-color: #F87171;
+  box-shadow: 0 0 0 3px rgba(248,113,113,.15), 0 1px 3px rgba(38,4,93,.06);
+}
+
+.agent-error-panel:not(:empty) {
+  padding: .75rem 1rem;
+  background: #FEF2F2;
+  color: #B91C1C;
+  font-size: .78rem;
+  line-height: 1.5;
+  border-top: 1px solid #FECACA;
+  word-break: break-word;
+}
+
 /* iframe wrap */
 .single-iframe-wrap { width: 700px; transform-origin: top left; }
 .single-iframe-wrap iframe { width: 700px; border: none; display: block; }
@@ -202,6 +217,7 @@
 
 .single-gen-status.generating { background: rgba(119,71,255,.1); color: #7747FF; }
 .single-gen-status.done       { background: rgba(130,237,168,.25); color: #1a7a40; }
+.single-gen-status.error      { background: rgba(248,113,113,.15); color: #B91C1C; }
 
 .status-dot {
   width: 6px; height: 6px;
@@ -252,6 +268,7 @@
     <!-- ── RIGHT: preview column (only .single-iframe-wrap content is swapped) ── -->
     <div class="single-preview-col">
       <div class="single-result-col is-generating" id="single-result-col">
+        <div class="agent-error-panel" sse-swap="agent-error" hx-swap="innerHTML"></div>
         <div class="single-iframe-wrap" sse-swap="preview" hx-swap="innerHTML">
 
           <!-- skeleton shown until the first SSE preview fires -->
@@ -311,6 +328,25 @@
   window.addEventListener('resize', scalePreview);
   document.body.addEventListener('htmx:afterSwap', function () { setTimeout(scalePreview, 50); });
   document.body.addEventListener('htmx:sseMessage', function (e) {
+    if (e.target.getAttribute('sse-swap') === 'agent-error') {
+      var col = document.getElementById('single-result-col');
+      if (col) {
+        col.classList.remove('is-generating');
+        col.classList.add('is-error');
+      }
+      var spinner = document.getElementById('sgl-spinner');
+      if (spinner) {
+        spinner.className = '';
+        spinner.textContent = '\u2715';
+        spinner.style.cssText = 'flex-shrink:0;font-size:.9rem;font-weight:900;color:#B91C1C;';
+      }
+      var label = spinner && spinner.nextElementSibling;
+      if (label) label.textContent = 'Generation failed';
+      var badge = document.getElementById('single-status-badge');
+      if (badge) { badge.className = 'single-gen-status error'; badge.textContent = '\u2715 Failed'; }
+      clearInterval(stepTimer);
+      return;
+    }
     setTimeout(scalePreview, 50);
     var col = document.getElementById('single-result-col');
     if (!col) return;
@@ -341,6 +377,8 @@
 
   /* ── On completion: mark all done, update badge, show download button ── */
   document.body.addEventListener('htmx:sseClose', function () {
+    var col = document.getElementById('single-result-col');
+    if (col && col.classList.contains('is-error')) return;
     clearInterval(stepTimer);
 
     // Mark all remaining steps as done

@@ -28,6 +28,26 @@
 
   .pal-col.is-done { border-color: #82EDA8; }
 
+  .pal-col.is-error {
+    border-color: #F87171;
+    box-shadow: 0 0 0 3px rgba(248,113,113,.15), 0 1px 3px rgba(38,4,93,.06);
+  }
+
+  .pal-status.error {
+    background: rgba(248,113,113,.15);
+    color: #B91C1C;
+  }
+
+  .agent-error-panel:not(:empty) {
+    padding: .75rem 1rem;
+    background: #FEF2F2;
+    color: #B91C1C;
+    font-size: .78rem;
+    line-height: 1.5;
+    border-top: 1px solid #FECACA;
+    word-break: break-word;
+  }
+
   .pal-col-header {
     display: flex;
     align-items: center;
@@ -161,6 +181,7 @@
       <div class="pal-iframe-wrap" sse-swap="preview" hx-swap="innerHTML">
         <div class="pal-placeholder">Waiting for agent&hellip;</div>
       </div>
+      <div class="agent-error-panel" sse-swap="agent-error" hx-swap="innerHTML"></div>
     </div>
     {% endfor %}
   </div>
@@ -186,9 +207,16 @@
   window.addEventListener('resize', scaleWraps);
   document.body.addEventListener('htmx:afterSwap', function () { setTimeout(scaleWraps, 100); });
   document.body.addEventListener('htmx:sseMessage', function (e) {
-    setTimeout(scaleWraps, 50);
     var col = e.target && e.target.closest('.pal-col');
     if (!col) return;
+    if (e.target.getAttribute('sse-swap') === 'agent-error') {
+      col.classList.remove('is-styling');
+      col.classList.add('is-error');
+      var pill = col.querySelector('.pal-status');
+      if (pill) { pill.className = 'pal-status error'; pill.textContent = '\u2715 Failed'; }
+      return;
+    }
+    setTimeout(scaleWraps, 50);
     var wrap = col.querySelector('.pal-iframe-wrap');
     if (!wrap) return;
     wrap.classList.remove('preview-refreshing');
@@ -207,6 +235,7 @@
   document.body.addEventListener('htmx:sseClose', function (e) {
     var col = e.target.closest('.pal-col');
     if (!col) return;
+    if (col.classList.contains('is-error')) return;
     col.classList.remove('is-styling');
     col.classList.add('is-done');
     var pill = col.querySelector('.pal-status');

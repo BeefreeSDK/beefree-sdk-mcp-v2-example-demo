@@ -539,6 +539,7 @@ async def stream_executor(
     except Exception as exc:
         log.error("Executor agent error for %s: %s", template_id, exc)
         failed = True
+        yield {"event": "agent-error", "data": str(exc)}
 
     # Always fetch a final preview — partial work is still useful to show
     try:
@@ -639,6 +640,7 @@ async def stream_translation_executor(
                     log.warning("Translation node error (continuing): %s", node_exc)
     except Exception as exc:
         log.error("Translation agent error for %s (%s): %s", template_id, language, exc)
+        yield {"event": "agent-error", "data": str(exc)}
 
     try:
         preview_html = await _fetch_preview(template_id, settings)
@@ -743,6 +745,7 @@ async def stream_palette_executor(
                     log.warning("Palette node error (continuing): %s", node_exc)
     except Exception as exc:
         log.error("Palette agent error for %s (%s): %s", template_id, palette["name"], exc)
+        yield {"event": "agent-error", "data": str(exc)}
 
     try:
         preview_html = await _fetch_preview(template_id, settings)
@@ -913,6 +916,7 @@ async def stream_single_executor(
                     log.warning("Single agent node error (continuing): %s", node_exc)
     except Exception as exc:
         log.error("Single agent error for %s: %s", template_id, exc)
+        yield {"event": "agent-error", "data": str(exc)}
 
     try:
         preview_html = await _fetch_preview(template_id, settings)
