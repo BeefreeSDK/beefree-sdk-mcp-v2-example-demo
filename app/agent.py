@@ -867,6 +867,7 @@ async def stream_single_executor(
     template_id: str,
     brief: str,
     settings: Settings,
+    mcp_url: str | None = None,
 ) -> AsyncIterator[dict]:
     """Run one single-email agent and yield SSE events.
 
@@ -878,7 +879,7 @@ async def stream_single_executor(
     - "close" event: tells HTMX to stop reconnecting
     """
     mcp = MCPServerStreamableHTTP(
-        url=f"{settings.bee_api_base}/v2/sdk/mcp",
+        url=mcp_url or f"{settings.bee_api_base}/v2/sdk/mcp",
         headers={
             "Authorization": f"Bearer {settings.bee_api_key}",
             "x-bee-template-id": template_id,
@@ -903,6 +904,13 @@ async def stream_single_executor(
                         tok = _tokens_event(node.model_response.usage)
                         if tok:
                             yield tok
+                        # Emit the agent's tool call code for Code Mode visibility
+                        if mcp_url:
+                            for part in node.model_response.parts:
+                                if hasattr(part, "args") and isinstance(part.args, dict):
+                                    code = part.args.get("script") or part.args.get("code") or part.args.get("typescript")
+                                    if code:
+                                        yield {"event": "code", "data": code}
                     if isinstance(node, ModelRequestNode):
                         has_tool_returns = any(
                             getattr(p, "part_kind", "") == "tool-return"

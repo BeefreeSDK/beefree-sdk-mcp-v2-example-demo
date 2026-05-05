@@ -261,6 +261,80 @@ async def sequence(request: Request):
     )
 
 
+@app.get("/integration", response_class=HTMLResponse)
+async def integration_page(request: Request):
+    return templates.TemplateResponse(
+        "integration.html",
+        {"request": request},
+    )
+
+
+@app.get("/integration-auth")
+async def integration_auth():
+    """Return a fresh Beefree SDK auth token for the embedded editor."""
+    settings = get_settings()
+    if not settings.bee_client_id or not settings.bee_client_secret:
+        return JSONResponse(
+            {"error": "BEE_CLIENT_ID and BEE_CLIENT_SECRET not configured"},
+            status_code=500,
+        )
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        resp = await client.post(
+            "https://auth.getbee.io/loginV2",
+            json={
+                "client_id": settings.bee_client_id,
+                "client_secret": settings.bee_client_secret,
+                "uid": "integration-demo-user",
+            },
+        )
+        if not resp.is_success:
+            return JSONResponse(
+                {"error": f"Auth failed: {resp.status_code}"},
+                status_code=502,
+            )
+        return JSONResponse(resp.json())
+
+
+@app.post("/integration-start")
+async def integration_start():
+    """Create a blank MCP template session for the API-managed demo."""
+    settings = get_settings()
+    template_id = await create_template(settings)
+    session_id = uuid.uuid4().hex[:12]
+    edit_sessions[session_id] = {"template_id": template_id, "messages": []}
+    return JSONResponse({"template_id": template_id, "session_id": session_id})
+
+
+@app.get("/codemode", response_class=HTMLResponse)
+async def codemode_page(request: Request):
+    return templates.TemplateResponse("codemode.html", {"request": request})
+
+
+@app.get("/codemode-stream")
+async def codemode_stream(request: Request, brief: str):
+    """SSE endpoint: creates a template, runs single email agent via Code Mode endpoint, streams previews."""
+    settings = get_settings()
+
+    async def generator():
+        try:
+            template_id = await create_template(settings)
+            yield {"event": "template-id", "data": template_id}
+            # Use Code Mode MCP endpoint instead of standard
+            codemode_url = f"{settings.bee_api_base}/v2/sdk/mcp/codemode"
+            async for event in stream_single_executor(template_id, brief, settings, mcp_url=codemode_url):
+                yield event
+        except Exception as exc:
+            log.error("Code Mode gen error: %s", exc)
+            yield {
+                "event": "preview",
+                "data": f"<p class='plan-error'>Generation failed: {exc}</p>",
+            }
+        finally:
+            yield {"event": "close", "data": ""}
+
+    return EventSourceResponse(generator())
+
+
 @app.get("/single", response_class=HTMLResponse)
 async def single(request: Request):
     return templates.TemplateResponse(

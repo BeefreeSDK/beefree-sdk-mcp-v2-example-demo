@@ -59,128 +59,191 @@
       <p class="landing-sub" style="margin-top:1rem;font-size:.85rem;opacity:.6;">These are just a few examples of what you can build — with your creativity and the Beefree Headless MCP, the possibilities are endless.</p>
     </div>
 
-    <div class="mode-grid">
+    <!-- ═══════ Cluster 1: Headless MCP ═══════ -->
+    <div class="cluster">
+      <div class="cluster-header">
+        <h2 class="cluster-title">Headless MCP</h2>
+        <p class="cluster-desc">No editor needed — AI agents build and edit emails entirely in the background via MCP v2.</p>
+      </div>
+      <div class="mode-grid">
 
-      <!-- Single Email Generation -->
-      <a href="/single" class="mode-card">
-        <div class="mode-icon mode-icon-single">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <rect x="4" y="6" width="24" height="20" rx="4" stroke="currentColor" stroke-width="2"/>
-            <path d="M4 10l12 8 12-8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="mode-badge">1 agent</div>
-        <h2 class="mode-title">Single Email</h2>
-        <p class="mode-desc">
-          Generate one complete email with a single AI agent.
-          Ideal for one-off campaigns, transactional emails, or quick prototyping.
-        </p>
-        <span class="mode-cta">
-          Get started
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-      </a>
+        <!-- Single Email Generation -->
+        <a href="/single" class="mode-card">
+          <div class="mode-icon mode-icon-single">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <rect x="4" y="6" width="24" height="20" rx="4" stroke="currentColor" stroke-width="2"/>
+              <path d="M4 10l12 8 12-8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="mode-badge">1 agent</div>
+          <h2 class="mode-title">Single Email</h2>
+          <p class="mode-desc">
+            Generate one complete email with a single AI agent.
+            Ideal for one-off campaigns, transactional emails, or quick prototyping.
+          </p>
+          <span class="mode-cta">
+            Get started
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
 
-      <!-- Color Palettes -->
-      <a href="/palette" class="mode-card">
-        <div class="mode-icon mode-icon-palette">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <circle cx="16" cy="16" r="11" stroke="currentColor" stroke-width="2"/>
-            <circle cx="16" cy="7"  r="2.5" fill="currentColor"/>
-            <circle cx="23" cy="11" r="2.5" fill="currentColor"/>
-            <circle cx="23" cy="21" r="2.5" fill="currentColor"/>
-            <circle cx="16" cy="25" r="2.5" fill="currentColor"/>
-            <circle cx="9"  cy="21" r="2.5" fill="currentColor"/>
-            <circle cx="9"  cy="11" r="2.5" fill="currentColor"/>
-            <circle cx="16" cy="16" r="3" fill="currentColor"/>
-          </svg>
-        </div>
-        <div class="mode-badge mode-badge-palette">N variations · parallel</div>
-        <h2 class="mode-title">Color Palettes</h2>
-        <p class="mode-desc">
-          Upload a template and instantly generate N color variations.
-          Each agent recolors one palette — layout, fonts, and copy stay identical.
-        </p>
-        <span class="mode-cta">
-          Get started
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-      </a>
+        <!-- Color Palettes -->
+        <a href="/palette" class="mode-card">
+          <div class="mode-icon mode-icon-palette">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <circle cx="16" cy="16" r="11" stroke="currentColor" stroke-width="2"/>
+              <circle cx="16" cy="7"  r="2.5" fill="currentColor"/>
+              <circle cx="23" cy="11" r="2.5" fill="currentColor"/>
+              <circle cx="23" cy="21" r="2.5" fill="currentColor"/>
+              <circle cx="16" cy="25" r="2.5" fill="currentColor"/>
+              <circle cx="9"  cy="21" r="2.5" fill="currentColor"/>
+              <circle cx="9"  cy="11" r="2.5" fill="currentColor"/>
+              <circle cx="16" cy="16" r="3" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="mode-badge mode-badge-palette">N variations · parallel</div>
+          <h2 class="mode-title">Color Palettes</h2>
+          <p class="mode-desc">
+            Upload a template and instantly generate N color variations.
+            Each agent recolors one palette — layout, fonts, and copy stay identical.
+          </p>
+          <span class="mode-cta">
+            Get started
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
 
-      <!-- Bulk Translations -->
-      <a href="/translate" class="mode-card">
-        <div class="mode-icon mode-icon-translate">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <path d="M4 8h10M9 5v3M4 8c0 4 3 7 6 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M10 16c1 1 3 2 4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M16 10l4-4 4 4M20 6v14M16 24h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="mode-badge mode-badge-translate">N agents · parallel</div>
-        <h2 class="mode-title">Bulk Translations</h2>
-        <p class="mode-desc">
-          Upload a template and translate it into any number of languages at once.
-          Parallel agents replace text only — layout and design stay identical.
-        </p>
-        <span class="mode-cta">
-          Get started
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-      </a>
+        <!-- Bulk Translations -->
+        <a href="/translate" class="mode-card">
+          <div class="mode-icon mode-icon-translate">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <path d="M4 8h10M9 5v3M4 8c0 4 3 7 6 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 16c1 1 3 2 4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M16 10l4-4 4 4M20 6v14M16 24h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="mode-badge mode-badge-translate">N agents · parallel</div>
+          <h2 class="mode-title">Bulk Translations</h2>
+          <p class="mode-desc">
+            Upload a template and translate it into any number of languages at once.
+            Parallel agents replace text only — layout and design stay identical.
+          </p>
+          <span class="mode-cta">
+            Get started
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
 
-      <!-- Edit an Email -->
-      <a href="/edit" class="mode-card">
-        <div class="mode-icon mode-icon-single" style="background:rgba(130,237,168,.15);color:#1a7a40;">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <rect x="4" y="6" width="24" height="20" rx="4" stroke="currentColor" stroke-width="2"/>
-            <path d="M4 10l12 8 12-8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            <path d="M20 20l5-5 2 2-5 5h-2v-2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="mode-badge" style="background:rgba(130,237,168,.2);color:#1a7a40;">1 agent · iterative</div>
-        <h2 class="mode-title">Edit an Email</h2>
-        <p class="mode-desc">
-          Load any existing template and chat with the AI agent to refine it.
-          Each message triggers a live edit via MCP — iterate until it's perfect.
-        </p>
-        <span class="mode-cta">
-          Get started
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-      </a>
+        <!-- Edit an Email -->
+        <a href="/edit" class="mode-card">
+          <div class="mode-icon mode-icon-single" style="background:rgba(130,237,168,.15);color:#1a7a40;">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <rect x="4" y="6" width="24" height="20" rx="4" stroke="currentColor" stroke-width="2"/>
+              <path d="M4 10l12 8 12-8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M20 20l5-5 2 2-5 5h-2v-2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="mode-badge" style="background:rgba(130,237,168,.2);color:#1a7a40;">1 agent · iterative</div>
+          <h2 class="mode-title">Edit an Email</h2>
+          <p class="mode-desc">
+            Load any existing template and chat with the AI agent to refine it.
+            Each message triggers a live edit via MCP — iterate until it's perfect.
+          </p>
+          <span class="mode-cta">
+            Get started
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
 
-      <!-- Email Sequence -->
-      <a href="/sequence" class="mode-card">
-        <div class="mode-icon mode-icon-sequence">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <rect x="2" y="5" width="13" height="10" rx="3" stroke="currentColor" stroke-width="2"/>
-            <rect x="17" y="5" width="13" height="10" rx="3" stroke="currentColor" stroke-width="2"/>
-            <rect x="9" y="19" width="14" height="10" rx="3" stroke="currentColor" stroke-width="2"/>
-            <path d="M8.5 15l7 4M23.5 15l-7 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="mode-badge mode-badge-sequence">N agents · parallel</div>
-        <h2 class="mode-title">Email Sequence</h2>
-        <p class="mode-desc">
-          Plan and generate a full multi-email campaign. Each email is built
-          simultaneously by parallel agents, all sharing the same brand layout.
-        </p>
-        <span class="mode-cta">
-          Get started
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-      </a>
+        <!-- Code Mode -->
+        <a href="/codemode" class="mode-card">
+          <div class="mode-icon" style="background:rgba(16,185,129,.12);color:#059669;">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <path d="M12 10l-5 6 5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M20 10l5 6-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18 7l-4 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="mode-badge" style="background:rgba(16,185,129,.15);color:#059669;">1 script · 90%+ fewer tokens</div>
+          <h2 class="mode-title">Code Mode</h2>
+          <p class="mode-desc">
+            Your agent writes one TypeScript script instead of many individual tool calls.
+            One round trip, 67-97% token savings — build entire emails in a single shot.
+          </p>
+          <span class="mode-cta">
+            Get started
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
 
+        <!-- Email Sequence -->
+        <a href="/sequence" class="mode-card">
+          <div class="mode-icon mode-icon-sequence">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <rect x="2" y="5" width="13" height="10" rx="3" stroke="currentColor" stroke-width="2"/>
+              <rect x="17" y="5" width="13" height="10" rx="3" stroke="currentColor" stroke-width="2"/>
+              <rect x="9" y="19" width="14" height="10" rx="3" stroke="currentColor" stroke-width="2"/>
+              <path d="M8.5 15l7 4M23.5 15l-7 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="mode-badge mode-badge-sequence">N agents · parallel</div>
+          <h2 class="mode-title">Email Sequence</h2>
+          <p class="mode-desc">
+            Plan and generate a full multi-email campaign. Each email is built
+            simultaneously by parallel agents, all sharing the same brand layout.
+          </p>
+          <span class="mode-cta">
+            Get started
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- ═══════ Cluster 2: With Editor MCP ═══════ -->
+    <div class="cluster">
+      <div class="cluster-header">
+        <h2 class="cluster-title">With Editor MCP</h2>
+        <p class="cluster-desc">AI agents work alongside the visual Beefree editor — changes sync in real time via co-editing.</p>
+      </div>
+      <div class="mode-grid">
+
+        <!-- Integration Guide -->
+        <a href="/integration" class="mode-card">
+          <div class="mode-icon" style="background:rgba(119,71,255,.12);color:#7747FF;">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <rect x="4" y="5" width="24" height="22" rx="3" stroke="currentColor" stroke-width="2"/>
+              <path d="M10 13l4 4-4 4M17 21h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="mode-badge" style="background:rgba(119,71,255,.15);color:#7747FF;">quickstart · MCP v2</div>
+          <h2 class="mode-title">Integration Guide</h2>
+          <p class="mode-desc">
+            Learn how to connect AI agents to the Beefree SDK editor — Editor-Managed
+            or API-Managed sessions with co-editing. Includes a live demo.
+          </p>
+          <span class="mode-cta">
+            Get started
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
+
+      </div>
     </div>
 
   </main>
