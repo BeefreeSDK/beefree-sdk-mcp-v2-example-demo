@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     bee_api_key: str
     bee_api_base: str = "https://api.getbee.io"
 
+    # Beefree SDK editor credentials (for embedding the visual editor)
+    bee_client_id: str = ""
+    bee_client_secret: str = ""
+
     # Set AI_PROVIDER in .env to switch between anthropic / openai / google.
     ai_provider: Literal["anthropic", "openai", "google"] = "anthropic"
 

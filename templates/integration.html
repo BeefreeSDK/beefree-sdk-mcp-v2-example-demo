@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beefree SDK MCP — Integration Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="/static/tokens.js"></script>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <div class="header-left">
+        <div class="header-brand">
+          <a href="/" class="back-link" aria-label="Back to home">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M11 14L6 9l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <svg width="144" height="28" viewBox="0 0 164 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g clip-path="url(#clip0_7680_11003)">
+              <path d="M33.4775 19.0436L33.4756 27.3739C33.4756 27.6679 33.3183 27.9382 33.0647 28.0857L26.4655 31.8891C25.915 32.2066 25.2278 31.8075 25.2318 31.1724L25.279 23.7721C25.2809 23.4762 25.1227 23.2009 24.8651 23.0545L17.4539 18.8156C17.1964 18.6681 17.0381 18.3938 17.0401 18.098L17.0932 9.74209C17.0951 9.44619 16.9379 9.17291 16.6813 9.02545L10.1106 5.2427C9.56208 4.92715 9.56208 4.1358 10.1106 3.81926L16.5486 0.110236C16.7992 -0.0342713 17.1089 -0.0362374 17.3615 0.105321L24.872 4.30685C25.1315 4.45234 25.2927 4.7266 25.2927 5.02348L25.2908 13.3469C25.2908 13.6399 25.4471 13.9102 25.6997 14.0576L33.0676 18.3339C33.3212 18.4813 33.4766 18.7517 33.4766 19.0446L33.4775 19.0436Z" fill="#7747FF"/>
+              <path d="M0.409929 19.2656L6.95797 23.0533C7.21357 23.2008 7.36987 23.475 7.3679 23.7699L7.3217 31.1723C7.31777 31.8073 8.00197 32.2064 8.5505 31.8889L15.1241 28.0855C15.3777 27.939 15.534 27.6677 15.534 27.3738V19.0523C15.536 18.7554 15.3758 18.4812 15.1172 18.3357L7.63431 14.1292C7.38265 13.9877 7.07496 13.9897 6.82428 14.1342L0.409929 17.8422C-0.136643 18.1587 -0.136643 18.9491 0.409929 19.2656Z" fill="#7747FF"/>
+              <path d="M42.2422 6.17285H45.0665V14.4383C45.8568 13.9123 47.1486 13.3638 48.6801 13.3638C52.3184 13.3638 54.2088 16.4211 54.2088 19.6464C54.2088 23.8745 50.9775 26.1198 47.412 26.1198C45.8568 26.1198 43.8219 25.6892 42.2422 24.6147V6.17285ZM45.0665 23.205C45.5688 23.5393 46.4545 23.7782 47.3638 23.7782C49.8047 23.7782 51.2174 22.106 51.2174 19.7172C51.2174 17.6155 50.1164 15.728 48.0579 15.728C46.8851 15.728 45.617 16.3493 45.0665 16.8988V23.205Z" fill="currentColor"/>
+              <path d="M67.7788 24.5184C67.1329 25.0915 65.2416 26.1188 62.6807 26.1188C58.6837 26.1188 56.0039 23.6346 56.0039 19.8125C56.0039 15.9905 58.5411 13.3628 62.3219 13.3628C66.1027 13.3628 68.2094 16.2775 68.2094 19.6218V20.7926H58.9235C59.0916 22.3449 60.5033 23.7791 63.1595 23.7791C65.0263 23.7791 66.2472 23.0143 66.8931 22.513L67.7788 24.5193V24.5184ZM65.2661 18.5228C65.1944 16.946 64.1415 15.5845 62.2747 15.5845C60.6232 15.5845 59.1634 16.6353 58.9481 18.5228H65.2661Z" fill="currentColor"/>
+              <path d="M81.7319 24.5184C81.0861 25.0915 79.1947 26.1188 76.6339 26.1188C72.6368 26.1188 69.957 23.6346 69.957 19.8125C69.957 15.9905 72.4943 13.3628 76.275 13.3628C80.0558 13.3628 82.1625 16.2775 82.1625 19.6218V20.7926H72.8767C73.0438 22.3449 74.4564 23.7791 77.1126 23.7791C78.9794 23.7791 80.2003 23.0143 80.8462 22.513L81.7319 24.5193V24.5184ZM79.2193 18.5228C79.1475 16.946 78.0947 15.5845 76.2279 15.5845C74.5764 15.5845 73.1165 16.6353 72.9012 18.5228H79.2193Z" fill="currentColor"/>
+              <path d="M85.5105 25.76V16.0141H83.4766V13.7207H85.5105V11.3555C85.5105 9.94579 85.8457 8.58428 86.6115 7.67693C87.4972 6.64965 88.9334 6.24365 90.2487 6.24365C91.9956 6.24365 93.2637 6.96029 93.4554 7.10381L92.3544 9.27732C92.091 9.08661 91.3488 8.63245 90.3923 8.63245C88.9806 8.63245 88.3102 9.63613 88.3102 11.3083V13.7207H91.3498V16.0141H88.3102V25.76H85.5105Z" fill="currentColor"/>
+              <path d="M93.3633 25.7599V13.697H96.1876V15.5599C96.451 14.9868 97.4085 13.3618 98.8201 13.3618C99.873 13.3618 100.52 13.6961 100.974 13.9595L99.9447 16.5872C99.6095 16.3483 99.0836 16.0141 98.3414 16.0141C96.9769 16.0141 96.1876 17.5427 96.1876 19.0477V25.7599H93.3633Z" fill="currentColor"/>
+              <path d="M113.345 24.5184C112.699 25.0915 110.808 26.1188 108.247 26.1188C104.25 26.1188 101.57 23.6346 101.57 19.8125C101.57 15.9905 104.108 13.3628 107.888 13.3628C111.669 13.3628 113.776 16.2775 113.776 19.6218V20.7926H104.49C104.658 22.3449 106.07 23.7791 108.726 23.7791C110.593 23.7791 111.814 23.0143 112.459 22.513L113.345 24.5193V24.5184ZM110.833 18.5228C110.761 16.946 109.708 15.5845 107.841 15.5845C106.19 15.5845 104.73 16.6353 104.515 18.5228H110.833Z" fill="currentColor"/>
+              <path d="M127.298 24.5184C126.652 25.0915 124.761 26.1188 122.2 26.1188C118.203 26.1188 115.523 23.6346 115.523 19.8125C115.523 15.9905 118.061 13.3628 121.841 13.3628C125.622 13.3628 127.729 16.2775 127.729 19.6218V20.7926H118.443C118.61 22.3449 120.023 23.7791 122.679 23.7791C124.546 23.7791 125.767 23.0143 126.413 22.513L127.298 24.5193V24.5184ZM124.786 18.5228C124.714 16.946 123.661 15.5845 121.794 15.5845C120.143 15.5845 118.683 16.6353 118.468 18.5228H124.786Z" fill="currentColor"/>
+              <path d="M133.224 23.5628C133.703 24.1201 134.676 24.9321 136.319 24.9321C137.755 24.9321 138.824 24.072 138.824 22.7183C138.824 19.2944 133.24 20.0906 133.24 16.5075C133.24 14.5168 134.915 13.4502 136.685 13.4502C138.217 13.4502 139.286 14.2622 139.653 14.6603L139.015 15.4723C138.505 14.9631 137.771 14.4853 136.702 14.4853C135.554 14.4853 134.437 15.1066 134.437 16.3964C134.437 19.2787 140.053 18.4185 140.053 22.7026C140.053 24.3433 138.665 25.983 136.224 25.983C134.549 25.983 133.049 25.0757 132.555 24.3905L133.225 23.5628H133.224Z" fill="currentColor"/>
+              <path d="M142.383 25.7596V13.7036H145.159C148.732 13.7036 151.684 15.7896 151.684 19.7395C151.684 23.4819 149.02 25.7596 145.191 25.7596H142.384H142.383ZM144.983 24.7245C148.157 24.7245 150.471 23.1477 150.471 19.6923C150.471 16.2369 148.046 14.7397 145.078 14.7397H143.531V24.7255H144.983V24.7245Z" fill="currentColor"/>
+              <path d="M161.304 25.7596L155.29 20.3765V25.7596H154.141V13.7036H155.29V19.1025L160.65 13.7036H162.198L156.231 19.6913L163.107 25.7587H161.304V25.7596Z" fill="currentColor"/>
+            </g>
+            <defs>
+              <clipPath id="clip0_7680_11003"><rect width="163.105" height="32" fill="white"/></clipPath>
+            </defs>
+          </svg>
+          <span class="brand-tag">Integration Guide</span>
+        </div>
+        <p class="header-sub">Connect AI agents to the Beefree SDK editor via MCP — two session models, one powerful result.</p>
+      </div>
+      <div class="header-tokens">
+        <div class="token-badge">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 4.5H15l-4 3 1.5 4.5L8 10.5 3.5 13 5 8.5 1 5.5h5z" fill="currentColor"/></svg>
+          <span id="token-total">0 tokens</span>
+          <button class="token-reset-btn" onclick="beeTokensReset()" title="Reset token counter">↺</button>
+        </div>
+        <div class="token-breakdown" id="token-breakdown"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SECTION 1: Editor-Managed Session
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="guide-section">
+      <h2 class="guide-heading">1. Editor-Managed Session</h2>
+      <p class="guide-meta">Available on paid plans &middot; Simplest approach &middot; New session per chat interaction</p>
+      <p class="guide-text">
+        The editor owns the session. Call <code>bee.startMcpSession()</code> from the frontend — it returns a
+        <code>templateId</code> that you pass to your backend agent. The agent uses it as the
+        <code>x-bee-template-id</code> header when calling the MCP v2 endpoint. Each chat interaction creates a fresh session.
+      </p>
+
+      <div class="code-block">
+        <div class="code-label">Frontend — start a session from the editor</div>
+        <pre><code>// When user sends a chat message, start an MCP session:
+const { templateId } = await bee.startMcpSession();
+
+// Send templateId + user message to your backend agent
+await fetch('/api/chat', {
+  method: 'POST',
+  body: JSON.stringify({ templateId, message: userMessage })
+});</code></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-label">Backend — agent calls MCP v2</div>
+        <pre><code># Your agent sends MCP tool calls to:
+# POST https://api.getbee.io/v2/sdk/mcp
+# Headers:
+#   Authorization: Bearer &lt;CSAPI key&gt;
+#   x-bee-template-id: &lt;templateId from startMcpSession()&gt;
+#
+# The editor automatically reflects changes made by the agent.
+# Each chat interaction = a new startMcpSession() call.</code></pre>
+      </div>
+
+      <p class="guide-link">
+        <a href="https://docs.beefree.io/beefree-sdk/mcp-server/getting-started" target="_blank" rel="noopener">
+          MCP v2 documentation &rarr;
+        </a>
+      </p>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SECTION 2: API-Managed Session (+ Co-editing)
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="guide-section">
+      <h2 class="guide-heading">2. API-Managed Session + Co-editing</h2>
+      <p class="guide-meta">Higher plans with co-editing enabled &middot; Persistent session &middot; Editor + MCP stay aligned</p>
+      <p class="guide-text">
+        Your backend creates the session via the API, then the editor joins it through co-editing.
+        The connection is persistent — the AI agent and the visual editor operate on the same template
+        simultaneously, with changes from both sides kept in sync automatically.
+      </p>
+
+      <div class="code-block">
+        <div class="code-label">Step 1 — Create session server-side</div>
+        <pre><code>import httpx
+
+resp = httpx.post(
+    "https://api.getbee.io/v2/sdk/mcp/template",
+    headers={"Authorization": f"Bearer {API_KEY}"},
+    json={"template": existing_json}  # or {} for a blank template
+)
+template_id = resp.json()["templateId"]</code></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-label">Step 2 — Agent connects via MCP</div>
+        <pre><code># Point your MCP client at:
+# POST https://api.getbee.io/v2/sdk/mcp
+# Header: x-bee-template-id: {template_id}
+#
+# The agent can now call any MCP tool (beefree_add_section, etc.)
+# All changes are applied to the shared template.</code></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-label">Step 3 — Editor joins via co-editing</div>
+        <pre><code>// In the frontend, after editor is initialized:
+bee.join(templateId);
+
+// The editor now shows live updates from the AI agent.
+// User edits in the editor are also visible to the agent.</code></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-label">Step 4 — Retrieve the final template</div>
+        <pre><code># When done, get the final result:
+resp = httpx.get(
+    f"https://api.getbee.io/v2/sdk/mcp/template/{template_id}",
+    headers={"Authorization": f"Bearer {API_KEY}"}
+)
+final_template = resp.json()</code></pre>
+      </div>
+
+      <p class="guide-link">
+        <a href="https://docs.beefree.io/beefree-sdk/mcp-server/getting-started" target="_blank" rel="noopener">
+          MCP v2 documentation &rarr;
+        </a>
+        <br>
+        <a href="https://docs.beefree.io/beefree-sdk/other-customizations/collaborative-editing" target="_blank" rel="noopener">
+          Co-editing documentation &rarr;
+        </a>
+      </p>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SECTION 3: Live Demo
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="guide-section">
+      <h2 class="guide-heading">3. Live Demo</h2>
+      <p class="guide-text">
+        Try it yourself. Pick a session model, then chat with the AI agent — the embedded Beefree editor
+        updates in real time as the agent makes MCP tool calls.
+      </p>
+
+      <!-- Tab switcher -->
+      <div class="demo-tabs">
+        <button class="demo-tab demo-tab-active" data-tab="editor-managed" onclick="switchTab('editor-managed')">
+          Editor-Managed
+        </button>
+        <button class="demo-tab" data-tab="api-managed" onclick="switchTab('api-managed')">
+          API-Managed + Co-editing
+        </button>
+      </div>
+
+      <!-- Tab 1: Editor-Managed -->
+      <div class="demo-panel" id="panel-editor-managed">
+        <div class="demo-status" id="em-status">
+          <span class="demo-status-dot"></span>
+          <span id="em-status-text">Click "Start MCP Session" to begin</span>
+        </div>
+
+        <div class="demo-editor-container" id="em-editor-container">
+          <div class="demo-editor-placeholder">
+            <p>Beefree Editor will load here</p>
+            <button class="btn btn-primary" id="em-init-btn" onclick="initEditorManaged()">
+              Initialize Editor
+            </button>
+          </div>
+        </div>
+
+        <div class="demo-controls" id="em-controls" style="display:none;">
+          <button class="btn btn-primary" id="em-start-btn" onclick="startMcpSession()">
+            Start MCP Session
+          </button>
+        </div>
+
+        <div class="demo-chat" id="em-chat" style="display:none;">
+          <div class="demo-chat-messages" id="em-messages">
+            <div class="chat-bubble agent-bubble">
+              <div class="chat-bubble-content"><p>MCP session active. What would you like to change?</p></div>
+            </div>
+          </div>
+          <form class="demo-chat-form" onsubmit="sendDemoMessage(event, 'editor-managed')">
+            <textarea id="em-input" class="demo-chat-input" rows="2" placeholder="e.g. Add a hero section with a blue background"></textarea>
+            <button type="submit" class="btn btn-primary demo-send-btn" id="em-send-btn">Send</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Tab 2: API-Managed -->
+      <div class="demo-panel" id="panel-api-managed" style="display:none;">
+        <div class="demo-status" id="am-status">
+          <span class="demo-status-dot"></span>
+          <span id="am-status-text">Click "Create Session" to begin</span>
+        </div>
+
+        <div class="demo-controls">
+          <button class="btn btn-primary" id="am-create-btn" onclick="createApiSession()">
+            Create Session + Join Editor
+          </button>
+        </div>
+
+        <div class="demo-editor-container" id="am-editor-container">
+          <div class="demo-editor-placeholder">
+            <p>Beefree Editor will load here after session is created</p>
+          </div>
+        </div>
+
+        <div class="demo-chat" id="am-chat" style="display:none;">
+          <div class="demo-chat-messages" id="am-messages">
+            <div class="chat-bubble agent-bubble">
+              <div class="chat-bubble-content"><p>API session active with co-editing. What would you like to build?</p></div>
+            </div>
+          </div>
+          <form class="demo-chat-form" onsubmit="sendDemoMessage(event, 'api-managed')">
+            <textarea id="am-input" class="demo-chat-input" rows="2" placeholder="e.g. Create a welcome email with a header, hero image, and CTA button"></textarea>
+            <button type="submit" class="btn btn-primary demo-send-btn" id="am-send-btn">Send</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SECTION 4: External Resources
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="guide-section">
+      <h2 class="guide-heading">4. Resources</h2>
+      <ul class="guide-links-list">
+        <li><a href="https://docs.beefree.io/beefree-sdk/mcp-server/getting-started" target="_blank" rel="noopener">MCP Server — Getting Started</a></li>
+        <li><a href="https://docs.beefree.io/beefree-sdk/mcp-server/getting-started" target="_blank" rel="noopener">MCP Server v2 — Getting Started</a></li>
+        <li><a href="https://docs.beefree.io/beefree-sdk/other-customizations/collaborative-editing/co-editing-integration-guide" target="_blank" rel="noopener">Co-editing Integration Guide</a></li>
+        <li><a href="https://docs.beefree.io/beefree-sdk/getting-started/readme/installation" target="_blank" rel="noopener">Beefree SDK — Installation &amp; Fundamentals</a></li>
+        <li><a href="https://github.com/BeefreeSDK/beefree-sdk-mcp-v2-example-demo" target="_blank" rel="noopener">Sample Project (this repo)</a></li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      Powered by <strong>Beefree SDK MCP v2</strong> &middot;
+      <strong>PydanticAI</strong> &middot; <strong>FastAPI</strong>
+    </div>
+  </footer>
+
+  <script>
+  // ── Tab switching (must be available before BeePlugin loads) ──────────────
+  function switchTab(tab) {
+    document.querySelectorAll('.demo-tab').forEach(function (btn) {
+      btn.classList.toggle('demo-tab-active', btn.dataset.tab === tab);
+    });
+    document.getElementById('panel-editor-managed').style.display = tab === 'editor-managed' ? '' : 'none';
+    document.getElementById('panel-api-managed').style.display = tab === 'api-managed' ? '' : 'none';
+  }
+  </script>
+
+  <!-- Beefree SDK -->
+  <script src="https://app-rsrc.getbee.io/plugin/BeePlugin.js"></script>
+
+  <script>
+  (function () {
+    // ── State ──────────────────────────────────────────────────────────────
+    var beeEditor = null;       // Editor-Managed bee instance
+    var beeApiEditor = null;    // API-Managed bee instance
+    var emSessionId = null;     // edit_sessions key for Editor-Managed
+    var emTemplateId = null;    // MCP templateId for Editor-Managed
+    var amSessionId = null;     // edit_sessions key for API-Managed
+    var amTemplateId = null;    // MCP templateId for API-Managed
+    var currentEs = null;       // active EventSource
+
+    // ── Tab switching is defined above (global scope) ──────────────────────
+
+    // ── Editor-Managed: Initialize editor ──────────────────────────────────
+    window.initEditorManaged = async function () {
+      var btn = document.getElementById('em-init-btn');
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+
+      try {
+        var resp = await fetch('/integration-auth');
+        var data = await resp.json();
+        if (data.error) { alert(data.error); btn.disabled = false; btn.textContent = 'Initialize Editor'; return; }
+
+        var container = document.getElementById('em-editor-container');
+        container.innerHTML = '<div id="em-bee-editor" style="height:600px;"></div>';
+
+        var beeConfig = {
+          uid: 'integration-demo-user',
+          container: 'em-bee-editor',
+          username: 'AI Demo User',
+          userHandle: 'ai-demo',
+          userColor: '#7747FF',
+          onLoad: function () {
+            document.getElementById('em-controls').style.display = '';
+            document.getElementById('em-status-text').textContent = 'Editor ready — start an MCP session';
+          },
+          onError: function (err) {
+            alert('Editor error: ' + JSON.stringify(err));
+          }
+        };
+
+        var template = {
+          page: {
+            body: { content: { style: { 'background-color': '#f4f4f4' } }, computedStyle: {} },
+            rows: [],
+            template: { name: 'Integration Demo', type: 'page' }
+          }
+        };
+
+        BeePlugin.create(data, beeConfig, function (bee) {
+          beeEditor = bee;
+          bee.start(template);
+        });
+      } catch (e) {
+        alert('Failed to initialize editor: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = 'Initialize Editor';
+      }
+    };
+
+    // ── Editor-Managed: Start MCP session ──────────────────────────────────
+    window.startMcpSession = async function () {
+      if (!beeEditor) return;
+      var btn = document.getElementById('em-start-btn');
+      btn.disabled = true;
+      btn.textContent = 'Starting...';
+
+      try {
+        var result = await beeEditor.startMcpSession();
+        emTemplateId = result.templateId;
+
+        // Create an edit session on our backend
+        var resp = await fetch('/integration-start', { method: 'POST' });
+        var data = await resp.json();
+        // We'll use the editor's templateId but our session for history
+        emSessionId = data.session_id;
+
+        document.getElementById('em-status-text').textContent = 'MCP session active (templateId: ' + emTemplateId.substring(0, 8) + '...)';
+        document.getElementById('em-chat').style.display = '';
+        btn.style.display = 'none';
+      } catch (e) {
+        alert('Failed to start MCP session: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = 'Start MCP Session';
+      }
+    };
+
+    // ── API-Managed: Create session + join ─────────────────────────────────
+    window.createApiSession = async function () {
+      var btn = document.getElementById('am-create-btn');
+      btn.disabled = true;
+      btn.textContent = 'Creating session...';
+
+      try {
+        // 1. Create template session on backend
+        var resp = await fetch('/integration-start', { method: 'POST' });
+        var data = await resp.json();
+        amTemplateId = data.template_id;
+        amSessionId = data.session_id;
+
+        document.getElementById('am-status-text').textContent = 'Session created (templateId: ' + amTemplateId.substring(0, 8) + '...) — loading editor...';
+
+        // 2. Initialize editor and join via co-editing
+        var authResp = await fetch('/integration-auth');
+        var authData = await authResp.json();
+        if (authData.error) { alert(authData.error); btn.disabled = false; btn.textContent = 'Create Session + Join Editor'; return; }
+
+        var container = document.getElementById('am-editor-container');
+        container.innerHTML = '<div id="am-bee-editor" style="height:600px;"></div>';
+
+        BeePlugin.create(authData, {
+          uid: 'integration-demo-user',
+          container: 'am-bee-editor',
+          username: 'AI Demo User',
+          userHandle: 'ai-demo',
+          userColor: '#7747FF',
+          onLoad: function () {
+            document.getElementById('am-status-text').textContent = 'Co-editing active (templateId: ' + amTemplateId.substring(0, 8) + '...)';
+            document.getElementById('am-chat').style.display = '';
+            btn.style.display = 'none';
+          },
+          onError: function (err) {
+            alert('Editor error: ' + JSON.stringify(err));
+          }
+        }, function (bee) {
+          beeApiEditor = bee;
+          bee.join(amTemplateId);
+        });
+      } catch (e) {
+        alert('Failed to create session: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = 'Create Session + Join Editor';
+      }
+    };
+
+    // ── Chat: send message to agent ────────────────────────────────────────
+    window.sendDemoMessage = function (e, mode) {
+      e.preventDefault();
+      var prefix = mode === 'editor-managed' ? 'em' : 'am';
+      var input = document.getElementById(prefix + '-input');
+      var messages = document.getElementById(prefix + '-messages');
+      var sendBtn = document.getElementById(prefix + '-send-btn');
+      var sessionId = mode === 'editor-managed' ? emSessionId : amSessionId;
+
+      var msg = input.value.trim();
+      if (!msg || !sessionId) return;
+
+      // User bubble
+      var userDiv = document.createElement('div');
+      userDiv.className = 'chat-bubble user-bubble';
+      userDiv.innerHTML = '<div class="chat-bubble-content"><p>' + escapeHtml(msg) + '</p></div>';
+      messages.appendChild(userDiv);
+      input.value = '';
+      messages.scrollTop = messages.scrollHeight;
+
+      // Disable input
+      input.disabled = true;
+      sendBtn.disabled = true;
+
+      // Agent loading bubble
+      var agentDiv = document.createElement('div');
+      agentDiv.className = 'chat-bubble agent-bubble agent-loading';
+      var agentInner = document.createElement('div');
+      agentInner.className = 'chat-bubble-content';
+      agentInner.innerHTML = '<span class="typing-dots"><span></span><span></span><span></span></span>';
+      agentDiv.appendChild(agentInner);
+      messages.appendChild(agentDiv);
+      messages.scrollTop = messages.scrollHeight;
+
+      // SSE stream
+      if (currentEs) { currentEs.close(); currentEs = null; }
+      var url = '/edit-stream?session_id=' + encodeURIComponent(sessionId) + '&message=' + encodeURIComponent(msg);
+      var es = new EventSource(url);
+      currentEs = es;
+
+      es.addEventListener('agent-message', function (ev) {
+        agentDiv.classList.remove('agent-loading');
+        agentInner.innerHTML = ev.data;
+        messages.scrollTop = messages.scrollHeight;
+      });
+
+      es.addEventListener('tokens', function (ev) {
+        try {
+          var t = JSON.parse(ev.data);
+          if (window.beeTokensAdd) beeTokensAdd(t);
+        } catch (e) {}
+      });
+
+      es.addEventListener('close', function () {
+        es.close();
+        currentEs = null;
+        input.disabled = false;
+        sendBtn.disabled = false;
+        input.focus();
+      });
+
+      es.onerror = function () {
+        es.close();
+        currentEs = null;
+        if (agentDiv.classList.contains('agent-loading')) {
+          agentDiv.classList.remove('agent-loading');
+          agentInner.innerHTML = '<p class="chat-error">Connection error — please try again.</p>';
+        }
+        input.disabled = false;
+        sendBtn.disabled = false;
+      };
+    };
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+  })();
+  </script>
+
+</body>
+</html>
