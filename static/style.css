@@ -1568,17 +1568,43 @@ textarea { resize: vertical; }
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
   margin-top: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 @media (max-width: 900px) {
   .codemode-panels { grid-template-columns: 1fr; }
 }
 
-.codemode-code-panel,
-.codemode-preview-panel {
+.codemode-code-panel {
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
+}
+
+.codemode-preview-panel {
+  border: 2px solid #EAE6F7;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(38,4,93,.06), 0 6px 20px rgba(38,4,93,.08);
+  transition: border-color .3s, box-shadow .3s;
+}
+
+.codemode-preview-panel.is-generating {
+  border-color: #7747FF;
+  box-shadow:
+    0 0 0 3px rgba(119,71,255,.15),
+    0 1px 3px rgba(38,4,93,.06),
+    0 6px 20px rgba(38,4,93,.08);
+}
+
+.codemode-preview-panel.is-done {
+  border-color: #82EDA8;
+}
+
+.codemode-preview-panel.is-error {
+  border-color: #F87171;
+  box-shadow: 0 0 0 3px rgba(248,113,113,.15), 0 1px 3px rgba(38,4,93,.06);
 }
 
 .codemode-code-panel .panel-title,
@@ -1598,7 +1624,8 @@ textarea { resize: vertical; }
   padding: 1rem;
   font-size: .78rem;
   line-height: 1.5;
-  max-height: 600px;
+  max-height: 800px;
+  min-height: 300px;
   overflow: auto;
   background: #1e1e2e;
   color: #cdd6f4;
@@ -1612,6 +1639,20 @@ textarea { resize: vertical; }
 .codemode-preview-panel .demo-output {
   border: none;
   border-radius: 0;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+.codemode-preview-panel .demo-output .codemode-iframe-wrap {
+  width: 700px;
+  transform-origin: top left;
+}
+
+.codemode-preview-panel .demo-output .codemode-iframe-wrap iframe {
+  width: 700px;
+  height: 800px;
+  border: none;
+  display: block;
 }
 
 /* ─── Guide tables ─────────────────────────────────────────────────────────── */
@@ -1696,4 +1737,91 @@ textarea { resize: vertical; }
 
 .guide-details .guide-section {
   padding: 0 1.25rem;
+}
+
+/* ─── Email skeleton placeholder (shared) ──────────────────────────────────── */
+
+.email-skeleton {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.esk-block {
+  background: linear-gradient(90deg, #F0EDFA 25%, #E4DEFF 50%, #F0EDFA 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.esk-header { height: 80px; }
+.esk-hero   { height: 140px; margin: 0; background-color: #EAE6F7;
+              background: linear-gradient(90deg, #E4DEFF 25%, #D6C8FF 50%, #E4DEFF 75%);
+              background-size: 800px 100%;
+              animation: shimmer 1.6s ease-in-out infinite; }
+.esk-body   { height: 120px; margin: 0; }
+.esk-cols   {
+  display: flex;
+  gap: 0;
+  height: 100px;
+}
+.esk-col-block {
+  flex: 1;
+  background: linear-gradient(90deg, #F8F6FE 25%, #EAE6F7 50%, #F8F6FE 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+.esk-col-block:nth-child(2) { animation-delay: .2s; }
+.esk-col-block:nth-child(3) { animation-delay: .4s; }
+.esk-cta    { height: 80px; }
+.esk-footer { height: 56px;
+              background: linear-gradient(90deg, #F8F6FE 25%, #F0EDFA 50%, #F8F6FE 75%);
+              background-size: 800px 100%;
+              animation: shimmer 1.6s ease-in-out infinite; }
+
+.esk-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .85rem 1rem;
+  font-size: .72rem;
+  color: #6E5F8A;
+  font-style: italic;
+  border-top: 1px solid #EAE6F7;
+}
+
+/* ─── Status badge (shared) ────────────────────────────────────────────────── */
+
+.single-gen-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .28rem .65rem;
+  border-radius: 99px;
+  white-space: nowrap;
+  transition: background .3s, color .3s;
+}
+
+.single-gen-status.generating { background: rgba(119,71,255,.1); color: #7747FF; }
+.single-gen-status.done       { background: rgba(130,237,168,.25); color: #1a7a40; }
+.single-gen-status.error      { background: rgba(248,113,113,.15); color: #B91C1C; }
+
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: blink-dot 1s ease-in-out infinite;
+}
+@keyframes blink-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .25; }
 }
