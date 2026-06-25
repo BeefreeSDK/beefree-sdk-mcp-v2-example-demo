@@ -61,7 +61,7 @@
     <div class="path-chooser">
 
       <!-- In the editor → the full integration experience -->
-      <a href="/integration" class="path-card path-card-editor">
+      <a href="/integration" class="path-card path-card-editor" onclick="closeHeadless()">
         <div class="path-icon" style="background:rgba(119,71,255,.12);color:#7747FF;">
           <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
             <rect x="4" y="5" width="24" height="17" rx="3" stroke="currentColor" stroke-width="2"/>
@@ -279,6 +279,19 @@
         modes.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
+
+    function closeHeadless() {
+      var modes = document.getElementById('headless-modes');
+      if (modes) modes.hidden = true;
+      var btn = document.getElementById('path-headless-btn');
+      if (btn) btn.classList.remove('path-card-active');
+    }
+
+    // Reset to the closed state when this page is restored from the bfcache
+    // (e.g. the browser Back button after visiting the editor demo).
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted) closeHeadless();
+    });
   </script>
 
 </body>
