@@ -66,31 +66,113 @@
       <p style="margin-bottom:0;">One script, one round trip, 67-97% fewer tokens. Describe an email and watch the agent build it in a single shot.</p>
     </div>
 
-    <div class="demo-section" style="padding:1.5rem 0 2rem;">
-      <div class="demo-input-area" style="margin-bottom:1.5rem;">
-        <form id="codemode-form" onsubmit="startCodemodeDemo(event)">
-          <label for="codemode-brief" class="demo-label">Describe the email you want to generate:</label>
-          <textarea id="codemode-brief" name="brief" rows="3" class="demo-textarea"
-            placeholder="e.g. A product launch email for a new wireless headphone, modern dark theme, with hero image, features grid, and CTA"></textarea>
-          <button type="submit" class="btn btn-primary" id="codemode-submit" style="margin-top:.75rem;">Generate with Code Mode</button>
-        </form>
+    <!-- ── Input — single-style collapsible card ── -->
+    <section class="card form-card" id="form-section">
+      <div class="card-header-row">
+        <h2 class="card-title">Describe your email</h2>
+        <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
 
-      <div class="codemode-panels">
-        <div class="codemode-code-panel">
-          <h3 class="panel-title">Agent-Generated TypeScript</h3>
-          <pre id="codemode-code" class="codemode-pre"><code>// The agent's script will appear here...</code></pre>
+      <div class="card-body">
+        <div>
+        <form id="codemode-form" onsubmit="startCodemodeDemo(event)">
+
+          <!-- ── Preset cards ── -->
+          <div class="field full">
+            <label>Start from a preset <span class="label-count" id="cm-preset-label"></span></label>
+            <div class="seq-prompt-grid">
+
+              <button type="button" class="seq-prompt-card" onclick="selectCodemodePreset(this)"
+                data-prompt="Goal: Product launch&#10;Audience: Music lovers and audiophiles, 25–40, who already follow the brand&#10;Brand voice: Modern, premium, confident&#10;Product: Aura Pro wireless headphones — adaptive noise cancelling, 40-hour battery&#10;Primary CTA: &quot;Pre-order now&quot; → https://example.com/aura-pro&#10;Brand colors: #0A0A0A background, #FFFFFF text, #8B5CF6 accent&#10;Include: full-width hero image placeholder, 3-column features grid (noise cancelling, battery, comfort), spec highlights, large CTA button, footer with unsubscribe/address&#10;Notes: sleek dark theme; bold typography; mobile-first spacing with 44px+ buttons.">
+                <div class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Product Launch · Audio</span>
+                  <span class="seq-prompt-check">
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                </div>
+                <h3 class="seq-prompt-title">Wireless Headphones Launch</h3>
+                <p class="seq-prompt-desc">Dark-theme product launch email for a premium audio brand.</p>
+              </button>
+
+              <button type="button" class="seq-prompt-card" onclick="selectCodemodePreset(this)"
+                data-prompt="Goal: Monthly newsletter&#10;Audience: Existing subscribers of a design &amp; productivity blog&#10;Brand voice: Friendly, curious, helpful&#10;Content: Top 3 articles of the month, a featured tool, and a community highlight&#10;Primary CTA: &quot;Read the full issue&quot; → https://example.com/issue&#10;Brand colors: #1E3A8A primary, #0F172A text, #F1F5F9 background&#10;Include: header with logo placeholder, intro note, 3 article cards with image placeholders and short summaries, a &quot;tool of the month&quot; callout, social links, footer with unsubscribe/address&#10;Notes: clean editorial layout; generous whitespace; scannable sections.">
+                <div class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Newsletter · Media</span>
+                  <span class="seq-prompt-check">
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                </div>
+                <h3 class="seq-prompt-title">Monthly Design Digest</h3>
+                <p class="seq-prompt-desc">Editorial newsletter rounding up the month's best content.</p>
+              </button>
+
+              <button type="button" class="seq-prompt-card" onclick="selectCodemodePreset(this)"
+                data-prompt="Goal: Webinar invitation&#10;Audience: Marketing professionals interested in AI and automation&#10;Brand voice: Professional, energetic, value-driven&#10;Event: Live webinar — &quot;Scaling Email with AI Agents&quot;, Thursday at 11am ET&#10;Primary CTA: &quot;Save my seat&quot; → https://example.com/webinar&#10;Brand colors: #059669 primary, #064E3B text, #ECFDF5 background&#10;Include: hero with event title, date/time, and speaker headshot placeholder, 3 &quot;what you'll learn&quot; bullets, speaker bio block, agenda overview, prominent registration CTA, footer with unsubscribe/address&#10;Notes: clear hierarchy; emphasize date/time and CTA; mobile-first spacing.">
+                <div class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Event · Webinar</span>
+                  <span class="seq-prompt-check">
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                </div>
+                <h3 class="seq-prompt-title">AI Webinar Invitation</h3>
+                <p class="seq-prompt-desc">Registration email for a live marketing webinar.</p>
+              </button>
+
+            </div>
+          </div>
+
+          <!-- ── Custom prompt ── -->
+          <div class="field full" style="margin-top:.25rem;">
+            <label for="codemode-brief">Or write your own brief</label>
+            <textarea
+              id="codemode-brief"
+              name="brief"
+              rows="8"
+              oninput="cmOnPromptInput()"
+              placeholder="Goal: …&#10;Audience: …&#10;Brand voice: …&#10;Offer / message: …&#10;Primary CTA: &quot;Button label&quot; → https://…&#10;Brand colors: #… primary, #… text&#10;Include: hero, sections, footer…&#10;Notes: …"
+              style="resize:vertical;"
+            ></textarea>
+          </div>
+
+          <div class="field full actions">
+            <button type="submit" class="btn btn-primary" id="codemode-submit">
+              Generate with Code Mode
+            </button>
+          </div>
+        </form>
         </div>
-        <div class="codemode-preview-panel" id="codemode-preview-panel">
-          <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;">
-            <span>Result</span>
+      </div>
+    </section>
+
+    <!-- ── Disclaimer ── -->
+    <p class="demo-disclaimer">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:.1rem">
+        <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+      </svg>
+      Output quality varies across AI providers and models. This is a showcase of the Beefree Headless MCP Code Mode integration — not a benchmark. System prompts, model choice, and workflow design can all be tuned to match your specific use case.
+    </p>
+
+    <div class="codemode-panels">
+      <div class="codemode-code-panel">
+        <h3 class="panel-title">Agent-Generated TypeScript</h3>
+        <pre id="codemode-code" class="codemode-pre"><code>// The agent's script will appear here...</code></pre>
+      </div>
+      <div class="codemode-preview-panel" id="codemode-preview-panel">
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">
+          <span>Result</span>
+          <div class="cm-header-actions" id="codemode-header-actions" style="display:flex;align-items:center;gap:.5rem;">
             <span class="single-gen-status" id="codemode-status-badge" style="display:none;">
               <span class="status-dot"></span><span id="codemode-status-text">Generating&hellip;</span>
             </span>
           </div>
-          <div id="codemode-output" class="demo-output">
-            <p class="demo-placeholder">Your generated email will appear here.</p>
-          </div>
+        </div>
+        <div id="codemode-output" class="demo-output">
+          <p class="demo-placeholder">Your generated email will appear here.</p>
         </div>
       </div>
     </div>
@@ -168,6 +250,52 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
   </footer>
 
   <script>
+    /* ── Example prompts: inject hover tooltips + handle selection ── */
+    document.querySelectorAll('.seq-prompt-card[data-prompt]').forEach(function (card) {
+      var hint = document.createElement('span');
+      hint.className = 'prompt-hint';
+      hint.textContent = 'Hover to read full prompt';
+      card.appendChild(hint);
+
+      var tip = document.createElement('div');
+      tip.className = 'prompt-tooltip';
+      tip.innerHTML = '<p class="prompt-tooltip-label">Full prompt</p><p class="prompt-tooltip-text"></p>';
+      tip.querySelector('.prompt-tooltip-text').textContent = card.dataset.prompt;
+      card.appendChild(tip);
+    });
+
+    var cmActivePreset = null;
+
+    function selectCodemodePreset(el) {
+      document.querySelectorAll('.seq-prompt-card').forEach(function (c) {
+        c.classList.remove('seq-prompt-card-selected');
+      });
+      var ta = document.getElementById('codemode-brief');
+      if (cmActivePreset === el) {
+        cmActivePreset = null;
+        ta.value = '';
+        document.getElementById('cm-preset-label').textContent = '';
+        return;
+      }
+      el.classList.add('seq-prompt-card-selected');
+      cmActivePreset = el;
+      ta.value = el.dataset.prompt;
+      document.getElementById('cm-preset-label').textContent = 'selected';
+    }
+
+    function cmOnPromptInput() {
+      /* typing your own brief deselects any preset */
+      if (cmActivePreset) {
+        cmActivePreset.classList.remove('seq-prompt-card-selected');
+        cmActivePreset = null;
+        document.getElementById('cm-preset-label').textContent = '';
+      }
+    }
+
+    function toggleCard(card) {
+      if (card) card.classList.toggle('is-collapsed');
+    }
+
     let codeChunkIndex = 0;
 
     function scaleCodemodePreview() {
@@ -198,6 +326,14 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
 
       btn.disabled = true;
       btn.textContent = 'Generating...';
+
+      // Collapse the input card (single-style) so the result takes focus
+      var formSection = document.getElementById('form-section');
+      if (formSection) formSection.classList.add('is-collapsed');
+
+      // Clear any download buttons from a previous run
+      document.querySelectorAll('#codemode-header-actions .cm-download').forEach(function (b) { b.remove(); });
+
       codeChunkIndex = 0;
       codeEl.innerHTML = '<code>// Writing TypeScript...</code>';
 
@@ -256,13 +392,23 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
         badge.className = 'single-gen-status done';
         badgeText.textContent = 'Done';
 
+        // Show download buttons in the result header (single-style)
         const tid = output.dataset.templateId;
-        if (tid) {
-          const dl = document.createElement('div');
-          dl.className = 'download-bar';
-          dl.style.marginBottom = '1rem';
-          dl.innerHTML = `<a href="/download-template/${tid}" class="btn btn-sm">Download JSON</a> <a href="/download-html/${tid}" class="btn btn-sm">Download HTML</a>`;
-          output.prepend(dl);
+        const actions = document.getElementById('codemode-header-actions');
+        if (tid && actions) {
+          const icon = '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> ';
+          const aj = document.createElement('a');
+          aj.className = 'btn-outline cm-download';
+          aj.href = '/download-template/' + tid;
+          aj.download = 'email-' + tid.slice(0, 8) + '.json';
+          aj.innerHTML = icon + 'JSON';
+          actions.appendChild(aj);
+          const ah = document.createElement('a');
+          ah.className = 'btn-outline cm-download';
+          ah.href = '/download-html/' + tid;
+          ah.download = 'email-' + tid.slice(0, 8) + '.html';
+          ah.innerHTML = icon + 'HTML';
+          actions.appendChild(ah);
         }
       });
 
