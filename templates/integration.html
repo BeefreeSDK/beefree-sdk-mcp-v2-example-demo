@@ -58,9 +58,250 @@
   <main class="container">
 
     <!-- ═══════════════════════════════════════════════════════════════════════
+         LIVE DEMO (hero — primary action, docs moved below)
+         Full-bleed stage so the hero box and the builder share the same width.
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="demo-stage">
+
+      <section class="guide-section demo-intro">
+        <div class="demo-lead">
+          <div class="demo-lead-text">
+            <h1>Live Demo</h1>
+            <p class="guide-text" style="margin-bottom:0;">
+              Pick a session model, then chat with the AI agent — the embedded Beefree editor updates in
+              real time as the agent makes MCP tool calls. Collapse the chat any time to give the builder
+              the full width.
+            </p>
+          </div>
+          <a href="#integration-guide" class="btn-outline demo-doc-cta">
+            Which one is for you?
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M8 3v9M4 8l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        </div>
+
+        <!-- Tab switcher -->
+        <div class="demo-tabs">
+          <button class="demo-tab demo-tab-active" data-tab="editor-managed" onclick="switchTab('editor-managed')">
+            Editor-Managed
+          </button>
+          <button class="demo-tab" data-tab="api-managed" onclick="switchTab('api-managed')">
+            API-Managed + Co-editing
+          </button>
+        </div>
+      </section>
+
+      <!-- Tab 1: Editor-Managed -->
+      <div class="demo-panel" id="panel-editor-managed">
+        <div class="edit-workspace demo-workspace">
+
+          <!-- Left: chat -->
+          <div class="edit-chat-panel">
+            <div class="edit-panel-header">
+              <h3 class="edit-panel-title">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+                  <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
+                        stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                </svg>
+                Chat with the agent
+              </h3>
+              <div class="demo-header-actions">
+                <span class="edit-status-badge is-offline" id="em-status-badge">Offline</span>
+                <button type="button" class="demo-icon-btn" onclick="toggleChat('em')" title="Collapse chat" aria-label="Collapse chat">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <path d="M10 3.5L5.5 8l4.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="edit-chat-messages" id="em-messages">
+              <div class="chat-bubble agent-bubble">
+                <div class="chat-bubble-content">
+                  <p>Initialize the editor, then start an MCP session to begin. Your messages will edit the email live.</p>
+                </div>
+              </div>
+            </div>
+
+            <form class="edit-chat-form" onsubmit="sendDemoMessage(event, 'editor-managed')">
+              <div class="edit-chat-input-row">
+                <textarea id="em-input" class="edit-chat-textarea" rows="2"
+                  placeholder="e.g. Add a hero section with a blue background" disabled></textarea>
+                <button type="submit" class="btn btn-primary edit-send-btn" id="em-send-btn" disabled>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 8l12-6-6 12V9L2 8z" fill="currentColor"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="edit-chat-hint" id="em-hint">Start an MCP session to begin chatting</p>
+            </form>
+          </div>
+
+          <!-- Right: live editor -->
+          <div class="edit-preview-panel demo-editor-panel">
+            <div class="edit-panel-header">
+              <h3 class="edit-panel-title">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+                  <rect x="1" y="2" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M6 15h4M8 13v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Beefree editor
+              </h3>
+              <div class="demo-header-actions">
+                <button type="button" class="demo-icon-btn demo-chat-reopen" onclick="toggleChat('em')" title="Show AI chat">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
+                          stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                  </svg>
+                  Chat
+                </button>
+                <span class="start-arrow" id="em-start-arrow" style="display:none;" aria-hidden="true">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <button class="btn btn-primary demo-start-btn" id="em-start-btn" style="display:none;" onclick="startMcpSession()">
+                  Start MCP session
+                </button>
+              </div>
+            </div>
+            <div class="demo-editor-container" id="em-editor-container">
+              <div class="demo-editor-placeholder">
+                <svg width="40" height="40" viewBox="0 0 32 32" fill="none">
+                  <rect x="3" y="5" width="26" height="20" rx="3" stroke="currentColor" stroke-width="2"/>
+                  <path d="M3 11h26M7 8.5h.01M10 8.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <p>The Beefree editor will load here.</p>
+                <button class="btn btn-primary" id="em-init-btn" onclick="initEditorManaged()">
+                  Initialize editor
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Tab 2: API-Managed -->
+      <div class="demo-panel" id="panel-api-managed" style="display:none;">
+        <div class="edit-workspace demo-workspace">
+
+          <!-- Left: chat -->
+          <div class="edit-chat-panel">
+            <div class="edit-panel-header">
+              <h3 class="edit-panel-title">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+                  <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
+                        stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                </svg>
+                Chat with the agent
+              </h3>
+              <div class="demo-header-actions">
+                <span class="edit-status-badge is-offline" id="am-status-badge">Offline</span>
+                <button type="button" class="demo-icon-btn" onclick="toggleChat('am')" title="Collapse chat" aria-label="Collapse chat">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <path d="M10 3.5L5.5 8l4.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="edit-chat-messages" id="am-messages">
+              <div class="chat-bubble agent-bubble">
+                <div class="chat-bubble-content">
+                  <p>Create a session and join the editor to start. The agent and the editor stay in sync via co-editing.</p>
+                </div>
+              </div>
+            </div>
+
+            <form class="edit-chat-form" onsubmit="sendDemoMessage(event, 'api-managed')">
+              <div class="edit-chat-input-row">
+                <textarea id="am-input" class="edit-chat-textarea" rows="2"
+                  placeholder="e.g. Create a welcome email with a header, hero image, and CTA button" disabled></textarea>
+                <button type="submit" class="btn btn-primary edit-send-btn" id="am-send-btn" disabled>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 8l12-6-6 12V9L2 8z" fill="currentColor"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="edit-chat-hint" id="am-hint">Create a session to begin chatting</p>
+            </form>
+          </div>
+
+          <!-- Right: live editor (co-editing) -->
+          <div class="edit-preview-panel demo-editor-panel">
+            <div class="edit-panel-header">
+              <h3 class="edit-panel-title">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+                  <rect x="1" y="2" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M6 15h4M8 13v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Beefree editor
+                <span class="edit-preview-badge" style="margin-left:.15rem;">co-editing</span>
+              </h3>
+              <div class="demo-header-actions">
+                <button type="button" class="demo-icon-btn demo-chat-reopen" onclick="toggleChat('am')" title="Show AI chat">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
+                          stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                  </svg>
+                  Chat
+                </button>
+              </div>
+            </div>
+            <div class="demo-editor-container" id="am-editor-container">
+              <div class="demo-editor-placeholder">
+                <svg width="40" height="40" viewBox="0 0 32 32" fill="none">
+                  <rect x="3" y="5" width="26" height="20" rx="3" stroke="currentColor" stroke-width="2"/>
+                  <path d="M3 11h26M7 8.5h.01M10 8.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <p>The editor joins a shared session via co-editing.</p>
+                <button class="btn btn-primary" id="am-create-btn" onclick="createApiSession()">
+                  Create session + join editor
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         WHICH ONE IS FOR YOU? — decision helper (CTA target)
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="guide-section" id="integration-guide">
+      <h2 class="guide-heading">Which one is for you?</h2>
+      <p class="guide-text">
+        Both approaches connect an AI agent to the Beefree editor — the right one comes down to whether
+        your plan includes <strong>co-editing</strong>.
+      </p>
+      <div class="choose-grid">
+        <a href="#api-managed" class="choose-card choose-card-coedit">
+          <span class="choose-badge">If you have co-editing</span>
+          <h3>API-Managed Session + Co-editing</h3>
+          <p>
+            Your backend creates a persistent session and the editor joins it. The AI agent and the
+            visual editor work on the same template at once, kept in sync automatically.
+          </p>
+          <span class="choose-link">See API-Managed setup &rarr;</span>
+        </a>
+        <a href="#editor-managed" class="choose-card">
+          <span class="choose-badge">If you don't</span>
+          <h3>Editor-Managed Session</h3>
+          <p>
+            The simplest approach on paid plans — the editor owns the session and a fresh one starts
+            with each chat interaction. No co-editing required.
+          </p>
+          <span class="choose-link">See Editor-Managed setup &rarr;</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
          SECTION 1: Editor-Managed Session
          ═══════════════════════════════════════════════════════════════════════ -->
-    <section class="guide-section">
+    <section class="guide-section" id="editor-managed">
       <h2 class="guide-heading">1. Editor-Managed Session</h2>
       <p class="guide-meta">Available on paid plans &middot; Simplest approach &middot; New session per chat interaction</p>
       <p class="guide-text">
@@ -103,7 +344,7 @@ await fetch('/api/chat', {
     <!-- ═══════════════════════════════════════════════════════════════════════
          SECTION 2: API-Managed Session (+ Co-editing)
          ═══════════════════════════════════════════════════════════════════════ -->
-    <section class="guide-section">
+    <section class="guide-section" id="api-managed">
       <h2 class="guide-heading">2. API-Managed Session + Co-editing</h2>
       <p class="guide-meta">Higher plans with co-editing enabled &middot; Persistent session &middot; Editor + MCP stay aligned</p>
       <p class="guide-text">
@@ -165,98 +406,10 @@ final_template = resp.json()</code></pre>
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
-         SECTION 3: Live Demo
+         SECTION 3: External Resources
          ═══════════════════════════════════════════════════════════════════════ -->
     <section class="guide-section">
-      <h2 class="guide-heading">3. Live Demo</h2>
-      <p class="guide-text">
-        Try it yourself. Pick a session model, then chat with the AI agent — the embedded Beefree editor
-        updates in real time as the agent makes MCP tool calls.
-      </p>
-
-      <!-- Tab switcher -->
-      <div class="demo-tabs">
-        <button class="demo-tab demo-tab-active" data-tab="editor-managed" onclick="switchTab('editor-managed')">
-          Editor-Managed
-        </button>
-        <button class="demo-tab" data-tab="api-managed" onclick="switchTab('api-managed')">
-          API-Managed + Co-editing
-        </button>
-      </div>
-
-      <!-- Tab 1: Editor-Managed -->
-      <div class="demo-panel" id="panel-editor-managed">
-        <div class="demo-status" id="em-status">
-          <span class="demo-status-dot"></span>
-          <span id="em-status-text">Click "Start MCP Session" to begin</span>
-        </div>
-
-        <div class="demo-editor-container" id="em-editor-container">
-          <div class="demo-editor-placeholder">
-            <p>Beefree Editor will load here</p>
-            <button class="btn btn-primary" id="em-init-btn" onclick="initEditorManaged()">
-              Initialize Editor
-            </button>
-          </div>
-        </div>
-
-        <div class="demo-controls" id="em-controls" style="display:none;">
-          <button class="btn btn-primary" id="em-start-btn" onclick="startMcpSession()">
-            Start MCP Session
-          </button>
-        </div>
-
-        <div class="demo-chat" id="em-chat" style="display:none;">
-          <div class="demo-chat-messages" id="em-messages">
-            <div class="chat-bubble agent-bubble">
-              <div class="chat-bubble-content"><p>MCP session active. What would you like to change?</p></div>
-            </div>
-          </div>
-          <form class="demo-chat-form" onsubmit="sendDemoMessage(event, 'editor-managed')">
-            <textarea id="em-input" class="demo-chat-input" rows="2" placeholder="e.g. Add a hero section with a blue background"></textarea>
-            <button type="submit" class="btn btn-primary demo-send-btn" id="em-send-btn">Send</button>
-          </form>
-        </div>
-      </div>
-
-      <!-- Tab 2: API-Managed -->
-      <div class="demo-panel" id="panel-api-managed" style="display:none;">
-        <div class="demo-status" id="am-status">
-          <span class="demo-status-dot"></span>
-          <span id="am-status-text">Click "Create Session" to begin</span>
-        </div>
-
-        <div class="demo-controls">
-          <button class="btn btn-primary" id="am-create-btn" onclick="createApiSession()">
-            Create Session + Join Editor
-          </button>
-        </div>
-
-        <div class="demo-editor-container" id="am-editor-container">
-          <div class="demo-editor-placeholder">
-            <p>Beefree Editor will load here after session is created</p>
-          </div>
-        </div>
-
-        <div class="demo-chat" id="am-chat" style="display:none;">
-          <div class="demo-chat-messages" id="am-messages">
-            <div class="chat-bubble agent-bubble">
-              <div class="chat-bubble-content"><p>API session active with co-editing. What would you like to build?</p></div>
-            </div>
-          </div>
-          <form class="demo-chat-form" onsubmit="sendDemoMessage(event, 'api-managed')">
-            <textarea id="am-input" class="demo-chat-input" rows="2" placeholder="e.g. Create a welcome email with a header, hero image, and CTA button"></textarea>
-            <button type="submit" class="btn btn-primary demo-send-btn" id="am-send-btn">Send</button>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════
-         SECTION 4: External Resources
-         ═══════════════════════════════════════════════════════════════════════ -->
-    <section class="guide-section">
-      <h2 class="guide-heading">4. Resources</h2>
+      <h2 class="guide-heading">3. Resources</h2>
       <ul class="guide-links-list">
         <li><a href="https://docs.beefree.io/beefree-sdk/mcp-server/getting-started" target="_blank" rel="noopener">MCP Server — Getting Started</a></li>
         <li><a href="https://docs.beefree.io/beefree-sdk/mcp-server/getting-started" target="_blank" rel="noopener">MCP Server v2 — Getting Started</a></li>
@@ -265,6 +418,8 @@ final_template = resp.json()</code></pre>
         <li><a href="https://github.com/BeefreeSDK/beefree-sdk-mcp-v2-example-demo" target="_blank" rel="noopener">Sample Project (this repo)</a></li>
       </ul>
     </section>
+
+    </div><!-- /.demo-stage -->
 
   </main>
 
@@ -284,6 +439,13 @@ final_template = resp.json()</code></pre>
     document.getElementById('panel-editor-managed').style.display = tab === 'editor-managed' ? '' : 'none';
     document.getElementById('panel-api-managed').style.display = tab === 'api-managed' ? '' : 'none';
   }
+
+  // ── Collapse / reopen the AI chat side panel (gives the builder full width) ─
+  function toggleChat(prefix) {
+    var panelId = prefix === 'em' ? 'panel-editor-managed' : 'panel-api-managed';
+    var ws = document.querySelector('#' + panelId + ' .demo-workspace');
+    if (ws) ws.classList.toggle('chat-collapsed');
+  }
   </script>
 
   <!-- Beefree SDK -->
@@ -302,19 +464,42 @@ final_template = resp.json()</code></pre>
 
     // ── Tab switching is defined above (global scope) ──────────────────────
 
+    // ── Helper: enable / disable a chat panel ──────────────────────────────
+    function enableChat(prefix, hintHtml) {
+      var input = document.getElementById(prefix + '-input');
+      var sendBtn = document.getElementById(prefix + '-send-btn');
+      var badge = document.getElementById(prefix + '-status-badge');
+      var hint = document.getElementById(prefix + '-hint');
+      input.disabled = false;
+      sendBtn.disabled = false;
+      badge.textContent = 'Connected';
+      badge.className = 'edit-status-badge is-active';
+      if (hint && hintHtml) hint.innerHTML = hintHtml;
+      input.focus();
+    }
+
+    function appendAgentNote(prefix, html) {
+      var messages = document.getElementById(prefix + '-messages');
+      var div = document.createElement('div');
+      div.className = 'chat-bubble agent-bubble';
+      div.innerHTML = '<div class="chat-bubble-content"><p>' + html + '</p></div>';
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
     // ── Editor-Managed: Initialize editor ──────────────────────────────────
     window.initEditorManaged = async function () {
       var btn = document.getElementById('em-init-btn');
       btn.disabled = true;
-      btn.textContent = 'Loading...';
+      btn.textContent = 'Loading…';
 
       try {
         var resp = await fetch('/integration-auth');
         var data = await resp.json();
-        if (data.error) { alert(data.error); btn.disabled = false; btn.textContent = 'Initialize Editor'; return; }
+        if (data.error) { alert(data.error); btn.disabled = false; btn.textContent = 'Initialize editor'; return; }
 
         var container = document.getElementById('em-editor-container');
-        container.innerHTML = '<div id="em-bee-editor" style="height:600px;"></div>';
+        container.innerHTML = '<div id="em-bee-editor" style="height:760px;"></div>';
 
         var beeConfig = {
           uid: 'integration-demo-user',
@@ -323,8 +508,12 @@ final_template = resp.json()</code></pre>
           userHandle: 'ai-demo',
           userColor: '#7747FF',
           onLoad: function () {
-            document.getElementById('em-controls').style.display = '';
-            document.getElementById('em-status-text').textContent = 'Editor ready — start an MCP session';
+            var startBtn = document.getElementById('em-start-btn');
+            startBtn.style.display = '';
+            var startArrow = document.getElementById('em-start-arrow');
+            if (startArrow) startArrow.style.display = '';
+            var badge = document.getElementById('em-status-badge');
+            badge.textContent = 'Editor ready';
           },
           onError: function (err) {
             alert('Editor error: ' + JSON.stringify(err));
@@ -346,7 +535,7 @@ final_template = resp.json()</code></pre>
       } catch (e) {
         alert('Failed to initialize editor: ' + e.message);
         btn.disabled = false;
-        btn.textContent = 'Initialize Editor';
+        btn.textContent = 'Initialize editor';
       }
     };
 
@@ -355,25 +544,27 @@ final_template = resp.json()</code></pre>
       if (!beeEditor) return;
       var btn = document.getElementById('em-start-btn');
       btn.disabled = true;
-      btn.textContent = 'Starting...';
+      btn.textContent = 'Starting…';
 
       try {
         var result = await beeEditor.startMcpSession();
         emTemplateId = result.templateId;
 
-        // Create an edit session on our backend
-        var resp = await fetch('/integration-start', { method: 'POST' });
+        // Bind the backend chat session to the editor's own templateId so the
+        // agent edits the SAME template the editor is showing (changes reflect live).
+        var resp = await fetch('/integration-start?template_id=' + encodeURIComponent(emTemplateId), { method: 'POST' });
         var data = await resp.json();
-        // We'll use the editor's templateId but our session for history
         emSessionId = data.session_id;
 
-        document.getElementById('em-status-text').textContent = 'MCP session active (templateId: ' + emTemplateId.substring(0, 8) + '...)';
-        document.getElementById('em-chat').style.display = '';
         btn.style.display = 'none';
+        var startArrow = document.getElementById('em-start-arrow');
+        if (startArrow) startArrow.style.display = 'none';
+        enableChat('em', 'MCP session active &middot; the editor updates live as the agent works');
+        appendAgentNote('em', 'MCP session active. What would you like to change?');
       } catch (e) {
         alert('Failed to start MCP session: ' + e.message);
         btn.disabled = false;
-        btn.textContent = 'Start MCP Session';
+        btn.textContent = 'Start MCP session';
       }
     };
 
@@ -381,7 +572,7 @@ final_template = resp.json()</code></pre>
     window.createApiSession = async function () {
       var btn = document.getElementById('am-create-btn');
       btn.disabled = true;
-      btn.textContent = 'Creating session...';
+      btn.textContent = 'Creating session…';
 
       try {
         // 1. Create template session on backend
@@ -390,15 +581,15 @@ final_template = resp.json()</code></pre>
         amTemplateId = data.template_id;
         amSessionId = data.session_id;
 
-        document.getElementById('am-status-text').textContent = 'Session created (templateId: ' + amTemplateId.substring(0, 8) + '...) — loading editor...';
+        document.getElementById('am-status-badge').textContent = 'Loading editor…';
 
         // 2. Initialize editor and join via co-editing
         var authResp = await fetch('/integration-auth');
         var authData = await authResp.json();
-        if (authData.error) { alert(authData.error); btn.disabled = false; btn.textContent = 'Create Session + Join Editor'; return; }
+        if (authData.error) { alert(authData.error); btn.disabled = false; btn.textContent = 'Create session + join editor'; return; }
 
         var container = document.getElementById('am-editor-container');
-        container.innerHTML = '<div id="am-bee-editor" style="height:600px;"></div>';
+        container.innerHTML = '<div id="am-bee-editor" style="height:760px;"></div>';
 
         BeePlugin.create(authData, {
           uid: 'integration-demo-user',
@@ -407,9 +598,8 @@ final_template = resp.json()</code></pre>
           userHandle: 'ai-demo',
           userColor: '#7747FF',
           onLoad: function () {
-            document.getElementById('am-status-text').textContent = 'Co-editing active (templateId: ' + amTemplateId.substring(0, 8) + '...)';
-            document.getElementById('am-chat').style.display = '';
-            btn.style.display = 'none';
+            enableChat('am', 'Co-editing active &middot; agent and editor stay in sync');
+            appendAgentNote('am', 'Co-editing session active. What would you like to build?');
           },
           onError: function (err) {
             alert('Editor error: ' + JSON.stringify(err));
@@ -421,7 +611,7 @@ final_template = resp.json()</code></pre>
       } catch (e) {
         alert('Failed to create session: ' + e.message);
         btn.disabled = false;
-        btn.textContent = 'Create Session + Join Editor';
+        btn.textContent = 'Create session + join editor';
       }
     };
 
@@ -432,10 +622,11 @@ final_template = resp.json()</code></pre>
       var input = document.getElementById(prefix + '-input');
       var messages = document.getElementById(prefix + '-messages');
       var sendBtn = document.getElementById(prefix + '-send-btn');
+      var badge = document.getElementById(prefix + '-status-badge');
       var sessionId = mode === 'editor-managed' ? emSessionId : amSessionId;
 
       var msg = input.value.trim();
-      if (!msg || !sessionId) return;
+      if (!msg || !sessionId || sendBtn.disabled) return;
 
       // User bubble
       var userDiv = document.createElement('div');
@@ -445,9 +636,11 @@ final_template = resp.json()</code></pre>
       input.value = '';
       messages.scrollTop = messages.scrollHeight;
 
-      // Disable input
+      // Disable input + reflect "thinking" state
       input.disabled = true;
       sendBtn.disabled = true;
+      badge.textContent = 'Thinking…';
+      badge.className = 'edit-status-badge is-generating';
 
       // Agent loading bubble
       var agentDiv = document.createElement('div');
@@ -459,43 +652,69 @@ final_template = resp.json()</code></pre>
       messages.appendChild(agentDiv);
       messages.scrollTop = messages.scrollHeight;
 
-      // SSE stream
-      if (currentEs) { currentEs.close(); currentEs = null; }
-      var url = '/edit-stream?session_id=' + encodeURIComponent(sessionId) + '&message=' + encodeURIComponent(msg);
-      var es = new EventSource(url);
-      currentEs = es;
-
-      es.addEventListener('agent-message', function (ev) {
-        agentDiv.classList.remove('agent-loading');
-        agentInner.innerHTML = ev.data;
-        messages.scrollTop = messages.scrollHeight;
-      });
-
-      es.addEventListener('tokens', function (ev) {
-        try {
-          var t = JSON.parse(ev.data);
-          if (window.beeTokensAdd) beeTokensAdd(t);
-        } catch (e) {}
-      });
-
-      es.addEventListener('close', function () {
-        es.close();
-        currentEs = null;
+      function restore() {
         input.disabled = false;
         sendBtn.disabled = false;
-        input.focus();
-      });
+        badge.textContent = 'Connected';
+        badge.className = 'edit-status-badge is-active';
+      }
 
-      es.onerror = function () {
-        es.close();
-        currentEs = null;
-        if (agentDiv.classList.contains('agent-loading')) {
+      // Open the SSE stream for this turn
+      function openStream() {
+        if (currentEs) { currentEs.close(); currentEs = null; }
+        var url = '/edit-stream?session_id=' + encodeURIComponent(sessionId) + '&message=' + encodeURIComponent(msg);
+        var es = new EventSource(url);
+        currentEs = es;
+
+        es.addEventListener('agent-message', function (ev) {
           agentDiv.classList.remove('agent-loading');
-          agentInner.innerHTML = '<p class="chat-error">Connection error — please try again.</p>';
-        }
-        input.disabled = false;
-        sendBtn.disabled = false;
-      };
+          agentInner.innerHTML = ev.data;
+          messages.scrollTop = messages.scrollHeight;
+        });
+
+        es.addEventListener('tokens', function (ev) {
+          try {
+            var t = JSON.parse(ev.data);
+            if (window.beeTokensAdd) beeTokensAdd(t);
+          } catch (e) {}
+        });
+
+        es.addEventListener('close', function () {
+          es.close();
+          currentEs = null;
+          restore();
+          input.focus();
+        });
+
+        es.onerror = function () {
+          es.close();
+          currentEs = null;
+          if (agentDiv.classList.contains('agent-loading')) {
+            agentDiv.classList.remove('agent-loading');
+            agentInner.innerHTML = '<p class="chat-error">Connection error — please try again.</p>';
+          }
+          restore();
+        };
+      }
+
+      // Editor-managed: every chat interaction needs a fresh MCP session, or the
+      // editor stops reflecting the agent's changes after the first turn. Start a
+      // new session, repoint the backend at the returned templateId, then stream.
+      if (mode === 'editor-managed' && beeEditor) {
+        beeEditor.startMcpSession().then(function (result) {
+          emTemplateId = result.templateId;
+          return fetch('/integration-refresh?session_id=' + encodeURIComponent(sessionId) +
+                       '&template_id=' + encodeURIComponent(emTemplateId), { method: 'POST' });
+        }).then(function () {
+          openStream();
+        }).catch(function () {
+          agentDiv.classList.remove('agent-loading');
+          agentInner.innerHTML = '<p class="chat-error">Could not refresh the editor session — please try again.</p>';
+          restore();
+        });
+      } else {
+        openStream();
+      }
     };
 
     // ── Helpers ────────────────────────────────────────────────────────────

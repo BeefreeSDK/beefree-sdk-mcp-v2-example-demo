@@ -666,6 +666,94 @@ textarea { resize: vertical; }
   color: var(--text-muted);
 }
 
+/* Landing — step 1: choose your path (editor vs headless) */
+.path-chooser {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  max-width: 860px;
+  margin: 0 auto 2.5rem;
+}
+
+.path-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: .85rem;
+  padding: 2rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  font: inherit;
+  transition: border-color .2s, box-shadow .2s, transform .15s;
+}
+
+.path-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 8px 32px rgba(119,71,255,.2);
+  transform: translateY(-3px);
+}
+
+.path-card-active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(119,71,255,.15), var(--shadow);
+}
+
+.path-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+}
+
+.path-tag {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: .22rem .6rem;
+  border-radius: 99px;
+}
+
+.path-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.path-desc {
+  font-size: .9rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  flex: 1;
+}
+
+.path-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-top: .35rem;
+}
+
+.path-card-headless .path-cta { color: #059669; }
+
+#headless-modes { scroll-margin-top: 1.5rem; }
+
+@media (max-width: 700px) {
+  .path-chooser { grid-template-columns: 1fr; }
+}
+
 /* Cluster sections on landing page */
 .cluster {
   margin-bottom: 2.5rem;
@@ -1355,6 +1443,7 @@ textarea { resize: vertical; }
   border-radius: var(--radius);
   padding: 2rem;
   margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
   box-shadow: var(--shadow);
 }
 
@@ -1477,34 +1566,62 @@ textarea { resize: vertical; }
 
 .demo-tab-active:hover { color: #fff; }
 
-/* Demo panel */
+/* ─── Integration live demo — side-by-side workspace ───────────────────────── */
+/* The Beefree builder is a full IDE-style UI, so it needs real width: the demo
+   breaks out of the article column to (near) full bleed, the editor flexes to
+   fill, and the chat is a fixed-width, collapsible side panel.               */
+
 .demo-panel { }
 
-.demo-status {
+/* Full-bleed stage — escapes the 1200px .container so the builder gets room */
+.demo-stage {
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 96vw;
+  max-width: 1640px;
+  margin: 0 0 1.5rem;
+}
+
+.demo-workspace {
   display: flex;
-  align-items: center;
-  gap: .5rem;
-  margin-bottom: 1rem;
-  font-size: .8rem;
-  color: var(--text-muted);
+  gap: 1.25rem;
+  align-items: stretch;
+  min-height: 660px;
 }
 
-.demo-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
+/* Chat — fixed-width side panel, collapsible */
+.demo-workspace .edit-chat-panel {
+  width: 360px;
+  flex-shrink: 0;
 }
 
-.demo-controls {
-  margin-bottom: 1rem;
+.demo-workspace.chat-collapsed .edit-chat-panel {
+  display: none;
 }
 
-.demo-editor-container {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  min-height: 600px;
-  margin-bottom: 1rem;
+/* Let the message list fill the (tall) chat panel so the input pins to the bottom */
+.demo-workspace .edit-chat-messages {
+  max-height: none;
+}
+
+/* Anchor chat messages to the bottom (grow upward); still scrolls when full */
+.demo-workspace .edit-chat-messages > :first-child {
+  margin-top: auto;
+}
+
+/* Editor — flexes to fill all remaining width */
+.demo-editor-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+.demo-editor-panel .demo-editor-container {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  min-height: 780px;
   overflow: hidden;
   background: #fafafa;
 }
@@ -1514,51 +1631,204 @@ textarea { resize: vertical; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 300px;
+  height: 100%;
+  min-height: 780px;
   gap: 1rem;
+  padding: 2rem;
+  text-align: center;
   color: var(--text-muted);
   font-size: .9rem;
 }
 
-/* Demo chat */
-.demo-chat {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
+.demo-editor-placeholder svg { opacity: .35; }
+
+/* Header buttons (Start MCP session, chat toggle) */
+.demo-action-btn {
+  padding: .4rem .9rem;
+  font-size: .78rem;
 }
 
-.demo-chat-messages {
-  max-height: 300px;
-  overflow-y: auto;
-  padding: 1rem;
+/* Prominent "Start MCP session" button + attention arrow */
+.demo-start-btn {
+  padding: .65rem 1.4rem;
+  font-size: .95rem;
+  font-weight: 700;
+  animation: start-btn-pulse 1.8s ease-in-out infinite;
 }
 
-.demo-chat-form {
+@keyframes start-btn-pulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(119,71,255,.35); }
+  50%      { box-shadow: 0 6px 22px rgba(119,71,255,.6); }
+}
+
+.start-arrow {
+  display: inline-flex;
+  align-items: center;
+  color: var(--primary);
+  animation: arrow-nudge 1s ease-in-out infinite;
+}
+
+@keyframes arrow-nudge {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(7px); }
+}
+
+.demo-header-actions {
   display: flex;
+  align-items: center;
   gap: .5rem;
-  padding: .75rem;
-  border-top: 1px solid var(--border);
-  background: var(--bg);
 }
 
-.demo-chat-input {
-  flex: 1;
-  resize: none;
+/* Icon-only toggle buttons (collapse chat / reopen chat) */
+.demo-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  width: 30px;
+  height: 30px;
+  padding: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: .5rem .75rem;
-  font-size: .85rem;
-  font-family: inherit;
+  border-radius: 7px;
   background: var(--surface);
-  color: var(--text);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all .15s;
 }
 
-.demo-chat-input:focus { outline: none; border-color: var(--primary); }
+.demo-icon-btn:hover { border-color: var(--primary-lt); color: var(--primary); }
 
-.demo-send-btn {
-  align-self: flex-end;
-  padding: .5rem 1rem;
-  font-size: .8rem;
+/* "Show AI chat" reopen button only appears once the chat is collapsed */
+.demo-chat-reopen {
+  width: auto;
+  padding: 0 .7rem;
+  font-size: .76rem;
+  font-weight: 600;
+  display: none;
+}
+
+.demo-workspace.chat-collapsed .demo-chat-reopen { display: inline-flex; }
+
+/* Status badge variants for the chat panel header */
+.edit-status-badge.is-offline {
+  background: var(--border);
+  color: var(--text-muted);
+}
+
+.edit-status-badge.is-active {
+  background: rgba(130,237,168,.25);
+  color: #1a7a40;
+}
+
+@media (max-width: 1024px) {
+  .demo-stage { width: 100%; left: 0; transform: none; }
+  .demo-workspace { flex-direction: column; min-height: 0; }
+  .demo-workspace .edit-chat-panel { width: 100%; }
+  .demo-editor-panel .demo-editor-container,
+  .demo-editor-placeholder { min-height: 520px; }
+}
+
+/* Live-demo hero (intro + CTA pointing down to the integration docs) */
+.demo-intro .demo-lead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.demo-lead-text { flex: 1; min-width: 0; }
+
+.demo-lead-text h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: .4rem;
+}
+
+.demo-doc-cta {
+  flex-shrink: 0;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+@media (max-width: 700px) {
+  .demo-intro .demo-lead { flex-direction: column; gap: .85rem; }
+  .demo-doc-cta { align-self: flex-start; }
+}
+
+html { scroll-behavior: smooth; }
+#integration-guide,
+#editor-managed,
+#api-managed { scroll-margin-top: 1.25rem; }
+
+/* "Which one is for you?" decision cards */
+.choose-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1.1rem;
+}
+
+.choose-card {
+  display: block;
+  padding: 1.25rem 1.35rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+
+.choose-card:hover {
+  border-color: var(--primary-lt);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.choose-badge {
+  display: inline-block;
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--primary);
+  background: rgba(119,71,255,.1);
+  padding: .22rem .6rem;
+  border-radius: 99px;
+  margin-bottom: .65rem;
+}
+
+.choose-card h3 {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: .4rem;
+}
+
+.choose-card p {
+  font-size: .85rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin-bottom: .75rem;
+}
+
+.choose-link {
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* Co-editing option — green accent to set it apart */
+.choose-card-coedit:hover { border-color: var(--accent-dk); }
+.choose-card-coedit .choose-badge { color: #1a7a40; background: rgba(130,237,168,.25); }
+.choose-card-coedit .choose-link { color: #1a7a40; }
+
+@media (max-width: 700px) {
+  .choose-grid { grid-template-columns: 1fr; }
 }
 
 /* ─── Code Mode panels ─────────────────────────────────────────────────────── */
@@ -1569,6 +1839,7 @@ textarea { resize: vertical; }
   gap: 1.5rem;
   margin-top: 1.5rem;
   margin-bottom: 1rem;
+  align-items: start;
 }
 
 @media (max-width: 900px) {
@@ -1624,7 +1895,7 @@ textarea { resize: vertical; }
   padding: 1rem;
   font-size: .78rem;
   line-height: 1.5;
-  max-height: 800px;
+  max-height: 600px;
   min-height: 300px;
   overflow: auto;
   background: #1e1e2e;
@@ -1712,16 +1983,21 @@ textarea { resize: vertical; }
 }
 
 .guide-details[open] {
-  padding-bottom: 1.5rem;
+  padding-bottom: 1.75rem;
 }
 
 .guide-details-summary {
   cursor: pointer;
   font-weight: 600;
   font-size: .95rem;
-  padding: 1rem 1.25rem;
+  padding: 1.1rem 1.75rem;
   list-style: none;
   user-select: none;
+}
+
+.guide-details[open] > .guide-details-summary {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: .5rem;
 }
 
 .guide-details-summary::-webkit-details-marker { display: none; }
@@ -1736,7 +2012,11 @@ textarea { resize: vertical; }
 }
 
 .guide-details .guide-section {
-  padding: 0 1.25rem;
+  padding: .75rem 1.75rem 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  margin: 0;
 }
 
 /* ─── Email skeleton placeholder (shared) ──────────────────────────────────── */

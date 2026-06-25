@@ -35,9 +35,9 @@
               <clipPath id="clip0_7680_11003"><rect width="163.105" height="32" fill="white"/></clipPath>
             </defs>
           </svg>
-          <span class="brand-tag">Headless MCP v2</span>
+          <span class="brand-tag"> MCP v2</span>
         </div>
-        <p class="header-sub">Build and edit emails entirely in the background — no editor open, no browser needed.</p>
+        <p class="header-sub">Bring AI into email creation — collaborate live inside the Beefree editor, or run fully headless in the background.</p>
       </div>
       <div class="header-tokens">
         <div class="token-badge">
@@ -53,17 +53,62 @@
   <main class="container">
 
     <div class="landing-hero">
-      <h1 class="landing-title">What would you like to generate?</h1>
-      <p class="landing-sub">Pick a mode and let AI handle the rest.</p>
-      <p class="landing-sub" style="margin-top:.4rem;">Save the JSON and open it later in the Beefree Builder, or download the HTML straight away.</p>
-      <p class="landing-sub" style="margin-top:1rem;font-size:.85rem;opacity:.6;">These are just a few examples of what you can build — with your creativity and the Beefree Headless MCP, the possibilities are endless.</p>
+      <h1 class="landing-title">How are you looking to generate?</h1>
+      <p class="landing-sub">Choose how the AI agent should work with your emails.</p>
     </div>
 
-    <!-- ═══════ Cluster 1: Headless MCP ═══════ -->
-    <div class="cluster">
+    <!-- ═══════ Step 1: choose the path ═══════ -->
+    <div class="path-chooser">
+
+      <!-- In the editor → the full integration experience -->
+      <a href="/integration" class="path-card path-card-editor" onclick="closeHeadless()">
+        <div class="path-icon" style="background:rgba(119,71,255,.12);color:#7747FF;">
+          <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
+            <rect x="4" y="5" width="24" height="17" rx="3" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 27h8M16 22v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="path-tag" style="background:rgba(119,71,255,.12);color:#7747FF;">Visual · co-editing</span>
+        <h2 class="path-title">In the editor</h2>
+        <p class="path-desc">
+          The AI agent works live inside the Beefree editor — you and the agent build together,
+          with every change synced in real time.
+        </p>
+        <span class="path-cta">
+          Open the editor demo
+        </span>
+      </a>
+
+      <!-- Headless → reveal the mode grid below -->
+      <button type="button" class="path-card path-card-headless" id="path-headless-btn" onclick="choosePath('headless')">
+        <div class="path-icon" style="background:rgba(16,185,129,.12);color:#059669;">
+          <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
+            <rect x="4" y="6" width="24" height="20" rx="3" stroke="currentColor" stroke-width="2"/>
+            <path d="M9 13l4 3-4 3M16 19h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="path-tag" style="background:rgba(16,185,129,.12);color:#059669;">Background · no UI</span>
+        <h2 class="path-title">Headless</h2>
+        <p class="path-desc">
+          No editor open — agents build and edit emails entirely in the background via MCP.
+          Save the JSON for the Beefree Builder, or export the HTML straight away.
+        </p>
+        <span class="path-cta">
+          Choose a headless mode
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 3v10M4 9l4 4 4-4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </button>
+
+    </div>
+
+    <!-- ═══════ Step 2: headless modes (revealed on selection) ═══════ -->
+    <div class="cluster" id="headless-modes" hidden>
       <div class="cluster-header">
-        <h2 class="cluster-title">Headless MCP</h2>
-        <p class="cluster-desc">No editor needed — AI agents build and edit emails entirely in the background via MCP v2.</p>
+        <h2 class="cluster-title">Headless modes</h2>
+        <p class="cluster-desc">Pick a mode and let AI handle the rest.</p>
+        <p class="cluster-desc" style="margin-top:.6rem;font-size:.82rem;opacity:.7;">These are just a few examples of what you can build — with your creativity and the Beefree Headless MCP, the possibilities are endless.</p>
       </div>
       <div class="mode-grid">
 
@@ -213,39 +258,6 @@
       </div>
     </div>
 
-    <!-- ═══════ Cluster 2: With Editor MCP ═══════ -->
-    <div class="cluster">
-      <div class="cluster-header">
-        <h2 class="cluster-title">With Editor MCP</h2>
-        <p class="cluster-desc">AI agents work alongside the visual Beefree editor — changes sync in real time via co-editing.</p>
-      </div>
-      <div class="mode-grid">
-
-        <!-- Integration Guide -->
-        <a href="/integration" class="mode-card">
-          <div class="mode-icon" style="background:rgba(119,71,255,.12);color:#7747FF;">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <rect x="4" y="5" width="24" height="22" rx="3" stroke="currentColor" stroke-width="2"/>
-              <path d="M10 13l4 4-4 4M17 21h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="mode-badge" style="background:rgba(119,71,255,.15);color:#7747FF;">quickstart · MCP v2</div>
-          <h2 class="mode-title">Integration Guide</h2>
-          <p class="mode-desc">
-            Learn how to connect AI agents to the Beefree SDK editor — Editor-Managed
-            or API-Managed sessions with co-editing. Includes a live demo.
-          </p>
-          <span class="mode-cta">
-            Get started
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-        </a>
-
-      </div>
-    </div>
-
   </main>
 
   <footer class="site-footer">
@@ -254,6 +266,30 @@
       <strong>PydanticAI</strong> · <strong>FastAPI</strong>
     </div>
   </footer>
+
+  <script>
+    function choosePath(path) {
+      if (path === 'headless') {
+        var modes = document.getElementById('headless-modes');
+        modes.hidden = false;
+        document.getElementById('path-headless-btn').classList.add('path-card-active');
+        modes.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function closeHeadless() {
+      var modes = document.getElementById('headless-modes');
+      if (modes) modes.hidden = true;
+      var btn = document.getElementById('path-headless-btn');
+      if (btn) btn.classList.remove('path-card-active');
+    }
+
+    // Reset to the closed state when this page is restored from the bfcache
+    // (e.g. the browser Back button after visiting the editor demo).
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted) closeHeadless();
+    });
+  </script>
 
 </body>
 </html>
