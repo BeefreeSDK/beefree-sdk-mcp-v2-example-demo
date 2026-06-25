@@ -157,7 +157,7 @@
       Output quality varies across AI providers and models. This is a showcase of the Beefree Headless MCP Code Mode integration — not a benchmark. System prompts, model choice, and workflow design can all be tuned to match your specific use case.
     </p>
 
-    <div class="codemode-panels">
+    <div class="codemode-panels" id="codemode-panels" style="display:none;">
       <div class="codemode-code-panel">
         <h3 class="panel-title">Agent-Generated TypeScript</h3>
         <pre id="codemode-code" class="codemode-pre"><code>// The agent's script will appear here...</code></pre>
@@ -184,16 +184,17 @@
     <details class="guide-details" style="margin-top:2.5rem;">
       <summary class="guide-details-summary">How it works &amp; benchmarks</summary>
 
-      <div class="guide-section" style="margin-top:1rem;">
-
-        <p>Standard MCP re-sends every tool schema on every turn. Code Mode exposes a single tool that accepts a TypeScript script — your agent writes all operations in one script, executes them in one round trip, and eliminates the repeated schema overhead.</p>
+      <div class="guide-section">
+        <p style="margin-bottom:1rem;">
+          Standard MCP re-sends every tool schema on every turn. Code Mode exposes a single tool that accepts a TypeScript script — your agent writes all operations in one script, executes them in one round trip, and eliminates the repeated schema overhead.
+        </p>
 
         <div class="code-block">
           <pre><code>POST https://api.getbee.io/v2/sdk/mcp/codemode
 Authorization: Bearer &lt;access_token&gt;
 x-bee-template-id: &lt;template-id&gt;</code></pre>
         </div>
-        <p>Same auth, same template creation, same headers. Just swap the endpoint URL.</p>
+        <p style="margin-bottom:3rem;">Same auth, same template creation, same headers. Just swap the endpoint URL.</p>
 
         <h3>Comparison</h3>
         <table class="guide-table">
@@ -330,6 +331,13 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
       // Collapse the input card (single-style) so the result takes focus
       var formSection = document.getElementById('form-section');
       if (formSection) formSection.classList.add('is-collapsed');
+
+      // Reveal the result panels now that generation has started
+      var panels = document.getElementById('codemode-panels');
+      if (panels) {
+        panels.style.display = '';
+        panels.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
 
       // Clear any download buttons from a previous run
       document.querySelectorAll('#codemode-header-actions .cm-download').forEach(function (b) { b.remove(); });

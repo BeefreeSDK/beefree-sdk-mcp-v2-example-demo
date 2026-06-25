@@ -907,8 +907,19 @@ async def stream_single_executor(
                         # Emit the agent's tool call code for Code Mode visibility
                         if mcp_url:
                             for part in node.model_response.parts:
-                                if hasattr(part, "args") and isinstance(part.args, dict):
-                                    code = part.args.get("script") or part.args.get("code") or part.args.get("typescript")
+                                args = getattr(part, "args", None)
+                                # Tool-call args may arrive as a dict or as a JSON string
+                                if isinstance(args, str):
+                                    try:
+                                        args = _json.loads(args)
+                                    except Exception:
+                                        args = None
+                                if isinstance(args, dict):
+                                    code = (
+                                        args.get("script")
+                                        or args.get("code")
+                                        or args.get("typescript")
+                                    )
                                     if code:
                                         yield {"event": "code", "data": code}
                     if isinstance(node, ModelRequestNode):

@@ -1804,6 +1804,7 @@ html { scroll-behavior: smooth; }
   gap: 1.5rem;
   margin-top: 1.5rem;
   margin-bottom: 1rem;
+  align-items: start;
 }
 
 @media (max-width: 900px) {
@@ -1859,7 +1860,7 @@ html { scroll-behavior: smooth; }
   padding: 1rem;
   font-size: .78rem;
   line-height: 1.5;
-  max-height: 800px;
+  max-height: 600px;
   min-height: 300px;
   overflow: auto;
   background: #1e1e2e;
@@ -1947,16 +1948,21 @@ html { scroll-behavior: smooth; }
 }
 
 .guide-details[open] {
-  padding-bottom: 1.5rem;
+  padding-bottom: 1.75rem;
 }
 
 .guide-details-summary {
   cursor: pointer;
   font-weight: 600;
   font-size: .95rem;
-  padding: 1rem 1.25rem;
+  padding: 1.1rem 1.75rem;
   list-style: none;
   user-select: none;
+}
+
+.guide-details[open] > .guide-details-summary {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: .5rem;
 }
 
 .guide-details-summary::-webkit-details-marker { display: none; }
@@ -1971,7 +1977,11 @@ html { scroll-behavior: smooth; }
 }
 
 .guide-details .guide-section {
-  padding: 0 1.25rem;
+  padding: .75rem 1.75rem 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  margin: 0;
 }
 
 /* ─── Email skeleton placeholder (shared) ──────────────────────────────────── */
