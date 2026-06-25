@@ -20,6 +20,20 @@ _CACHE_SETTINGS: dict = {
 
 from .config import Settings
 
+
+def _format_exc(exc: BaseException) -> str:
+    """Flatten an exception into a readable message, unwrapping ExceptionGroups.
+
+    asyncio/anyio TaskGroups (used by the MCP transport) raise an ExceptionGroup
+    whose ``str()`` is just "unhandled errors in a TaskGroup (N sub-exception)" —
+    which hides the real cause. Recurse into the group to surface the underlying
+    error(s).
+    """
+    if isinstance(exc, BaseExceptionGroup):
+        return "; ".join(_format_exc(sub) for sub in exc.exceptions)
+    return f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
+
+
 # --- Data models -------------------------------------------------------------
 
 
@@ -537,9 +551,10 @@ async def stream_executor(
                 except Exception as node_exc:
                     log.warning("Executor node error (continuing): %s", node_exc)
     except Exception as exc:
-        log.error("Executor agent error for %s: %s", template_id, exc)
+        detail = _format_exc(exc)
+        log.error("Executor agent error for %s: %s", template_id, detail)
         failed = True
-        yield {"event": "agent-error", "data": str(exc)}
+        yield {"event": "agent-error", "data": detail}
 
     # Always fetch a final preview — partial work is still useful to show
     try:
@@ -639,8 +654,9 @@ async def stream_translation_executor(
                 except Exception as node_exc:
                     log.warning("Translation node error (continuing): %s", node_exc)
     except Exception as exc:
-        log.error("Translation agent error for %s (%s): %s", template_id, language, exc)
-        yield {"event": "agent-error", "data": str(exc)}
+        detail = _format_exc(exc)
+        log.error("Translation agent error for %s (%s): %s", template_id, language, detail)
+        yield {"event": "agent-error", "data": detail}
 
     try:
         preview_html = await _fetch_preview(template_id, settings)
@@ -744,8 +760,9 @@ async def stream_palette_executor(
                 except Exception as node_exc:
                     log.warning("Palette node error (continuing): %s", node_exc)
     except Exception as exc:
-        log.error("Palette agent error for %s (%s): %s", template_id, palette["name"], exc)
-        yield {"event": "agent-error", "data": str(exc)}
+        detail = _format_exc(exc)
+        log.error("Palette agent error for %s (%s): %s", template_id, palette["name"], detail)
+        yield {"event": "agent-error", "data": detail}
 
     try:
         preview_html = await _fetch_preview(template_id, settings)
@@ -842,8 +859,9 @@ async def stream_edit_executor(
                     out_messages.extend(agent_run.result.all_messages())
 
     except Exception as exc:
-        log.error("Edit agent error for %s: %s", template_id, exc)
-        agent_text = f"I encountered an issue while editing: {exc}"
+        detail = _format_exc(exc)
+        log.error("Edit agent error for %s: %s", template_id, detail)
+        agent_text = f"I encountered an issue while editing: {detail}"
 
     # Final preview after agent finishes
     try:
@@ -934,8 +952,9 @@ async def stream_single_executor(
                 except Exception as node_exc:
                     log.warning("Single agent node error (continuing): %s", node_exc)
     except Exception as exc:
-        log.error("Single agent error for %s: %s", template_id, exc)
-        yield {"event": "agent-error", "data": str(exc)}
+        detail = _format_exc(exc)
+        log.error("Single agent error for %s: %s", template_id, detail)
+        yield {"event": "agent-error", "data": detail}
 
     try:
         preview_html = await _fetch_preview(template_id, settings)
