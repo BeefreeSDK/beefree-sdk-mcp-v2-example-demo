@@ -296,10 +296,18 @@ async def integration_auth():
 
 
 @app.post("/integration-start")
-async def integration_start():
-    """Create a blank MCP template session for the API-managed demo."""
+async def integration_start(template_id: str | None = None):
+    """Create a chat session for the integration demo.
+
+    - Editor-managed: the editor already owns a template via ``startMcpSession()``;
+      pass its ``template_id`` so the agent edits that same template and the
+      editor reflects the changes.
+    - API-managed: omit ``template_id`` and the backend creates a fresh template
+      that the editor then joins via co-editing.
+    """
     settings = get_settings()
-    template_id = await create_template(settings)
+    if not template_id:
+        template_id = await create_template(settings)
     session_id = uuid.uuid4().hex[:12]
     edit_sessions[session_id] = {"template_id": template_id, "messages": []}
     return JSONResponse({"template_id": template_id, "session_id": session_id})

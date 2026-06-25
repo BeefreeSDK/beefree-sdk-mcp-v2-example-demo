@@ -550,10 +550,10 @@ final_template = resp.json()</code></pre>
         var result = await beeEditor.startMcpSession();
         emTemplateId = result.templateId;
 
-        // Create an edit session on our backend
-        var resp = await fetch('/integration-start', { method: 'POST' });
+        // Bind the backend chat session to the editor's own templateId so the
+        // agent edits the SAME template the editor is showing (changes reflect live).
+        var resp = await fetch('/integration-start?template_id=' + encodeURIComponent(emTemplateId), { method: 'POST' });
         var data = await resp.json();
-        // We'll use the editor's templateId but our session for history
         emSessionId = data.session_id;
 
         btn.style.display = 'none';
