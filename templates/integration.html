@@ -499,7 +499,7 @@ final_template = resp.json()</code></pre>
         if (data.error) { alert(data.error); btn.disabled = false; btn.textContent = 'Initialize editor'; return; }
 
         var container = document.getElementById('em-editor-container');
-        container.innerHTML = '<div id="em-bee-editor" style="height:600px;"></div>';
+        container.innerHTML = '<div id="em-bee-editor" style="height:760px;"></div>';
 
         var beeConfig = {
           uid: 'integration-demo-user',
@@ -589,7 +589,7 @@ final_template = resp.json()</code></pre>
         if (authData.error) { alert(authData.error); btn.disabled = false; btn.textContent = 'Create session + join editor'; return; }
 
         var container = document.getElementById('am-editor-container');
-        container.innerHTML = '<div id="am-bee-editor" style="height:600px;"></div>';
+        container.innerHTML = '<div id="am-bee-editor" style="height:760px;"></div>';
 
         BeePlugin.create(authData, {
           uid: 'integration-demo-user',
@@ -659,41 +659,62 @@ final_template = resp.json()</code></pre>
         badge.className = 'edit-status-badge is-active';
       }
 
-      // SSE stream
-      if (currentEs) { currentEs.close(); currentEs = null; }
-      var url = '/edit-stream?session_id=' + encodeURIComponent(sessionId) + '&message=' + encodeURIComponent(msg);
-      var es = new EventSource(url);
-      currentEs = es;
+      // Open the SSE stream for this turn
+      function openStream() {
+        if (currentEs) { currentEs.close(); currentEs = null; }
+        var url = '/edit-stream?session_id=' + encodeURIComponent(sessionId) + '&message=' + encodeURIComponent(msg);
+        var es = new EventSource(url);
+        currentEs = es;
 
-      es.addEventListener('agent-message', function (ev) {
-        agentDiv.classList.remove('agent-loading');
-        agentInner.innerHTML = ev.data;
-        messages.scrollTop = messages.scrollHeight;
-      });
-
-      es.addEventListener('tokens', function (ev) {
-        try {
-          var t = JSON.parse(ev.data);
-          if (window.beeTokensAdd) beeTokensAdd(t);
-        } catch (e) {}
-      });
-
-      es.addEventListener('close', function () {
-        es.close();
-        currentEs = null;
-        restore();
-        input.focus();
-      });
-
-      es.onerror = function () {
-        es.close();
-        currentEs = null;
-        if (agentDiv.classList.contains('agent-loading')) {
+        es.addEventListener('agent-message', function (ev) {
           agentDiv.classList.remove('agent-loading');
-          agentInner.innerHTML = '<p class="chat-error">Connection error — please try again.</p>';
-        }
-        restore();
-      };
+          agentInner.innerHTML = ev.data;
+          messages.scrollTop = messages.scrollHeight;
+        });
+
+        es.addEventListener('tokens', function (ev) {
+          try {
+            var t = JSON.parse(ev.data);
+            if (window.beeTokensAdd) beeTokensAdd(t);
+          } catch (e) {}
+        });
+
+        es.addEventListener('close', function () {
+          es.close();
+          currentEs = null;
+          restore();
+          input.focus();
+        });
+
+        es.onerror = function () {
+          es.close();
+          currentEs = null;
+          if (agentDiv.classList.contains('agent-loading')) {
+            agentDiv.classList.remove('agent-loading');
+            agentInner.innerHTML = '<p class="chat-error">Connection error — please try again.</p>';
+          }
+          restore();
+        };
+      }
+
+      // Editor-managed: every chat interaction needs a fresh MCP session, or the
+      // editor stops reflecting the agent's changes after the first turn. Start a
+      // new session, repoint the backend at the returned templateId, then stream.
+      if (mode === 'editor-managed' && beeEditor) {
+        beeEditor.startMcpSession().then(function (result) {
+          emTemplateId = result.templateId;
+          return fetch('/integration-refresh?session_id=' + encodeURIComponent(sessionId) +
+                       '&template_id=' + encodeURIComponent(emTemplateId), { method: 'POST' });
+        }).then(function () {
+          openStream();
+        }).catch(function () {
+          agentDiv.classList.remove('agent-loading');
+          agentInner.innerHTML = '<p class="chat-error">Could not refresh the editor session — please try again.</p>';
+          restore();
+        });
+      } else {
+        openStream();
+      }
     };
 
     // ── Helpers ────────────────────────────────────────────────────────────

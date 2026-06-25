@@ -313,6 +313,22 @@ async def integration_start(template_id: str | None = None):
     return JSONResponse({"template_id": template_id, "session_id": session_id})
 
 
+@app.post("/integration-refresh")
+async def integration_refresh(session_id: str, template_id: str):
+    """Repoint an existing chat session at a new templateId, keeping history.
+
+    Editor-managed mode starts a fresh MCP session per chat interaction, so each
+    turn the editor hands us a (possibly new) templateId to edit. Updating the
+    session in place lets the agent keep its conversation history across turns
+    while the editor stays in sync.
+    """
+    session = edit_sessions.get(session_id)
+    if not session:
+        return JSONResponse({"error": "session not found"}, status_code=404)
+    session["template_id"] = template_id
+    return JSONResponse({"ok": True, "template_id": template_id})
+
+
 @app.get("/codemode", response_class=HTMLResponse)
 async def codemode_page(request: Request):
     return templates.TemplateResponse("codemode.html", {"request": request})
