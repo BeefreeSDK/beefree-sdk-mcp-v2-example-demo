@@ -12,6 +12,7 @@ A FastAPI web application that demonstrates AI-powered email campaign generation
   - **Bulk translation** — upload a template and translate it into any combination of 29 languages simultaneously; parallel agents replace text only, leaving layout and design intact.
   - **Palette swap** — apply one or more of 10 built-in color palettes to an existing template in parallel; colors change, everything else stays identical.
   - **Email editor** — load any template and chat with an AI agent to iteratively refine it; each message triggers a live MCP edit.
+- **In-editor experience** — at `/integration`, the AI agent works alongside the embedded **visual Beefree editor**: changes the agent makes over MCP appear live in the editor. Demonstrates both session models — **Editor-Managed** (a fresh MCP session per chat turn) and **API-Managed + co-editing** (a persistent shared session). Requires `BEE_CLIENT_ID` / `BEE_CLIENT_SECRET`.
 - **Export** — download any result as Beefree SDK JSON, rendered HTML, or a full sequence as a ZIP archive.
 - **Token counter** — live usage tracker in the page header showing input, output, cache-write (↑cache), and cache-read (↓cache) tokens; accumulated across all agent calls and persisted across mode switches within the same browser session.
 - **Multi-provider AI** — switch between Anthropic, OpenAI, and Google Gemini by changing a single env var; prompt caching is enabled automatically for all three.
@@ -24,6 +25,7 @@ A FastAPI web application that demonstrates AI-powered email campaign generation
 - [uv](https://docs.astral.sh/uv/) (package manager)
 - A **Beefree CSAPI key** — get one at [developers.beefree.io](https://developers.beefree.io)
 - An API key for at least one LLM provider (Anthropic, OpenAI, or Google AI Studio)
+- *(Optional)* **Beefree SDK editor credentials** (`BEE_CLIENT_ID` / `BEE_CLIENT_SECRET`) — only needed for the in-editor experience at `/integration`
 
 ---
 
@@ -50,6 +52,12 @@ Open `.env` and set:
 ```dotenv
 # Required — your Beefree CSAPI key
 BEE_API_KEY=your_csapi_key_here
+
+# Optional — Beefree SDK editor credentials. Required ONLY for the in-editor
+# experience at /integration, where the AI agent works alongside
+# the embedded visual Beefree editor. Get them from developers.beefree.io.
+BEE_CLIENT_ID=your_client_id_here
+BEE_CLIENT_SECRET=your_client_secret_here
 
 # Choose your AI provider: anthropic | openai | google
 AI_PROVIDER=anthropic
@@ -78,6 +86,24 @@ You can override the model for all agents with a single env var:
 ```dotenv
 LLM_MODEL=anthropic:claude-sonnet-4-6
 ```
+
+#### Embedded editor (optional — in-editor experience)
+
+The headless modes (single, sequence, translate, palette, edit, code mode) only
+need `BEE_API_KEY`. The **in-editor experience** at `/integration` — where the AI
+agent edits the email live inside the embedded visual Beefree editor — additionally
+requires editor credentials:
+
+```dotenv
+BEE_CLIENT_ID=your_client_id_here
+BEE_CLIENT_SECRET=your_client_secret_here
+```
+
+These are used by the `/integration-auth` endpoint to mint a short-lived editor
+token (`auth.getbee.io/loginV2`). Both **Editor-Managed** and **API-Managed +
+co-editing** session models are demonstrated on that page. If they are not set,
+the `/integration` demo returns a configuration error while every headless mode
+keeps working.
 
 ---
 
@@ -117,6 +143,8 @@ uv run uvicorn app.main:app --reload
 │   ├── translate.html   # Bulk translation UI
 │   ├── palette.html     # Palette swap UI
 │   ├── edit.html        # Email editor UI
+│   ├── codemode.html    # Code Mode UI (single TypeScript-script generation)
+│   ├── integration.html # In-editor (co-editing) experience with the embedded editor
 │   └── partials/        # HTMX partial templates (SSE targets, loading states)
 └── static/
     ├── style.css        # Application styles
