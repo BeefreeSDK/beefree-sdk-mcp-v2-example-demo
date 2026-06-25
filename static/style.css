@@ -1638,6 +1638,31 @@ textarea { resize: vertical; }
   font-size: .78rem;
 }
 
+/* Prominent "Start MCP session" button + attention arrow */
+.demo-start-btn {
+  padding: .65rem 1.4rem;
+  font-size: .95rem;
+  font-weight: 700;
+  animation: start-btn-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes start-btn-pulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(119,71,255,.35); }
+  50%      { box-shadow: 0 6px 22px rgba(119,71,255,.6); }
+}
+
+.start-arrow {
+  display: inline-flex;
+  align-items: center;
+  color: var(--primary);
+  animation: arrow-nudge 1s ease-in-out infinite;
+}
+
+@keyframes arrow-nudge {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(7px); }
+}
+
 .demo-header-actions {
   display: flex;
   align-items: center;

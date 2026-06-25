@@ -64,6 +64,66 @@
     <div class="guide-section" style="margin-bottom:1.5rem;">
       <h1 class="guide-title">Code Mode</h1>
       <p style="margin-bottom:0;">One script, one round trip, 67-97% fewer tokens. Describe an email and watch the agent build it in a single shot.</p>
+
+      <details class="guide-details" style="margin-top:1.25rem;margin-bottom:0;">
+        <summary class="guide-details-summary">How it works &amp; benchmarks</summary>
+
+        <div class="guide-section">
+          <p style="margin-bottom:1rem;">
+            Standard MCP re-sends every tool schema on every turn. Code Mode exposes a single tool that accepts a TypeScript script — your agent writes all operations in one script, executes them in one round trip, and eliminates the repeated schema overhead.
+          </p>
+
+          <div class="code-block">
+            <pre><code>POST https://api.getbee.io/v2/sdk/mcp/codemode
+Authorization: Bearer &lt;access_token&gt;
+x-bee-template-id: &lt;template-id&gt;</code></pre>
+          </div>
+          <p style="margin-bottom:3rem;">Same auth, same template creation, same headers. Just swap the endpoint URL.</p>
+
+          <h3>Comparison</h3>
+          <table class="guide-table">
+            <thead>
+              <tr><th></th><th>Standard MCP</th><th>Code Mode</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Tools</strong></td><td>Many individual</td><td>1 (TypeScript script)</td></tr>
+              <tr><td><strong>Round trips</strong></td><td>One per tool call</td><td>One total</td></tr>
+              <tr><td><strong>Best for</strong></td><td>Iterative chat, simple edits</td><td>Batch generation, complex workflows</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Benchmarks</h3>
+          <table class="guide-table">
+            <thead>
+              <tr><th>Model</th><th>Token Savings</th><th>Cost Savings</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Qwen 3.6 Plus</td><td>96%</td><td>94%</td></tr>
+              <tr><td>Claude Haiku 4.5</td><td>90%</td><td>87%</td></tr>
+              <tr><td>Mistral Large 3</td><td>89%</td><td>86%</td></tr>
+              <tr><td>GPT-5.4 Mini</td><td>83%</td><td>78%</td></tr>
+              <tr><td>Gemini 3 Flash</td><td>68%</td><td>58%</td></tr>
+            </tbody>
+          </table>
+
+          <table class="guide-table" style="margin-top:1rem;">
+            <thead>
+              <tr><th>Complexity</th><th>Standard</th><th>Code Mode</th><th>Savings</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Simple</td><td>138K</td><td>12K</td><td>91%</td></tr>
+              <tr><td>Medium</td><td>351K</td><td>28K</td><td>92%</td></tr>
+              <tr><td>Complex</td><td>400K</td><td>49K</td><td>88%</td></tr>
+            </tbody>
+          </table>
+
+          <div class="guide-callout guide-callout-warn" style="margin-top:1.5rem;">
+            <strong>Note:</strong> Code Mode requires valid TypeScript from the agent.
+            The sandbox tracks successful operations before failures, so retries pick up where they left off.
+          </div>
+
+        </div>
+      </details>
     </div>
 
     <!-- ── Input — single-style collapsible card ── -->
@@ -176,70 +236,6 @@
         </div>
       </div>
     </div>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════
-         DETAILS (secondary, collapsed)
-         ═══════════════════════════════════════════════════════════════════════ -->
-
-    <details class="guide-details" style="margin-top:2.5rem;">
-      <summary class="guide-details-summary">How it works &amp; benchmarks</summary>
-
-      <div class="guide-section">
-        <p style="margin-bottom:1rem;">
-          Standard MCP re-sends every tool schema on every turn. Code Mode exposes a single tool that accepts a TypeScript script — your agent writes all operations in one script, executes them in one round trip, and eliminates the repeated schema overhead.
-        </p>
-
-        <div class="code-block">
-          <pre><code>POST https://api.getbee.io/v2/sdk/mcp/codemode
-Authorization: Bearer &lt;access_token&gt;
-x-bee-template-id: &lt;template-id&gt;</code></pre>
-        </div>
-        <p style="margin-bottom:3rem;">Same auth, same template creation, same headers. Just swap the endpoint URL.</p>
-
-        <h3>Comparison</h3>
-        <table class="guide-table">
-          <thead>
-            <tr><th></th><th>Standard MCP</th><th>Code Mode</th></tr>
-          </thead>
-          <tbody>
-            <tr><td><strong>Tools</strong></td><td>Many individual</td><td>1 (TypeScript script)</td></tr>
-            <tr><td><strong>Round trips</strong></td><td>One per tool call</td><td>One total</td></tr>
-            <tr><td><strong>Best for</strong></td><td>Iterative chat, simple edits</td><td>Batch generation, complex workflows</td></tr>
-          </tbody>
-        </table>
-
-        <h3>Benchmarks</h3>
-        <table class="guide-table">
-          <thead>
-            <tr><th>Model</th><th>Token Savings</th><th>Cost Savings</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Qwen 3.6 Plus</td><td>96%</td><td>94%</td></tr>
-            <tr><td>Claude Haiku 4.5</td><td>90%</td><td>87%</td></tr>
-            <tr><td>Mistral Large 3</td><td>89%</td><td>86%</td></tr>
-            <tr><td>GPT-5.4 Mini</td><td>83%</td><td>78%</td></tr>
-            <tr><td>Gemini 3 Flash</td><td>68%</td><td>58%</td></tr>
-          </tbody>
-        </table>
-
-        <table class="guide-table" style="margin-top:1rem;">
-          <thead>
-            <tr><th>Complexity</th><th>Standard</th><th>Code Mode</th><th>Savings</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Simple</td><td>138K</td><td>12K</td><td>91%</td></tr>
-            <tr><td>Medium</td><td>351K</td><td>28K</td><td>92%</td></tr>
-            <tr><td>Complex</td><td>400K</td><td>49K</td><td>88%</td></tr>
-          </tbody>
-        </table>
-
-        <div class="guide-callout guide-callout-warn" style="margin-top:1.5rem;">
-          <strong>Note:</strong> Code Mode requires valid TypeScript from the agent.
-          The sandbox tracks successful operations before failures, so retries pick up where they left off.
-        </div>
-
-      </div>
-    </details>
 
   </main>
 
