@@ -1573,6 +1573,13 @@ textarea { resize: vertical; }
 
 .demo-panel { }
 
+/* Integration page only — keep the header bar full-bleed, but widen its content
+   to line up with the demo stage box below */
+.page-integration .site-header .container {
+  max-width: 1640px;
+  width: 96vw;
+}
+
 /* Full-bleed stage — escapes the 1200px .container so the builder gets room */
 .demo-stage {
   position: relative;
