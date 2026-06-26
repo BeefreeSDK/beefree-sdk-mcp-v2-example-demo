@@ -307,7 +307,7 @@
       <p class="guide-text">
         The editor owns the session. Call <code>bee.startMcpSession()</code> from the frontend — it returns a
         <code>templateId</code> that you pass to your backend agent. The agent uses it as the
-        <code>x-bee-template-id</code> header when calling the MCP v2 endpoint. Each chat interaction creates a fresh session.
+        <code>x-bee-template-id</code> header when calling the MCP endpoint. Each chat interaction creates a fresh session.
       </p>
 
       <div class="code-block">
@@ -323,7 +323,7 @@ await fetch('/api/chat', {
       </div>
 
       <div class="code-block">
-        <div class="code-label">Backend — agent calls MCP v2</div>
+        <div class="code-label">Backend — agent calls MCP</div>
         <pre><code># Your agent sends MCP tool calls to:
 # POST https://api.getbee.io/v2/sdk/mcp
 # Headers:
@@ -336,7 +336,7 @@ await fetch('/api/chat', {
 
       <p class="guide-link">
         <a href="https://docs.beefree.io/beefree-sdk/mcp-server/getting-started" target="_blank" rel="noopener">
-          MCP v2 documentation &rarr;
+          MCP documentation &rarr;
         </a>
       </p>
     </section>
@@ -396,7 +396,7 @@ final_template = resp.json()</code></pre>
 
       <p class="guide-link">
         <a href="https://docs.beefree.io/beefree-sdk/mcp-server/getting-started" target="_blank" rel="noopener">
-          MCP v2 documentation &rarr;
+          MCP documentation &rarr;
         </a>
         <br>
         <a href="https://docs.beefree.io/beefree-sdk/other-customizations/collaborative-editing" target="_blank" rel="noopener">
@@ -412,7 +412,6 @@ final_template = resp.json()</code></pre>
       <h2 class="guide-heading">3. Resources</h2>
       <ul class="guide-links-list">
         <li><a href="https://docs.beefree.io/beefree-sdk/mcp-server/getting-started" target="_blank" rel="noopener">MCP Server — Getting Started</a></li>
-        <li><a href="https://docs.beefree.io/beefree-sdk/mcp-server/getting-started" target="_blank" rel="noopener">MCP Server v2 — Getting Started</a></li>
         <li><a href="https://docs.beefree.io/beefree-sdk/other-customizations/collaborative-editing/co-editing-integration-guide" target="_blank" rel="noopener">Co-editing Integration Guide</a></li>
         <li><a href="https://docs.beefree.io/beefree-sdk/getting-started/readme/installation" target="_blank" rel="noopener">Beefree SDK — Installation &amp; Fundamentals</a></li>
         <li><a href="https://github.com/BeefreeSDK/beefree-sdk-mcp-v2-example-demo" target="_blank" rel="noopener">Sample Project (this repo)</a></li>
@@ -425,7 +424,7 @@ final_template = resp.json()</code></pre>
 
   <footer class="site-footer">
     <div class="container">
-      Powered by <strong>Beefree SDK MCP v2</strong> &middot;
+      Powered by <strong>Beefree SDK MCP</strong> &middot;
       <strong>PydanticAI</strong> &middot; <strong>FastAPI</strong>
     </div>
   </footer>

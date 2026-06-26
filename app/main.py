@@ -34,7 +34,7 @@ from .agent import (
 from .beefree import create_seeded_template, create_template, get_template
 from .config import get_settings
 
-app = FastAPI(title="Beefree Headless MCP v2 Demo")
+app = FastAPI(title="Beefree Headless MCP Demo")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 

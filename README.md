@@ -1,6 +1,6 @@
-# Beefree SDK MCP v2 — Demo App
+# Beefree SDK MCP — Demo App
 
-A FastAPI web application that demonstrates AI-powered email campaign generation using the **Beefree MCP (Model Context Protocol) v2 API**. The AI agent communicates with the Beefree editor over MCP to autonomously build, translate, re-palette, and edit email templates — all streamed live to the browser.
+A FastAPI web application that demonstrates AI-powered email campaign generation using the **Beefree MCP (Model Context Protocol) API**. The AI agent communicates with the Beefree editor over MCP to autonomously build, translate, re-palette, and edit email templates — all streamed live to the browser.
 
 ---
 
