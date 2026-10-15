@@ -438,12 +438,13 @@ async def generate_stream(
             template_id = await create_template(settings)
             # Tell the frontend which template was created so it can offer a download
             yield {"event": "template-id", "data": template_id}
-            async for event in stream_single_executor(template_id, brief, settings):
+            async for event in stream_single_executor(
+                template_id, brief, settings, progressive=True,
+            ):
                 if event["event"] != "close":
                     yield event
         except Exception as exc:
-            import logging
-            logging.getLogger(__name__).error("Single gen error: %s", exc)
+            log.error("Single gen error: %s", exc)
             yield {
                 "event": "agent-error",
                 "data": html_lib.escape(f"Generation failed: {exc}"),
@@ -622,8 +623,7 @@ async def translate_stream_route(
             )
             yield {"event": "ready", "data": result_html}
         except Exception as exc:
-            import logging
-            logging.getLogger(__name__).error("Translate stream error: %s", exc)
+            log.error("Translate stream error: %s", exc)
             yield {
                 "event": "ready",
                 "data": f"<p class='plan-error'>Translation failed: {exc}</p>",
@@ -705,8 +705,7 @@ async def palette_stream_route(
             )
             yield {"event": "ready", "data": result_html}
         except Exception as exc:
-            import logging
-            logging.getLogger(__name__).error("Palette stream error: %s", exc)
+            log.error("Palette stream error: %s", exc)
             yield {
                 "event": "ready",
                 "data": f"<p class='plan-error'>Palette application failed: {exc}</p>",
@@ -751,37 +750,6 @@ async def plan(
         {"request": request, "plan": email_plan,
          "plan_json": email_plan.model_dump_json()},
     )
-
-
-@app.get("/plan-stream")
-async def plan_stream(
-    request: Request, goal: str, preset_id: str = "",
-):
-    """Compatibility endpoint for older pages; also uses predefined plans."""
-    sections_per_step = SEQUENCE_PRESETS.get(preset_id)
-    if sections_per_step is None:
-        raise HTTPException(status_code=400, detail="Choose a supported campaign preset.")
-
-    async def generator():
-        try:
-            email_plan = build_preset_plan(
-                preset_id, goal, sections_per_step, secrets.randbelow(3),
-            )
-            plan_json = email_plan.model_dump_json()
-            tmpl = templates.env.get_template("partials/plan.html")
-            plan_html = tmpl.render(plan=email_plan, plan_json=plan_json)
-            yield {"event": "plan", "data": plan_html}
-        except Exception as exc:
-            import logging
-            logging.getLogger(__name__).error("Planner error: %s", exc)
-            yield {
-                "event": "plan-error",
-                "data": f"<p class='plan-error'>Planning failed: {exc}</p>",
-            }
-        finally:
-            yield {"event": "close", "data": ""}
-
-    return EventSourceResponse(generator())
 
 
 @app.post("/execute", response_class=HTMLResponse)
@@ -865,8 +833,7 @@ async def execute_stream(
             yield {"event": "sequence", "data": sequence_html}
 
         except Exception as exc:
-            import logging
-            logging.getLogger(__name__).error("Execute stream error: %s", exc)
+            log.error("Execute stream error: %s", exc)
             yield {
                 "event": "sequence",
                 "data": f"<p class='plan-error'>Execution failed: {exc}</p>",

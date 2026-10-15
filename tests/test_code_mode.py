@@ -326,13 +326,42 @@ class AgentCodeModeTests(unittest.IsolatedAsyncioTestCase):
             ["first-script", "second-script"],
         )
 
+    async def test_progressive_flag_controls_build_instructions(self):
+        settings = Settings(_env_file=None, bee_api_key="test")
+
+        class FakeRun:
+            def __aiter__(self):
+                return self.nodes()
+
+            async def nodes(self):
+                if False:
+                    yield None
+
+        @asynccontextmanager
+        async def iterate(*args, **kwargs):
+            yield FakeRun()
+
+        prompts = {}
+        for progressive in (False, True):
+            with (
+                patch.object(
+                    agent, "Agent", return_value=SimpleNamespace(iter=iterate),
+                ) as agent_type,
+                patch.object(agent, "MCPServerStreamableHTTP"),
+                patch.object(agent, "_fetch_preview", AsyncMock(return_value=None)),
+            ):
+                [event async for event in agent.stream_single_executor(
+                    "template", "Build", settings, progressive=progressive,
+                )]
+            prompts[progressive] = agent_type.call_args.kwargs["system_prompt"]
+        self.assertNotIn(agent.PROGRESSIVE_BUILD_INSTRUCTIONS, prompts[False])
+        self.assertTrue(prompts[True].endswith(agent.PROGRESSIVE_BUILD_INSTRUCTIONS))
+        self.assertIn(agent.CODE_MODE_INSTRUCTIONS, prompts[True])
+
     async def test_all_mcp_agents_use_code_mode_and_script_instructions(self):
         settings = Settings(_env_file=None, bee_api_key="test-key")
         result = SimpleNamespace(
-            output=(
-                '{"header_row_id":"header","footer_row_id":"footer",'
-                '"placeholder_row_ids":["body"]}'
-            ),
+            output="Done",
             usage=lambda: None,
             all_messages=lambda: [],
         )
@@ -364,17 +393,7 @@ class AgentCodeModeTests(unittest.IsolatedAsyncioTestCase):
                 agent, "_fetch_preview",
                 AsyncMock(return_value="<p>Preview</p>"),
             ),
-            patch(
-                "app.beefree.create_template",
-                AsyncMock(return_value="layout"),
-            ),
-            patch(
-                "app.beefree.get_template",
-                AsyncMock(return_value={"template": {}}),
-            ),
         ):
-            layout = await agent.build_shared_layout("Campaign", settings)
-            self.assertEqual(layout[:3], ("header", "footer", ["body"]))
             streams = [
                 agent.stream_executor("template", "Build", settings),
                 agent.stream_single_executor("template", "Build", settings),
@@ -390,7 +409,7 @@ class AgentCodeModeTests(unittest.IsolatedAsyncioTestCase):
                 events = [event async for event in stream]
                 self.assertIn("preview", [event["event"] for event in events])
                 self.assertEqual(events[-1]["event"], "close")
-            self.assertEqual(transport.call_count, 6)
+            self.assertEqual(transport.call_count, len(streams))
             for call in transport.call_args_list:
                 self.assertTrue(
                     call.kwargs["url"].endswith("/v2/sdk/mcp/codemode"),

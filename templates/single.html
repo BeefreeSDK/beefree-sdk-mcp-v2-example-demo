@@ -72,6 +72,13 @@
         </button>
       </div>
 
+      <!-- Shown in the collapsed card once generation starts -->
+      <div class="brief-summary" id="brief-summary" hidden>
+        <p class="brief-summary-label" id="brief-summary-label"></p>
+        <p class="brief-summary-text" id="brief-summary-text"></p>
+        <button type="button" class="brief-summary-more" id="brief-summary-more" aria-expanded="false">Show full brief</button>
+      </div>
+
       <div class="card-body">
         <div>
         <form
@@ -162,6 +169,9 @@
 
     <div id="workspace"></div>
 
+
+
+
   </main>
 
   <footer class="site-footer">
@@ -229,6 +239,33 @@
       document.getElementById('single-submit').disabled = !val;
     }
 
+    /* Once generation starts, the brief stays visible but can no longer be changed. */
+    function lockForm() {
+      var section = document.getElementById('form-section');
+      if (!section) return;
+      section.classList.add('is-locked');
+      section.querySelectorAll('.seq-prompt-card, #single-submit').forEach(function (el) {
+        el.disabled = true;
+      });
+      var custom = document.getElementById('custom-brief');
+      if (custom) custom.readOnly = true;
+
+      var preset = section.querySelector('.seq-prompt-card-selected .seq-prompt-title');
+      document.getElementById('brief-summary-label').textContent =
+        preset ? 'Preset: ' + preset.textContent.trim() : 'Your brief';
+      document.getElementById('brief-summary-text').textContent =
+        document.getElementById('brief').value.trim();
+      document.getElementById('brief-summary').hidden = false;
+      section.classList.add('is-collapsed');
+    }
+
+    document.getElementById('brief-summary-more').addEventListener('click', function () {
+      var summary = document.getElementById('brief-summary');
+      var open = summary.classList.toggle('is-expanded');
+      this.setAttribute('aria-expanded', String(open));
+      this.textContent = open ? 'Show less' : 'Show full brief';
+    });
+
     function toggleCard(card) {
       if (card) card.classList.toggle('is-collapsed');
     }
@@ -237,8 +274,18 @@
       var tgt = e.detail && e.detail.target;
       if (!tgt) return;
       if (tgt.id === 'workspace') {
-        var fs = document.getElementById('form-section');
-        if (fs) fs.classList.add('is-collapsed');
+        lockForm();
+        var result = document.getElementById('se-card');
+        if (result) {
+          // Wait for the form card's collapse transition so the target position is final.
+          setTimeout(function () {
+            var header = document.querySelector('.site-header');
+            var top = window.scrollY + result.getBoundingClientRect().top -
+              (header ? header.offsetHeight : 0) - 16;
+            var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            window.scrollTo({ top: Math.max(0, top), behavior: reduce ? 'auto' : 'smooth' });
+          }, 350);
+        }
       }
     });
   </script>

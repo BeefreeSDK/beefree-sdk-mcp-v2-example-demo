@@ -1024,6 +1024,36 @@ textarea { resize: vertical; }
   pointer-events: auto;
 }
 
+/* Single Email: brief locked once generation starts */
+.brief-summary { margin-top: -.5rem; max-width: 80ch; }
+.brief-summary[hidden],
+#form-section:not(.is-collapsed) .brief-summary { display: none; }
+.brief-summary-label { font-size: .8rem; font-weight: 600; color: var(--primary); margin-bottom: .35rem; }
+.brief-summary-text {
+  font-size: .85rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.brief-summary.is-expanded .brief-summary-text { display: block; }
+.brief-summary-more {
+  margin-top: .4rem;
+  border: 0; background: none; padding: 0;
+  font: inherit; font-size: .8rem; font-weight: 600;
+  color: var(--primary); cursor: pointer;
+}
+.brief-summary-more:hover { text-decoration: underline; }
+.brief-summary-more:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+#form-section.is-locked .seq-prompt-card { cursor: default; transform: none; }
+#form-section.is-locked .seq-prompt-card:not(.seq-prompt-card-selected) { opacity: .45; }
+#form-section.is-locked #custom-brief { background: var(--bg); color: var(--text-muted); cursor: default; }
+#form-section.is-locked .actions { display: none; }
+
 .seq-prompt-card-selected {
   border-color: var(--primary);
   background: var(--surface);

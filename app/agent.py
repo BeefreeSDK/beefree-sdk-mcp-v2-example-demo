@@ -20,6 +20,7 @@ _CACHE_SETTINGS: dict = {
 
 from .config import Settings
 from .guards import validate_sequence
+from .pricing import request_cost
 
 
 CODE_MODE_INSTRUCTIONS = """
@@ -186,15 +187,10 @@ def _format_exc(exc: BaseException) -> str:
 
 
 class EmailSkeleton(BaseModel):
-    """Lightweight plan item — no agent_prompt yet (generated in parallel)."""
+    """Lightweight plan item used to build an executor prompt."""
     step: int
     title: str
     subject_line: str
-
-
-class EmailSkeletonPlan(BaseModel):
-    sequence_title: str
-    emails: list[EmailSkeleton]
 
 
 class EmailStep(BaseModel):
@@ -213,124 +209,6 @@ class EmailPlan(BaseModel):
 
 
 # --- System prompts -----------------------------------------------------------
-
-PLANNER_SKELETON_PROMPT = """Given a campaign brief, output the email sequence structure.
-
-Rules:
-- sequence_title: max 50 chars
-- title: max 40 chars
-- subject_line: max 60 chars
-- No body copy, no design instructions
-- Follow the stated email count exactly
-"""
-
-def _build_layout_agent_system_prompt(num_sections: int) -> str:
-    """Build the layout-agent system prompt with the exact number of placeholder body rows."""
-    placeholder_ids = ", ".join(f'"<id of placeholder {i+1}>"' for i in range(num_sections))
-    return f"""You are building a shared base template for an email sequence.
-The final template must have exactly {2 + num_sections} rows in this order:
-  Row 1: header
-  Rows 2-{num_sections + 1}: body placeholders ({num_sections} rows)
-  Row {num_sections + 2}: footer
-
-Read the campaign brief and decide before calling any tool:
-- BRAND: the product/company name (from the brief)
-- SHORT: 2-4 char uppercase abbreviation (e.g. "ACME", "STVT") — used in the logo image
-- primary, accent, page_bg: pick from this table based on the campaign domain:
-    B2B/SaaS:   primary=#1A3A6B  accent=#0EA5E9  page_bg=#EFF6FF
-    Streaming:  primary=#0F1729  accent=#E50914   page_bg=#F4F4F4
-    E-commerce: primary=#1A1A2E  accent=#F97316   page_bg=#FFF8F0
-    Health:     primary=#0A4D68  accent=#22C55E   page_bg=#F0FFF4
-    Finance:    primary=#0F2A4A  accent=#0EA5E9   page_bg=#F0F7FF
-    Fashion:    primary=#1C1033  accent=#C084FC   page_bg=#FDF4FF
-    Education:  primary=#312E81  accent=#F59E0B   page_bg=#FFFBEF
-    Travel:     primary=#0C3547  accent=#06B6D4   page_bg=#F0FDFF
-
-STEP 1 — SET GLOBAL STYLES
-Call beefree_set_template_styles with:
-  page_bg, content_bg=#FFFFFF, width=600, font="Helvetica Neue, Helvetica, Arial, sans-serif", text=#1A1A2E, links=accent
-Call beefree_check_template.
-
-STEP 2 — ADD HEADER ROW
-Design a distinctive header that reflects the brand's personality and campaign type.
-Read the campaign brief and choose the header style that best fits — do NOT default to the same pattern every time.
-
-  STYLE A — Minimal nav bar (B2B / SaaS / transactional / productivity tools)
-    background: primary
-    image (left-aligned): placehold.co 140×36/XXXXXX/FFFFFF?text=SHORT  ·  alt: "BRAND logo"
-    text (right-aligned, same row baseline): BRAND  ·  #FFFFFF  ·  bold  ·  16px
-    column padding: 24px top, 24px bottom, 32px left, 32px right
-    row border-bottom: 3px solid accent
-
-  STYLE B — Bold editorial masthead (fashion / luxury / lifestyle / e-commerce)
-    background: primary
-    top accent stripe: 1-col row with background=accent, height 6px (add as a sub-element inside the row using a coloured divider block or short spacer with accent bg)
-    image (centred): placehold.co 200×52/XXXXXX/FFFFFF?text=SHORT  ·  alt: "BRAND logo"
-    tagline text (centred, below image): brand tagline in ALL CAPS  ·  11px  ·  letter-spacing 3px  ·  color #ffffff99
-    column padding: 32px top, 28px bottom, 20px left, 20px right
-    row border-bottom: 4px solid accent
-
-  STYLE C — Cinematic wide banner (streaming / entertainment / media / events)
-    background: primary
-    image (centred, wide): placehold.co 600×72/XXXXXX/FFFFFF?text=SHORT  ·  alt: "BRAND logo"
-    text (centred, overlapping effect via close spacing): BRAND  ·  #FFFFFF  ·  bold  ·  22px
-    subtext (centred): campaign tagline in 12px  ·  color accent  ·  italic
-    column padding: 28px top, 28px bottom, 0px left, 0px right
-    row border-bottom: 4px solid accent
-
-  STYLE D — Newsletter masthead (newsletters / digests / content / media brands)
-    background: #FFFFFF
-    top rule: 4px solid primary across full width (use a divider element at the very top)
-    text (left-aligned, large): BRAND  ·  primary colour  ·  bold  ·  28px  ·  letter-spacing -1px
-    text (left-aligned, below): edition tagline or date in 12px  ·  #64748B  ·  normal weight
-    right side of same row: placehold.co 100×28/XXXXXX/FFFFFF?text=SHORT image, right-aligned
-    column padding: 20px top, 20px bottom, 32px left, 32px right
-    row border-bottom: 1px solid #E2E8F0
-
-  STYLE E — Gradient hero header (fintech / startup / modern consumer apps)
-    background: CSS gradient from primary to accent (simulate by using primary as row bg and accent as a subtle overlay — in practice set row bg to primary)
-    image (centred): placehold.co 160×44/XXXXXX/FFFFFF?text=SHORT  ·  alt: "BRAND logo"
-    text (centred, below image): BRAND  ·  #FFFFFF  ·  bold  ·  20px  ·  letter-spacing 1px
-    subtext (centred): one short brand promise in 13px  ·  color rgba-white-80 (#FFFFFFCC)  ·  normal weight
-    column padding: 36px top, 32px bottom, 24px left, 24px right
-    row border-bottom: 3px solid accent
-
-  STYLE F — Split two-column identity bar (health / wellness / education / non-profit)
-    background: page_bg (light)
-    left column (60%): text BRAND  ·  primary  ·  bold  ·  22px; below it a short mission line in 12px  ·  #64748B
-    right column (40%): placehold.co 120×40/XXXXXX/FFFFFF?text=SHORT image  ·  right-aligned
-    column padding: 24px top, 24px bottom, 32px left/right
-    row border-bottom: 2px solid accent
-
-Choose the most fitting style based on the campaign brief. Adapt copy (tagline, subtext) to match the brand voice.
-XXXXXX = primary colour WITHOUT the # (e.g. primary #0F1729 → XXXXXX is 0F1729).
-Call beefree_check_template.
-
-STEP 3 — ADD FOOTER ROW
-Add one full-width single-column row with these properties:
-  background: page_bg
-  row border-top: 1px solid #E2E8F0
-  text (centred): "BRAND · 123 Main St, City · © 2025 · Unsubscribe" · 12px · #64748B
-  column padding: 24px top, 24px bottom
-Call beefree_check_template.
-
-STEP 4 — ADD {num_sections} PLACEHOLDER ROWS
-Add {num_sections} rows, one at a time, each inserted before the footer row.
-For each row (n = 1, 2, … {num_sections}):
-  1. Call beefree_add_section with before_row_id = <the footer row ID from step 3>
-  2. background: #FFFFFF
-  3. Add one text element: "Placeholder n" · centred · 12px · colour #CBD5E1 · italic · 40px top padding · 40px bottom padding
-  4. Write down the row ID returned — you need all {num_sections} IDs for the output
-Call beefree_check_template after all {num_sections} rows are added.
-
-STEP 5 — VERIFY STRUCTURE
-Call beefree_get_content_hierarchy.
-Count the rows. There must be exactly {2 + num_sections} rows.
-If there are more, delete the extra rows. Call beefree_check_template.
-
-OUTPUT — last line of your response, nothing after it:
-{{"header_row_id": "<id>", "footer_row_id": "<id>", "placeholder_row_ids": [{placeholder_ids}]}}
-"""
 
 EXECUTOR_SYSTEM_PROMPT = """You are filling body content into an email template.
 
@@ -416,6 +294,28 @@ SINGLE_EMAIL_AGENT_SYSTEM_PROMPT = """You are an expert email design and copy as
 Remember: prioritize the recipient experience and the sender's goals. Build emails that look great, read well, and perform."""
 
 
+# Appended after CODE_MODE_INSTRUCTIONS so it overrides the general "batch
+# related operations" advice for pages that show a live preview.
+PROGRESSIVE_BUILD_INSTRUCTIONS = """
+
+PROGRESSIVE BUILD: the user is watching a live preview that refreshes after
+every script you run. Build the email in several small scripts, one visible
+step at a time, never as one large script:
+1. First script: set the subject and preheader, the default styles, and the
+   header. Keep it short so the first preview appears within seconds.
+2. Then one script per body section, in reading order (hero, value
+   propositions, proof, closing CTA, and so on). Each script adds one
+   finished section, with its content and styling, and runs that section's
+   checks.
+3. Then one script for the footer.
+4. Finish with validation and any fixes.
+Never put more than one major section in a script.
+Start every script with a single-line comment that tells the user, in plain
+language, what this step does, for example:
+// Adding the hero section with the headline and main button
+"""
+
+
 # --- Planner -----------------------------------------------------------------
 
 
@@ -442,128 +342,6 @@ def _build_executor_prompt(
     else:
         base += "\nBuild a hero section, a value/features section, and a closing CTA section."
     return base
-
-
-async def generate_plan(
-    goal: str,
-    settings: Settings,
-    sections_per_step: list[list[str]] | None = None,
-) -> EmailPlan:
-    """Single LLM call for skeleton, then template-built executor prompts.
-
-    If sections_per_step is provided (one list of section descriptions per email),
-    those are injected verbatim into each executor prompt so the agent builds
-    exactly the prescribed rows and nothing else.
-    """
-    skeleton_agent: Agent[None, EmailSkeletonPlan] = Agent(
-        model=settings.agent_model,
-        output_type=EmailSkeletonPlan,
-        system_prompt=PLANNER_SKELETON_PROMPT,
-        model_settings=_CACHE_SETTINGS,
-        retries=6,
-    )
-    result = await skeleton_agent.run(goal)
-    skeleton = result.output
-
-    total_emails = len(skeleton.emails)
-    emails = [
-        EmailStep(
-            step=s.step,
-            title=s.title,
-            subject_line=s.subject_line,
-            body_section_count=(
-                len(sections_per_step[s.step - 1])
-                if sections_per_step and s.step - 1 < len(sections_per_step)
-                else 3
-            ),
-            agent_prompt=_build_executor_prompt(
-                s,
-                skeleton.sequence_title,
-                goal,
-                total_emails=total_emails,
-                sections=sections_per_step[s.step - 1]
-                if sections_per_step and s.step - 1 < len(sections_per_step)
-                else None,
-            ),
-        )
-        for s in skeleton.emails
-    ]
-    return EmailPlan(sequence_title=skeleton.sequence_title, emails=emails), result.usage()
-
-
-# --- Shared layout agent -----------------------------------------------------
-
-
-async def build_shared_layout(
-    sequence_title: str,
-    settings: Settings,
-    num_sections: int = 3,
-) -> tuple[str, str, list[str], dict]:
-    """Run the layout agent once to build a shared header, placeholder body rows, and footer.
-
-    Returns (header_row_id, footer_row_id, placeholder_row_ids, template_json).
-    The template_json can be used to seed each email template so they all
-    start with the identical structure.
-
-    The agent returns plain text ending with a JSON block containing all row IDs.
-    We parse that block rather than using structured output, which avoids a
-    Gemini API limitation that rejects the combination of tool schemas + response
-    schema when the total constraint state count is too large.
-    """
-    import json as _json
-    from .beefree import create_template, get_template
-
-    layout_template_id = await create_template(settings)
-
-    mcp = create_code_mode_mcp(layout_template_id, settings, max_retries=5)
-    layout_agent: Agent[None, str] = Agent(
-        model=settings.agent_model,
-        toolsets=[mcp],
-        system_prompt=_build_layout_agent_system_prompt(num_sections) + CODE_MODE_INSTRUCTIONS,
-        model_settings=_CACHE_SETTINGS,
-        retries=6,
-    )
-
-    result = await layout_agent.run(
-        f"Build the shared header, {num_sections} placeholder body row(s), and footer "
-        f"for the '{sequence_title}' campaign."
-    )
-    layout_usage = result.usage()
-    text = result.output
-
-    # Extract the row-ID JSON block the agent was instructed to append.
-    # Use JSONDecoder.raw_decode scanning backwards for the last valid JSON object
-    # that contains 'header_row_id' — handles the nested array in placeholder_row_ids.
-    decoder = _json.JSONDecoder()
-    ids: dict | None = None
-    idx = len(text) - 1
-    while idx >= 0:
-        idx = text.rfind("{", 0, idx + 1)
-        if idx < 0:
-            break
-        try:
-            obj, _ = decoder.raw_decode(text, idx)
-            if isinstance(obj, dict) and "header_row_id" in obj:
-                ids = obj
-                break
-        except _json.JSONDecodeError:
-            pass
-        idx -= 1
-
-    if ids is None:
-        raise ValueError(
-            f"Layout agent did not return row IDs in the expected format. "
-            f"Response tail: {text[-300:]!r}"
-        )
-
-    header_row_id: str = ids["header_row_id"]
-    footer_row_id: str = ids["footer_row_id"]
-    placeholder_row_ids: list[str] = ids.get("placeholder_row_ids", [])
-
-    template_data = await get_template(layout_template_id, settings)
-    template_json = template_data.get("template", template_data)
-
-    return header_row_id, footer_row_id, placeholder_row_ids, template_json, layout_usage
 
 
 def append_layout_context(
@@ -596,19 +374,27 @@ def append_layout_context(
 # --- SSE helpers --------------------------------------------------------------
 
 
-def _tokens_event(usage) -> dict | None:
-    """Build a tokens SSE event from a PydanticAI usage object. Returns None if no usage."""
+def _tokens_event(usage, model: str) -> dict | None:
+    """Build a tokens SSE event from a PydanticAI usage object. Returns None if no usage.
+
+    `cost` is the request's USD cost, or null when `model` has no known price.
+    """
     if usage is None:
         return None
-    return {
-        "event": "tokens",
-        "data": _json.dumps({
-            "input": usage.input_tokens or 0,
-            "output": usage.output_tokens or 0,
-            "cache_write": usage.cache_write_tokens or 0,
-            "cache_read": usage.cache_read_tokens or 0,
-        }),
+    counts = {
+        "input": usage.input_tokens or 0,
+        "output": usage.output_tokens or 0,
+        "cache_write": usage.cache_write_tokens or 0,
+        "cache_read": usage.cache_read_tokens or 0,
     }
+    cost = request_cost(
+        model,
+        input_tokens=counts["input"],
+        output_tokens=counts["output"],
+        cache_write_tokens=counts["cache_write"],
+        cache_read_tokens=counts["cache_read"],
+    )
+    return {"event": "tokens", "data": _json.dumps({**counts, "cost": cost})}
 
 
 def _preview_event(email_html: str) -> dict:
@@ -668,7 +454,7 @@ async def stream_executor(
             async for node in agent_run:
                 try:
                     if isinstance(node, CallToolsNode):
-                        tok = _tokens_event(node.model_response.usage)
+                        tok = _tokens_event(node.model_response.usage, settings.llm_model)
                         if tok:
                             yield tok
                     if isinstance(node, ModelRequestNode):
@@ -763,7 +549,7 @@ async def stream_translation_executor(
             async for node in agent_run:
                 try:
                     if isinstance(node, CallToolsNode):
-                        tok = _tokens_event(node.model_response.usage)
+                        tok = _tokens_event(node.model_response.usage, settings.llm_model)
                         if tok:
                             yield tok
                     if isinstance(node, ModelRequestNode):
@@ -861,7 +647,7 @@ async def stream_palette_executor(
             async for node in agent_run:
                 try:
                     if isinstance(node, CallToolsNode):
-                        tok = _tokens_event(node.model_response.usage)
+                        tok = _tokens_event(node.model_response.usage, settings.llm_model)
                         if tok:
                             yield tok
                     if isinstance(node, ModelRequestNode):
@@ -946,7 +732,7 @@ async def stream_edit_executor(
             async for node in agent_run:
                 try:
                     if isinstance(node, CallToolsNode):
-                        tok = _tokens_event(node.model_response.usage)
+                        tok = _tokens_event(node.model_response.usage, settings.llm_model)
                         if tok:
                             yield tok
                     if isinstance(node, ModelRequestNode):
@@ -995,21 +781,29 @@ async def stream_single_executor(
     template_id: str,
     brief: str,
     settings: Settings,
+    *,
+    progressive: bool = False,
 ) -> AsyncIterator[dict]:
     """Run one single-email agent and yield SSE events.
 
     The agent builds everything from scratch: global styles, header, body
-    content, footer, and final validation — all in one pass.
+    content, footer, and final validation. With ``progressive`` it builds one
+    section per script so the live preview fills in step by step; without it
+    the agent is free to batch everything into as few scripts as possible
+    (the Code Mode page relies on that).
 
     Emits:
     - "preview" events: rendered email HTML in an iframe (same as other executors)
     - "close" event: tells HTMX to stop reconnecting
     """
     mcp = create_code_mode_mcp(template_id, settings)
+    system_prompt = SINGLE_EMAIL_AGENT_SYSTEM_PROMPT + CODE_MODE_INSTRUCTIONS
+    if progressive:
+        system_prompt += PROGRESSIVE_BUILD_INSTRUCTIONS
     agent: Agent[None, str] = Agent(
         model=settings.agent_model,
         toolsets=[mcp],
-        system_prompt=SINGLE_EMAIL_AGENT_SYSTEM_PROMPT + CODE_MODE_INSTRUCTIONS,
+        system_prompt=system_prompt,
         model_settings=_CACHE_SETTINGS,
         retries=3,
     )
@@ -1019,7 +813,7 @@ async def stream_single_executor(
             async for node in agent_run:
                 try:
                     if isinstance(node, CallToolsNode):
-                        tok = _tokens_event(node.model_response.usage)
+                        tok = _tokens_event(node.model_response.usage, settings.llm_model)
                         if tok:
                             yield tok
                         for part in node.model_response.parts:

@@ -101,6 +101,26 @@ class ModelSelectionTests(unittest.TestCase):
         self.assertEqual(selected.llm_model, "openai:gpt-5-mini")
         self.assertEqual(settings.ai_provider, "anthropic")
 
+    def test_only_single_email_page_builds_progressively(self):
+        for endpoint, expected in [("/generate-stream", True), ("/codemode-stream", False)]:
+            with self.subTest(endpoint=endpoint):
+                captured = []
+
+                async def fake_stream(*args, **kwargs):
+                    captured.append(kwargs.get("progressive", False))
+                    yield {"event": "close", "data": ""}
+
+                with (
+                    patch.object(routes, "get_settings", return_value=self.settings()),
+                    patch.object(routes, "create_template", AsyncMock(return_value="test")),
+                    patch.object(routes, "stream_single_executor", fake_stream),
+                ):
+                    response = TestClient(routes.app).get(endpoint, params={
+                        "brief": "test", "model": "openai:gpt-5-mini",
+                    })
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(captured, [expected])
+
     def test_every_executor_receives_selected_model(self):
         cases = [
             ("/generate-stream", {"brief": "test"}, "stream_single_executor"),
@@ -146,30 +166,20 @@ class ModelSelectionTests(unittest.TestCase):
         plan = EmailPlan(sequence_title="Test", preset_id="black-friday-fashion", emails=[EmailStep(
             step=1, title="Email", subject_line="Subject", agent_prompt="Build",
         )])
-        planner = AsyncMock(return_value=(plan, None))
-        layout = AsyncMock()
         model = "openai:gpt-5-mini"
         normalized = routes.build_preset_layout(plan.preset_id, 3)[3]
         normalized["page"]["rows"][-1]["server-normalized"] = True
         with (
             patch.object(routes, "get_settings", return_value=self.settings()),
-            patch("app.agent.generate_plan", planner),
-            patch("app.agent.build_shared_layout", layout),
             patch.object(routes, "create_seeded_template", AsyncMock(return_value="child")) as seed,
             patch.object(routes, "get_template", AsyncMock(return_value=normalized)),
             patch.dict(routes.template_layouts, {}, clear=True),
         ):
             client = TestClient(routes.app)
-            response = client.get("/plan-stream", params={
-                "goal": "Test", "model": model, "preset_id": "black-friday-fashion",
-            })
-            self.assertEqual(response.status_code, 200)
-            planner.assert_not_awaited()
             response = client.get("/execute-stream", params={
                 "plan_json": plan.model_dump_json(), "model": model,
             })
             self.assertEqual(response.status_code, 200)
-            layout.assert_not_awaited()
             self.assertEqual(seed.call_args.args[0].llm_model, model)
             self.assertIn("VAULTURA", str(seed.call_args.args[1]))
             self.assertNotIn("event: tokens", response.text)
@@ -250,7 +260,6 @@ class ModelSelectionTests(unittest.TestCase):
         endpoints = [
             ("/generate-stream", {"brief": "test"}),
             ("/codemode-stream", {"brief": "test"}),
-            ("/plan-stream", {"goal": "test"}),
             ("/execute-stream", {"plan_json": "{}"}),
             ("/translate-stream", {"session_id": "test"}),
             ("/palette-stream", {"session_id": "test"}),

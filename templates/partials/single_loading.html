@@ -1,435 +1,540 @@
-<!-- Returned instantly by POST /generate. SSE drives the live preview. -->
+<!-- Returned instantly by POST /generate. An EventSource drives the live preview. -->
 
 <style>
-/* ── Two-column layout ── */
-.single-split-layout {
-  display: flex;
-  gap: 1.5rem;
-  align-items: flex-start;
-  margin-top: 1.25rem;
-}
+.se-card { padding: 0; }
 
-/* ── Left: step progress panel ── */
-.single-steps-col {
-  flex-shrink: 0;
-  width: 210px;
+/* ── Toolbar ── */
+.se-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .75rem 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
   position: sticky;
-  top: 1rem;
+  top: var(--se-header, 0px);
+  z-index: 5;
+  background: var(--surface);
+  border-radius: var(--radius) var(--radius) 0 0;
 }
+.se-title { font-size: 1.05rem; font-weight: 700; margin: 0; }
 
-.sgl-status-row {
-  display: flex;
-  align-items: center;
-  gap: .65rem;
-  margin-bottom: 1rem;
-  padding-bottom: .85rem;
-  border-bottom: 1px solid #EAE6F7;
-}
-
-.sgl-status-label {
-  font-size: .78rem;
-  font-weight: 700;
-  color: #26045D;
-}
-
-.sgl-steps {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.sgl-step {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  padding: .48rem .6rem;
-  border-radius: 7px;
-  font-size: .76rem;
-  font-weight: 500;
-  color: #6E5F8A;
-  transition: background .25s, color .25s, opacity .25s;
-  position: relative;
-}
-
-.sgl-step + .sgl-step::before {
-  content: "";
-  position: absolute;
-  left: 1.1rem;
-  top: -5px;
-  width: 2px;
-  height: 5px;
-  background: #EAE6F7;
-}
-
-.sgl-icon {
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid #D6C8FF;
-  display: inline-block;
-  transition: border-color .25s, background .25s;
-  position: relative;
-}
-
-/* active: spinning purple ring */
-.sgl-step.is-active { background: rgba(119,71,255,.07); color: #26045D; }
-.sgl-step.is-active .sgl-icon {
-  border-color: #7747FF;
-  border-top-color: transparent;
-  animation: spin .7s linear infinite;
-}
-
-/* done: green check */
-.sgl-step.is-done { color: #6E5F8A; }
-.sgl-step.is-done .sgl-icon {
-  border-color: #82EDA8;
-  background: #82EDA8;
-}
-.sgl-step.is-done .sgl-icon::after {
-  content: "✓";
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: .5rem;
-  font-weight: 900;
-  color: #26045D;
-}
-
-/* pending: faded */
-.sgl-step.is-pending { opacity: .38; }
-
-/* ── Right: preview column ── */
-.single-preview-col { flex: 1; min-width: 0; }
-
-.single-result-col {
-  border: 2px solid #EAE6F7;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(38,4,93,.06), 0 6px 20px rgba(38,4,93,.08);
-  transition: border-color .3s, box-shadow .3s;
-  width: 100%;
-  max-width: 700px; /* never wider than the email itself */
-}
-
-.single-result-col.is-generating {
-  border-color: #7747FF;
-  box-shadow:
-    0 0 0 3px rgba(119,71,255,.15),
-    0 1px 3px rgba(38,4,93,.06),
-    0 6px 20px rgba(38,4,93,.08);
-}
-
-.single-result-col.is-done { border-color: #82EDA8; }
-
-.single-result-col.is-error {
-  border-color: #F87171;
-  box-shadow: 0 0 0 3px rgba(248,113,113,.15), 0 1px 3px rgba(38,4,93,.06);
-}
-
-.agent-error-panel:not(:empty) {
-  padding: .75rem 1rem;
-  background: #FEF2F2;
-  color: #B91C1C;
-  font-size: .78rem;
-  line-height: 1.5;
-  border-top: 1px solid #FECACA;
-  word-break: break-word;
-}
-
-/* iframe wrap */
-.single-iframe-wrap { width: 700px; transform-origin: top left; }
-.single-iframe-wrap iframe { width: 700px; border: none; display: block; }
-
-/* ── Email skeleton placeholder ── */
-.email-skeleton {
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position:  400px 0; }
-}
-
-.esk-block {
-  background: linear-gradient(90deg, #F0EDFA 25%, #E4DEFF 50%, #F0EDFA 75%);
-  background-size: 800px 100%;
-  animation: shimmer 1.6s ease-in-out infinite;
-}
-
-.esk-header { height: 80px; }
-.esk-hero   { height: 140px; margin: 0; background-color: #EAE6F7;
-              background: linear-gradient(90deg, #E4DEFF 25%, #D6C8FF 50%, #E4DEFF 75%);
-              background-size: 800px 100%;
-              animation: shimmer 1.6s ease-in-out infinite; }
-.esk-body   { height: 120px; margin: 0; }
-.esk-cols   {
-  display: flex;
-  gap: 0;
-  height: 100px;
-}
-.esk-col-block {
-  flex: 1;
-  background: linear-gradient(90deg, #F8F6FE 25%, #EAE6F7 50%, #F8F6FE 75%);
-  background-size: 800px 100%;
-  animation: shimmer 1.8s ease-in-out infinite;
-}
-.esk-col-block:nth-child(2) { animation-delay: .2s; }
-.esk-col-block:nth-child(3) { animation-delay: .4s; }
-.esk-cta    { height: 80px; }
-.esk-footer { height: 56px;
-              background: linear-gradient(90deg, #F8F6FE 25%, #F0EDFA 50%, #F8F6FE 75%);
-              background-size: 800px 100%;
-              animation: shimmer 1.6s ease-in-out infinite; }
-
-.esk-label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: .5rem;
-  padding: .85rem 1rem;
-  font-size: .72rem;
-  color: #6E5F8A;
-  font-style: italic;
-  border-top: 1px solid #EAE6F7;
-}
-
-/* ── Card header badges ── */
-.single-gen-status {
-  flex-shrink: 0;
+.se-status {
   display: inline-flex;
   align-items: center;
-  gap: .35rem;
-  font-size: .7rem;
-  font-weight: 700;
-  padding: .28rem .65rem;
+  gap: .45rem;
+  font-size: .8rem;
+  font-weight: 600;
+  padding: .3rem .7rem;
   border-radius: 99px;
-  white-space: nowrap;
-  transition: background .3s, color .3s;
+  background: rgba(119,71,255,.1);
+  color: var(--primary);
 }
-
-.single-gen-status.generating { background: rgba(119,71,255,.1); color: #7747FF; }
-.single-gen-status.done       { background: rgba(130,237,168,.25); color: #1a7a40; }
-.single-gen-status.error      { background: rgba(248,113,113,.15); color: #B91C1C; }
-
-.status-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
+.se-status[data-state="done"]  { background: rgba(130,237,168,.28); color: #1a7a40; }
+.se-status[data-state="error"] { background: rgba(220,38,38,.1);   color: #B91C1C; }
+.se-status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
   background: currentColor;
   animation: blink-dot 1s ease-in-out infinite;
 }
-@keyframes blink-dot {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: .25; }
+.se-status:not([data-state="building"]) .se-status-dot { animation: none; }
+.se-elapsed { font-variant-numeric: tabular-nums; font-weight: 500; opacity: .8; }
+.se-usage {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .6rem;
+  font-size: .8rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+.se-usage[hidden] { display: none; }
+.se-usage-cost { color: var(--text); font-weight: 600; }
+@keyframes blink-dot { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+
+.se-seg {
+  display: inline-flex;
+  margin-left: auto;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.se-seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: .32rem .7rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.se-seg button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(38,4,93,.12);
+}
+
+.se-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.se-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .45rem .85rem;
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.se-btn:hover { border-color: var(--primary); color: var(--primary); }
+.se-btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.se-btn-primary:hover { background: var(--primary-dk); border-color: var(--primary-dk); color: #fff; }
+.se-btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+.se-seg button:focus-visible,
+.se-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ── Body: sidebar + canvas ── */
+.se-body {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: start;
+}
+
+.se-side {
+  padding: 1.25rem;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: sticky;
+  top: var(--se-side-top, 0px);
+}
+.se-side h3 { font-size: .85rem; font-weight: 700; margin: 0 0 .6rem; }
+.se-log { list-style: none; margin: 0; padding: 0; display: grid; gap: .1rem; }
+.se-log li {
+  display: grid;
+  grid-template-columns: 2.6rem 1fr;
+  gap: .5rem;
+  padding: .3rem 0;
+  font-size: .78rem;
+  line-height: 1.4;
+}
+.se-log time { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.se-log small { display: block; color: var(--text-muted); font-size: .72rem; }
+.se-log li[data-kind="done"]  span { color: #1a7a40; font-weight: 600; }
+.se-log li[data-kind="error"] span { color: #B91C1C; font-weight: 600; }
+
+/* ── Canvas: the email sits on a neutral backdrop, like in a mail client ── */
+.se-canvas {
+  position: relative;
+  background: #EEEBF5;
+  padding: 2rem 1.5rem 2.5rem;
+  min-height: 520px;
+  border-radius: 0 0 var(--radius) 0;
+}
+.se-progress {
+  position: absolute; inset: 0 0 auto 0; height: 3px; overflow: hidden;
+}
+.se-progress::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 30%;
+  background: var(--primary);
+  animation: se-progress 1.4s ease-in-out infinite;
+}
+.se-card:not([data-state="building"]) .se-progress { display: none; }
+@keyframes se-progress { from { left: -30%; } to { left: 100%; } }
+
+.se-error {
+  max-width: 700px;
+  margin: 0 auto 1rem;
+  padding: .8rem 1rem;
+  border-radius: 10px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+  font-size: .8rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.se-error[hidden] { display: none; }
+
+.se-frame[hidden] { display: none; }
+.se-frame {
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(38,4,93,.08), 0 12px 32px rgba(38,4,93,.12);
+  transition: width .25s ease;
+}
+.se-scale { transform-origin: top left; position: relative; }
+.se-scale iframe { display: block; border: 0; }
+
+.se-skeleton { display: grid; gap: 10px; padding: 18px; }
+.se-skeleton div {
+  border-radius: 4px;
+  background: linear-gradient(90deg, #F0EDFA 25%, #E4DEFF 50%, #F0EDFA 75%);
+  background-size: 800px 100%;
+  animation: se-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes se-shimmer { from { background-position: -400px 0; } to { background-position: 400px 0; } }
+.se-caption { text-align: center; font-size: .76rem; color: var(--text-muted); margin-top: .9rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .se-status-dot, .se-progress::after, .se-skeleton div { animation: none; }
+  .se-frame { transition: none; }
+}
+
+@media (max-width: 900px) {
+  .se-body { grid-template-columns: 1fr; }
+  .se-side { position: static; border-right: 0; border-top: 1px solid var(--border); }
+  .se-seg { margin-left: 0; }
+  .se-canvas { order: -1; padding: 1.25rem .75rem 1.75rem; border-radius: 0; }
+  .se-toolbar { position: static; }
 }
 </style>
 
-<section class="card">
-  <div class="card-header-row">
-    <h2 class="card-title">Generated Email</h2>
-    <span class="single-gen-status generating" id="single-status-badge">
-      <span class="status-dot"></span>Generating&hellip;
+<section class="card se-card" id="se-card" data-state="building">
+  <div class="se-toolbar">
+    <h2 class="se-title">Your email</h2>
+    <span class="se-status" id="se-status" data-state="building">
+      <span class="se-status-dot" aria-hidden="true"></span>
+      <span id="se-status-text" role="status">Building</span>
+      <span class="se-elapsed" id="se-elapsed">0:00</span>
     </span>
+    <span class="se-usage" id="se-usage" hidden>
+      <span id="se-usage-tokens"></span>
+      <span class="se-usage-cost" id="se-usage-cost"></span>
+    </span>
+
+    <div class="se-seg" role="group" aria-label="Preview size">
+      <button type="button" data-mode="desktop" aria-pressed="true">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 14h5M8 11v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Desktop
+      </button>
+      <button type="button" data-mode="mobile" aria-pressed="false">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="4.5" y="1.5" width="7" height="13" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M7 12.5h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Mobile
+      </button>
+    </div>
+
+    <div class="se-actions">
+      <button type="button" class="se-btn" id="se-open" aria-disabled="true">Open in new tab</button>
+      <a class="se-btn" id="se-json" aria-disabled="true" tabindex="-1">Download JSON</a>
+      <a class="se-btn se-btn-primary" id="se-html" aria-disabled="true" tabindex="-1">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download HTML
+      </a>
+    </div>
   </div>
 
-  <!-- SSE lives here — steps col and preview col are siblings inside it -->
-  <div id="single-gen-card"
-       class="single-split-layout"
-       hx-ext="sse"
-       sse-connect="/generate-stream?brief={{ brief | urlencode }}"
-       sse-close="close">
-
-    <!-- ── LEFT: persistent step list (never swapped) ── -->
-    <div class="single-steps-col">
-      <div class="sgl-status-row">
-        <span class="phase-spinner" id="sgl-spinner"></span>
-        <p class="sgl-status-label">Building your email&hellip;</p>
+  <div class="se-body">
+    <aside class="se-side">
+      <div>
+        <h3>Activity</h3>
+        <ol class="se-log" id="se-log"></ol>
       </div>
-      <ul class="sgl-steps" id="sgl-list">
-        <li class="sgl-step is-active" ><span class="sgl-icon"></span>Subject &amp; preheader</li>
-        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Brand colours &amp; typography</li>
-        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Header banner</li>
-        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Hero section</li>
-        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Value propositions</li>
-        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Social proof</li>
-        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Closing CTA strip</li>
-        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Compliance footer</li>
-        <li class="sgl-step is-pending"><span class="sgl-icon"></span>Quality &amp; duplicate check</li>
-      </ul>
-    </div>
+    </aside>
 
-    <!-- ── RIGHT: preview column (only .single-iframe-wrap content is swapped) ── -->
-    <div class="single-preview-col">
-      <div class="single-result-col is-generating" id="single-result-col">
-        <div class="agent-error-panel" sse-swap="agent-error" hx-swap="innerHTML"></div>
-        <div class="single-iframe-wrap" sse-swap="preview" hx-swap="innerHTML">
-
-          <!-- skeleton shown until the first SSE preview fires -->
-          <div class="email-skeleton">
-            <div class="esk-block esk-header"></div>
-            <div class="esk-block esk-hero"></div>
-            <div class="esk-block esk-body"></div>
-            <div class="esk-cols">
-              <div class="esk-col-block"></div>
-              <div class="esk-col-block"></div>
-              <div class="esk-col-block"></div>
-            </div>
-            <div class="esk-block esk-cta"></div>
-            <div class="esk-block esk-footer"></div>
-            <div class="esk-label">
-              <span class="phase-spinner" style="width:12px;height:12px;border-width:1.5px"></span>
-              Preview will appear as sections are built&hellip;
-            </div>
+    <div class="se-canvas">
+      <div class="se-progress" aria-hidden="true"></div>
+      <div class="se-error" id="se-error" role="alert" hidden></div>
+      <div class="se-frame" id="se-frame">
+        <div class="se-scale" id="se-scale">
+          <div class="se-skeleton" aria-hidden="true">
+            <div style="height:64px"></div>
+            <div style="height:220px"></div>
+            <div style="height:18px;width:70%"></div>
+            <div style="height:14px;width:90%"></div>
+            <div style="height:14px;width:80%"></div>
+            <div style="height:120px"></div>
+            <div style="height:44px;width:40%;margin:0 auto"></div>
+            <div style="height:56px"></div>
           </div>
-
         </div>
       </div>
+      <p class="se-caption" id="se-caption">The preview appears after the agent's first script runs.</p>
     </div>
-
-    <!-- Hidden sink for the template-id SSE event — HTMX writes the ID here -->
-    <div id="single-template-id"
-         sse-swap="template-id"
-         hx-swap="innerHTML"
-         style="display:none"></div>
-
   </div>
 </section>
 
 <script>
 (function () {
+  var brief = {{ brief | tojson }};
+  var card = document.getElementById('se-card');
+  var statusEl = document.getElementById('se-status');
+  var statusText = document.getElementById('se-status-text');
+  var elapsedEl = document.getElementById('se-elapsed');
+  var log = document.getElementById('se-log');
+  var frame = document.getElementById('se-frame');
+  var scaleBox = document.getElementById('se-scale');
+  var caption = document.getElementById('se-caption');
+  var errorBox = document.getElementById('se-error');
+  var openBtn = document.getElementById('se-open');
+  var jsonBtn = document.getElementById('se-json');
+  var htmlBtn = document.getElementById('se-html');
 
-  /* ── Read template-id from the hidden SSE-swap sink ── */
-  function getTemplateId() {
-    var el = document.getElementById('single-template-id');
-    return el ? el.textContent.trim() : null;
+  var WIDTHS = { desktop: 700, mobile: 375 };
+  var mode = frame.parentElement.clientWidth < 560 ? 'mobile' : 'desktop';
+
+  /* ── Keep the toolbar and sidebar below the sticky site header ── */
+  function offsets() {
+    var header = document.querySelector('.site-header');
+    var h = header ? header.offsetHeight : 0;
+    var toolbar = card.querySelector('.se-toolbar');
+    card.style.setProperty('--se-header', h + 'px');
+    card.style.setProperty('--se-side-top', (h + toolbar.offsetHeight) + 'px');
+  }
+  offsets();
+  var started = Date.now();
+  var templateId = null;
+  var scripts = 0;
+  var pendingScript = null;
+  var finished = false;
+  var outcome = null;
+
+  /* ── Elapsed timer ── */
+  function clock() {
+    var s = Math.floor((Date.now() - started) / 1000);
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+  var timer = setInterval(function () { elapsedEl.textContent = clock(); }, 1000);
+
+  /* ── Activity log ── */
+  function addLog(text, kind) {
+    var li = document.createElement('li');
+    if (kind) li.dataset.kind = kind;
+    var time = document.createElement('time');
+    time.textContent = clock();
+    var span = document.createElement('span');
+    span.textContent = text;
+    li.appendChild(time);
+    li.appendChild(span);
+    log.appendChild(li);
+    return li;
+  }
+  function setNote(li, text) {
+    var note = li.querySelector('small');
+    if (!text) { if (note) note.remove(); return; }
+    if (!note) note = li.lastChild.appendChild(document.createElement('small'));
+    note.textContent = text;
   }
 
-  /* ── Scale preview iframe to fit its container ── */
-  function scalePreview() {
-    var col = document.getElementById('single-result-col');
-    if (!col) return;
-    var w = col.offsetWidth;
-    var scale = Math.min(1, w / 700);
-    var wrap = col.querySelector('.single-iframe-wrap');
-    if (wrap) {
-      wrap.style.transform = 'scale(' + scale + ')';
-      wrap.style.height = (800 * scale) + 'px';
+  /* The agent opens each script with a one-line comment describing the step;
+     show that comment, or a generic label when the script has none. */
+  function describeScript(code, n) {
+    var lines = String(code).split('\n').map(function (l) { return l.trim(); })
+      .filter(Boolean).slice(0, 3);
+    for (var i = 0; i < lines.length; i++) {
+      var m = lines[i].match(/^\/\/\s*(?:step\s*\d*\s*[:.-]\s*)?(.+)$/i);
+      if (m) {
+        var text = m[1].trim().replace(/[.\s]+$/, '');
+        if (text.length > 90) text = text.slice(0, 87).trimEnd() + '...';
+        return text.charAt(0).toUpperCase() + text.slice(1);
+      }
     }
+    return 'Working on the design (step ' + n + ')';
   }
 
-  scalePreview();
-  window.addEventListener('resize', scalePreview);
-  document.body.addEventListener('htmx:afterSwap', function () { setTimeout(scalePreview, 50); });
-  document.body.addEventListener('htmx:sseMessage', function (e) {
-    if (e.target.getAttribute('sse-swap') === 'agent-error') {
-      var col = document.getElementById('single-result-col');
-      if (col) {
-        col.classList.remove('is-generating');
-        col.classList.add('is-error');
-      }
-      var spinner = document.getElementById('sgl-spinner');
-      if (spinner) {
-        spinner.className = '';
-        spinner.textContent = '\u2715';
-        spinner.style.cssText = 'flex-shrink:0;font-size:.9rem;font-weight:900;color:#B91C1C;';
-      }
-      var label = spinner && spinner.nextElementSibling;
-      if (label) label.textContent = 'Generation failed';
-      var badge = document.getElementById('single-status-badge');
-      if (badge) { badge.className = 'single-gen-status error'; badge.textContent = '\u2715 Failed'; }
-      clearInterval(stepTimer);
-      return;
-    }
-    setTimeout(scalePreview, 50);
-    var col = document.getElementById('single-result-col');
-    if (!col) return;
-    var wrap = col.querySelector('.single-iframe-wrap');
-    if (!wrap) return;
-    wrap.classList.remove('preview-refreshing');
-    void wrap.offsetWidth;
-    wrap.classList.add('preview-refreshing');
-    wrap.addEventListener('animationend', function () {
-      wrap.classList.remove('preview-refreshing');
+  /* ── Preview sizing: full email height, scaled down only when the canvas is narrower ── */
+  function currentFrame() { return scaleBox.querySelector('iframe:not([data-loading])'); }
+
+  function fit() {
+    var width = WIDTHS[mode];
+    var available = frame.parentElement.clientWidth -
+      parseFloat(getComputedStyle(frame.parentElement).paddingLeft) * 2;
+    var scale = Math.min(1, available / width);
+    var iframe = currentFrame();
+    scaleBox.style.width = width + 'px';
+    scaleBox.style.transform = scale < 1 ? 'scale(' + scale + ')' : '';
+    frame.style.width = Math.round(width * scale) + 'px';
+    if (!iframe) { frame.style.height = ''; return; }
+    iframe.style.width = width + 'px';
+    iframe.style.height = '1px';  // let the document report its own height, not the frame's
+    var height = 600;
+    try {
+      var doc = iframe.contentDocument;
+      height = Math.max(doc.documentElement.scrollHeight, doc.body ? doc.body.scrollHeight : 0);
+    } catch (_) {}
+    iframe.style.height = height + 'px';
+    frame.style.height = Math.round(height * scale) + 'px';
+  }
+
+  function watchImages(iframe) {
+    try {
+      iframe.contentDocument.querySelectorAll('img').forEach(function (img) {
+        if (!img.complete) img.addEventListener('load', fit, { once: true });
+      });
+    } catch (_) {}
+  }
+
+  function showPreview(markup) {
+    var holder = document.createElement('div');
+    holder.innerHTML = markup;
+    var next = holder.querySelector('iframe');
+    if (!next) return;
+    next.removeAttribute('style');
+    next.dataset.loading = '1';
+    next.style.cssText = 'position:absolute;visibility:hidden;width:' + WIDTHS[mode] + 'px;';
+    next.addEventListener('load', function () {
+      Array.prototype.forEach.call(scaleBox.children, function (child) {
+        if (child !== next) child.remove();
+      });
+      delete next.dataset.loading;
+      next.style.cssText = '';
+      fit();
+      watchImages(next);
     }, { once: true });
-  });
+    scaleBox.appendChild(next);
+    caption.textContent = '';
+  }
 
-  /* ── Auto-advance step list every ~9 s ── */
-  var steps = document.querySelectorAll('#sgl-list .sgl-step');
-  var current = 0;
-  var stepTimer = setInterval(function () {
-    if (current < steps.length - 1) {
-      steps[current].classList.remove('is-active');
-      steps[current].classList.add('is-done');
-      current++;
-      steps[current].classList.remove('is-pending');
-      steps[current].classList.add('is-active');
-    } else {
-      clearInterval(stepTimer);
-    }
-  }, 9000);
-
-  /* ── On completion: mark all done, update badge, show download button ── */
-  document.body.addEventListener('htmx:sseClose', function () {
-    var col = document.getElementById('single-result-col');
-    if (col && col.classList.contains('is-error')) return;
-    clearInterval(stepTimer);
-
-    // Mark all remaining steps as done
-    steps.forEach(function (s) {
-      s.classList.remove('is-active', 'is-pending');
-      s.classList.add('is-done');
+  document.querySelectorAll('.se-seg button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      mode = btn.dataset.mode;
+      document.querySelectorAll('.se-seg button').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b === btn));
+      });
+      fit();
+      requestAnimationFrame(fit);
     });
+  });
+  document.querySelectorAll('.se-seg button').forEach(function (b) {
+    b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
+  });
+  window.addEventListener('resize', function () { offsets(); fit(); });
+  fit();
 
-    // Swap spinner for a check in the status row
-    var spinner = document.getElementById('sgl-spinner');
-    if (spinner) {
-      spinner.className = '';   // removes phase-spinner → stops the animation
-      spinner.textContent = '✓';
-      spinner.style.cssText = 'flex-shrink:0;font-size:.9rem;font-weight:900;color:#1a7a40;';
-    }
-    var label = spinner && spinner.nextElementSibling;
-    if (label) label.textContent = 'Email ready!';
+  /* ── Actions ── */
+  function enableActions() {
+    if (!templateId) return;
+    var short = templateId.slice(0, 8);
+    jsonBtn.href = '/download-template/' + templateId;
+    jsonBtn.download = 'email-' + short + '.json';
+    htmlBtn.href = '/download-html/' + templateId;
+    htmlBtn.download = 'email-' + short + '.html';
+    [jsonBtn, htmlBtn].forEach(function (a) { a.removeAttribute('aria-disabled'); a.removeAttribute('tabindex'); });
+    if (currentFrame()) openBtn.removeAttribute('aria-disabled');
+  }
 
-    // Update top badge
-    var badge = document.getElementById('single-status-badge');
-    if (badge) { badge.className = 'single-gen-status done'; badge.textContent = '✓ Done'; }
-
-    // Show download button next to badge
-    var _templateId = getTemplateId();
-    if (_templateId) {
-      var headerRow = badge && badge.parentElement;
-      if (headerRow && !document.getElementById('single-download-btn')) {
-        var svgIcon = '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> ';
-
-        var a = document.createElement('a');
-        a.id = 'single-download-btn';
-        a.href = '/download-template/' + _templateId;
-        a.download = 'email-' + _templateId.slice(0, 8) + '.json';
-        a.className = 'btn-outline';
-        a.innerHTML = svgIcon + 'Download JSON';
-        headerRow.appendChild(a);
-
-        var b = document.createElement('a');
-        b.href = '/download-html/' + _templateId;
-        b.download = 'email-' + _templateId.slice(0, 8) + '.html';
-        b.className = 'btn-outline';
-        b.innerHTML = svgIcon + 'Download HTML';
-        headerRow.appendChild(b);
-      }
-    }
-
-    var col = document.getElementById('single-result-col');
-    if (col) { col.classList.remove('is-generating'); col.classList.add('is-done'); }
-
-    scalePreview();
+  openBtn.addEventListener('click', function () {
+    var iframe = currentFrame();
+    if (!iframe) return;
+    var url = URL.createObjectURL(new Blob([iframe.srcdoc], { type: 'text/html' }));
+    window.open(url, '_blank', 'noopener');
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
   });
 
+  /* ── Final state ── */
+  function finish(state, message) {
+    if (finished) return;
+    finished = true;
+    clearInterval(timer);
+    card.dataset.state = state;
+    statusEl.dataset.state = state;
+    if (state === 'error') {
+      statusText.textContent = currentFrame() ? 'Partial result' : 'Failed';
+      if (!/[.!?]$/.test(message)) message += '.';
+      errorBox.textContent = 'The agent stopped before finishing: ' + message +
+        ' Reload the page to try again, or choose another model.';
+      errorBox.hidden = false;
+      addLog('Generation failed', 'error');
+      if (!currentFrame()) {
+        frame.hidden = true;
+        caption.textContent = 'No preview was produced.';
+      }
+    } else {
+      statusText.textContent = outcome === 'needs_review' ? 'Ready, needs review' : 'Ready';
+      addLog('Email ready', 'done');
+    }
+    if (pendingScript) setNote(pendingScript, state === 'error' ? 'Did not finish' : null);
+    // A failed run with no preview has nothing worth downloading.
+    if (state !== 'error' || currentFrame()) enableActions();
+  }
+
+  /* ── Usage: this run's tokens and cost, summed across model requests ── */
+  var usage = { input: 0, output: 0, cache_write: 0, cache_read: 0, cost: 0, unpriced: false };
+  var usageEl = document.getElementById('se-usage');
+
+  function fmtTokens(n) {
+    if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    return String(n);
+  }
+  function fmtCost(usd) {
+    return '$' + usd.toFixed(usd >= 0.1 ? 2 : 3);
+  }
+  function renderUsage() {
+    var total = usage.input + usage.output;
+    document.getElementById('se-usage-tokens').textContent = fmtTokens(total) + ' tokens';
+    document.getElementById('se-usage-cost').textContent =
+      usage.unpriced ? 'Cost unavailable' : fmtCost(usage.cost);
+    var lines = [
+      'Input: ' + usage.input.toLocaleString() + ' tokens',
+      '  cache reads: ' + usage.cache_read.toLocaleString(),
+      '  cache writes: ' + usage.cache_write.toLocaleString(),
+      'Output: ' + usage.output.toLocaleString() + ' tokens'
+    ];
+    if (usage.unpriced) lines.push('No price is listed for this model.');
+    usageEl.title = lines.join('\n');
+    usageEl.hidden = false;
+  }
+
+  /* ── Stream ── */
+  var es = new EventSource('/generate-stream?brief=' + encodeURIComponent(brief));
+  pendingScript = addLog('Reading your brief and planning the layout');
+  setNote(pendingScript, 'Writing the first step...');
+
+  es.addEventListener('template-id', function (e) {
+    templateId = e.data.trim();
+  });
+  es.addEventListener('code', function (e) {
+    if (pendingScript) setNote(pendingScript, null);
+    scripts += 1;
+    pendingScript = addLog(describeScript(e.data, scripts));
+    setNote(pendingScript, 'Applying to the email...');
+  });
+  es.addEventListener('preview', function (e) {
+    showPreview(e.data);
+    if (pendingScript && scripts > 0) { setNote(pendingScript, null); pendingScript = null; }
+  });
+  es.addEventListener('tokens', function (e) {
+    var t;
+    try { t = JSON.parse(e.data); } catch (_) { return; }
+    ['input', 'output', 'cache_write', 'cache_read'].forEach(function (k) { usage[k] += t[k] || 0; });
+    if (typeof t.cost === 'number') usage.cost += t.cost;
+    else usage.unpriced = true;
+    renderUsage();
+  });
+  es.addEventListener('outcome', function (e) {
+    try { outcome = JSON.parse(e.data).status; } catch (_) {}
+  });
+  es.addEventListener('agent-error', function (e) {
+    // The server HTML-escapes this text; a textarea decodes entities without parsing markup.
+    var decoded = document.createElement('textarea');
+    decoded.innerHTML = e.data;
+    finish('error', decoded.value.trim());
+  });
+  es.addEventListener('close', function () {
+    es.close();
+    if (outcome === 'failed') finish('error', 'see the server log for details.');
+    else finish('done');
+  });
+  es.onerror = function () {
+    if (finished) return;
+    es.close();
+    finish('error', 'the connection to the server was lost.');
+  };
 })();
 </script>

@@ -46,15 +46,6 @@ class PresetPlanTests(unittest.TestCase):
                         self.assertNotIn('sse-connect="/plan-stream', response.text)
             planner.assert_not_called()
 
-    def test_legacy_stream_is_also_predefined(self):
-        with patch("app.agent.Agent") as planner:
-            response = TestClient(routes.app).get("/plan-stream", params={
-                "preset_id": "streaming-onboarding", "goal": "Test",
-            })
-        self.assertEqual(response.status_code, 200)
-        self.assertNotIn("event: tokens", response.text)
-        planner.assert_not_called()
-
     def test_unknown_preset_rejected(self):
         self.assertEqual(TestClient(routes.app).post("/plan", data={
             "goal": "Test", "preset_id": "unknown",
