@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Beefree SDK MCP — Integration Guide</title>
+  <title>Beefree SDK MCP — {% if simple_builder %}Agent in the Builder{% else %}Integration Guide{% endif %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -17,7 +17,7 @@
     <div class="container">
       <div class="header-left">
         <div class="header-brand">
-          <a href="/" class="back-link" aria-label="Back to home">
+          <a href="/editor" class="back-link" aria-label="Back to editor experiences">
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <path d="M11 14L6 9l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -41,9 +41,9 @@
               <clipPath id="clip0_7680_11003"><rect width="163.105" height="32" fill="white"/></clipPath>
             </defs>
           </svg>
-          <span class="brand-tag">Integration Guide</span>
+          <span class="brand-tag">{% if simple_builder %}Agent in the Builder{% else %}Integration Guide{% endif %}</span>
         </div>
-        <p class="header-sub">Connect AI agents to the Beefree SDK editor via MCP — two session models, one powerful result.</p>
+        <p class="header-sub">{% if simple_builder %}Create and refine your email with an AI agent.{% else %}Connect AI agents to the Beefree SDK editor via MCP — two session models, one powerful result.{% endif %}</p>
       </div>
       <div class="header-tokens">
         <div class="token-badge">
@@ -64,6 +64,14 @@
          ═══════════════════════════════════════════════════════════════════════ -->
     <div class="demo-stage">
 
+      {% if simple_builder %}
+      <section class="guide-section demo-intro">
+        <div class="demo-lead">
+          <h1>Agent in the Builder</h1>
+          <a href="/integration" class="btn-outline">Integration guide &rarr;</a>
+        </div>
+      </section>
+      {% else %}
       <section class="guide-section demo-intro">
         <div class="demo-lead">
           <div class="demo-lead-text">
@@ -94,6 +102,7 @@
       </section>
 
       <!-- Tab 1: Editor-Managed -->
+      {% endif %}
       <div class="demo-panel" id="panel-editor-managed">
         <div class="edit-workspace demo-workspace">
 
@@ -108,7 +117,7 @@
                 Chat with the agent
               </h3>
               <div class="demo-header-actions">
-                <span class="edit-status-badge is-offline" id="em-status-badge">Offline</span>
+                <span class="edit-status-badge is-offline" id="em-status-badge">{% if simple_builder %}Connecting...{% else %}Offline{% endif %}</span>
                 <button type="button" class="demo-icon-btn" onclick="toggleChat('em')" title="Collapse chat" aria-label="Collapse chat">
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                     <path d="M10 3.5L5.5 8l4.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -120,7 +129,7 @@
             <div class="edit-chat-messages" id="em-messages">
               <div class="chat-bubble agent-bubble">
                 <div class="chat-bubble-content">
-                  <p>Initialize the editor, then start an MCP session to begin. Your messages will edit the email live.</p>
+                  <p>{% if simple_builder %}What would you like to create?{% else %}Initialize the editor, then start an MCP session to begin. Your messages will edit the email live.{% endif %}</p>
                 </div>
               </div>
             </div>
@@ -135,7 +144,7 @@
                   </svg>
                 </button>
               </div>
-              <p class="edit-chat-hint" id="em-hint">Start an MCP session to begin chatting</p>
+              <p class="edit-chat-hint" id="em-hint">{% if simple_builder %}Connecting to the editor...{% else %}Start an MCP session to begin chatting{% endif %}</p>
             </form>
           </div>
 
@@ -184,6 +193,7 @@
         </div>
       </div>
 
+      {% if not simple_builder %}
       <!-- Tab 2: API-Managed -->
       <div class="demo-panel" id="panel-api-managed" style="display:none;">
         <div class="edit-workspace demo-workspace">
@@ -419,6 +429,7 @@ final_template = resp.json()</code></pre>
       </ul>
     </section>
 
+      {% endif %}
     </div><!-- /.demo-stage -->
 
   </main>
@@ -460,7 +471,7 @@ final_template = resp.json()</code></pre>
     var emTemplateId = null;    // MCP templateId for Editor-Managed
     var amSessionId = null;     // edit_sessions key for API-Managed
     var amTemplateId = null;    // MCP templateId for API-Managed
-    var currentEs = null;       // active EventSource
+    var currentStreams = { em: null, am: null };
 
     // ── Tab switching is defined above (global scope) ──────────────────────
 
@@ -496,7 +507,7 @@ final_template = resp.json()</code></pre>
       try {
         var resp = await fetch('/integration-auth');
         var data = await resp.json();
-        if (data.error) { alert(data.error); btn.disabled = false; btn.textContent = 'Initialize editor'; return; }
+        if (!resp.ok || data.error) throw new Error(data.error || 'Editor authentication failed');
 
         var container = document.getElementById('em-editor-container');
         container.innerHTML = '<div id="em-bee-editor" style="height:760px;"></div>';
@@ -514,6 +525,9 @@ final_template = resp.json()</code></pre>
             if (startArrow) startArrow.style.display = '';
             var badge = document.getElementById('em-status-badge');
             badge.textContent = 'Editor ready';
+            {% if simple_builder %}
+            window.startMcpSession();
+            {% endif %}
           },
           onError: function (err) {
             alert('Editor error: ' + JSON.stringify(err));
@@ -554,12 +568,17 @@ final_template = resp.json()</code></pre>
         // agent edits the SAME template the editor is showing (changes reflect live).
         var resp = await fetch('/integration-start?template_id=' + encodeURIComponent(emTemplateId), { method: 'POST' });
         var data = await resp.json();
+        if (!resp.ok || !data.session_id) throw new Error(data.error || 'Could not connect the agent');
         emSessionId = data.session_id;
 
         btn.style.display = 'none';
         var startArrow = document.getElementById('em-start-arrow');
         if (startArrow) startArrow.style.display = 'none';
-        enableChat('em', 'MCP session active &middot; the editor updates live as the agent works');
+        enableChat('em', {% if simple_builder %}''{% else %}'MCP session active &middot; the editor updates live as the agent works'{% endif %});
+        {% if simple_builder %}
+        document.getElementById('em-hint').textContent = '';
+        document.getElementById('em-messages').replaceChildren();
+        {% endif %}
         appendAgentNote('em', 'MCP session active. What would you like to change?');
       } catch (e) {
         alert('Failed to start MCP session: ' + e.message);
@@ -661,10 +680,17 @@ final_template = resp.json()</code></pre>
 
       // Open the SSE stream for this turn
       function openStream() {
-        if (currentEs) { currentEs.close(); currentEs = null; }
+        if (currentStreams[prefix]) currentStreams[prefix].close();
         var url = '/edit-stream?session_id=' + encodeURIComponent(sessionId) + '&message=' + encodeURIComponent(msg);
         var es = new EventSource(url);
-        currentEs = es;
+        currentStreams[prefix] = es;
+        var failed = false;
+
+        es.addEventListener('agent-error', function (ev) {
+          failed = true;
+          agentDiv.classList.remove('agent-loading');
+          agentInner.innerHTML = '<p class="chat-error">' + ev.data + '</p>';
+        });
 
         es.addEventListener('agent-message', function (ev) {
           agentDiv.classList.remove('agent-loading');
@@ -681,14 +707,15 @@ final_template = resp.json()</code></pre>
 
         es.addEventListener('close', function () {
           es.close();
-          currentEs = null;
+          currentStreams[prefix] = null;
           restore();
+          if (failed) { badge.textContent = 'Edit failed'; badge.className = 'edit-status-badge is-offline'; }
           input.focus();
         });
 
         es.onerror = function () {
           es.close();
-          currentEs = null;
+          currentStreams[prefix] = null;
           if (agentDiv.classList.contains('agent-loading')) {
             agentDiv.classList.remove('agent-loading');
             agentInner.innerHTML = '<p class="chat-error">Connection error — please try again.</p>';
@@ -705,7 +732,8 @@ final_template = resp.json()</code></pre>
           emTemplateId = result.templateId;
           return fetch('/integration-refresh?session_id=' + encodeURIComponent(sessionId) +
                        '&template_id=' + encodeURIComponent(emTemplateId), { method: 'POST' });
-        }).then(function () {
+        }).then(function (response) {
+          if (!response.ok) throw new Error('Could not refresh editor session');
           openStream();
         }).catch(function () {
           agentDiv.classList.remove('agent-loading');
@@ -723,6 +751,9 @@ final_template = resp.json()</code></pre>
       div.appendChild(document.createTextNode(str));
       return div.innerHTML;
     }
+    {% if simple_builder %}
+    window.initEditorManaged();
+    {% endif %}
   })();
   </script>
 

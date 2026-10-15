@@ -733,6 +733,8 @@ textarea { resize: vertical; }
   padding: 3.5rem 0 2.5rem;
 }
 
+.landing-hero-compact { padding: 0 0 1.5rem; }
+
 .landing-title {
   font-size: 2rem;
   font-weight: 700;
@@ -779,11 +781,6 @@ textarea { resize: vertical; }
   transform: translateY(-3px);
 }
 
-.path-card-active {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(119,71,255,.15), var(--shadow);
-}
-
 .path-icon {
   display: inline-flex;
   align-items: center;
@@ -826,8 +823,6 @@ textarea { resize: vertical; }
 }
 
 .path-card-headless .path-cta { color: #059669; }
-
-#headless-modes { scroll-margin-top: 1.5rem; }
 
 @media (max-width: 700px) {
   .path-chooser { grid-template-columns: 1fr; }

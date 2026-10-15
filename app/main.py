@@ -280,6 +280,22 @@ async def landing(request: Request):
     )
 
 
+@app.get("/editor", response_class=HTMLResponse)
+async def editor_modes(request: Request):
+    return templates.TemplateResponse(
+        "landing.html",
+        {"request": request, "section": "editor"},
+    )
+
+
+@app.get("/headless", response_class=HTMLResponse)
+async def headless_modes(request: Request):
+    return templates.TemplateResponse(
+        "landing.html",
+        {"request": request, "section": "headless"},
+    )
+
+
 @app.get("/sequence", response_class=HTMLResponse)
 async def sequence(request: Request):
     return templates.TemplateResponse(
@@ -294,6 +310,11 @@ async def integration_page(request: Request):
         "integration.html",
         {"request": request},
     )
+
+
+@app.get("/builder", response_class=HTMLResponse)
+async def builder_page(request: Request):
+    return templates.TemplateResponse("builder.html", {"request": request})
 
 
 @app.get("/integration-auth")
