@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import httpx
-from fastapi.testclient import TestClient
 
 from app import agent
 from app import main as routes
@@ -29,51 +28,6 @@ class CodeModeTests(unittest.TestCase):
             "Authorization": "Bearer test-key",
             "x-bee-template-id": "template-test",
         })
-
-    def test_transport_allows_local_proxy(self):
-        with patch.object(agent, "MCPServerStreamableHTTP") as transport:
-            agent.create_code_mode_mcp(
-                "template-test", self.settings(),
-                url="http://localhost/mcp-proxy",
-                max_retries=5,
-            )
-        self.assertEqual(
-            transport.call_args.kwargs["url"], "http://localhost/mcp-proxy",
-        )
-        self.assertEqual(transport.call_args.kwargs["max_retries"], 5)
-
-    def test_proxy_forwards_code_mode_protocol_and_headers(self):
-        captured = []
-
-        def upstream(request):
-            captured.append(request)
-            return httpx.Response(
-                200, json={"jsonrpc": "2.0", "id": 1, "result": {}},
-            )
-
-        client = httpx.AsyncClient(transport=httpx.MockTransport(upstream))
-        with (
-            patch.object(routes, "get_settings", return_value=self.settings()),
-            patch.object(routes.httpx, "AsyncClient", return_value=client),
-        ):
-            response = TestClient(routes.app).post("/mcp-proxy", json={
-                "jsonrpc": "2.0", "id": 1, "method": "tools/call",
-                "params": {"name": "execute", "arguments": {"script": "test"}},
-            }, headers={
-                "x-bee-template-id": "template-test",
-                "Authorization": "Bearer test-key",
-            })
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            str(captured[0].url),
-            "https://beefree.example/v2/sdk/mcp/codemode",
-        )
-        self.assertEqual(
-            captured[0].headers["x-bee-template-id"], "template-test",
-        )
-        self.assertEqual(
-            captured[0].headers["authorization"], "Bearer test-key",
-        )
 
 
 class AgentCodeModeTests(unittest.IsolatedAsyncioTestCase):

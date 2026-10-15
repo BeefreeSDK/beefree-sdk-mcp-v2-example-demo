@@ -155,11 +155,10 @@ def create_code_mode_mcp(
     template_id: str,
     settings: Settings,
     *,
-    url: str | None = None,
     max_retries: int = 3,
 ) -> MCPServerStreamableHTTP:
     return MCPServerStreamableHTTP(
-        url=url or f"{settings.bee_api_base.rstrip('/')}/v2/sdk/mcp/codemode",
+        url=f"{settings.bee_api_base.rstrip('/')}/v2/sdk/mcp/codemode",
         headers={
             "Authorization": f"Bearer {settings.bee_api_key}",
             "x-bee-template-id": template_id,
@@ -644,7 +643,6 @@ async def stream_executor(
     template_id: str,
     prompt: str,
     settings: Settings,
-    mcp_url: str | None = None,
 ) -> AsyncIterator[dict]:
     """Run one MCP executor agent and yield SSE events.
 
@@ -654,7 +652,7 @@ async def stream_executor(
     - "close" event: tells HTMX to stop reconnecting
     """
     mcp = create_code_mode_mcp(
-        template_id, settings, url=mcp_url, max_retries=5,
+        template_id, settings, max_retries=5,
     )
     executor: Agent[None, str] = Agent(
         model=settings.agent_model,
@@ -997,7 +995,6 @@ async def stream_single_executor(
     template_id: str,
     brief: str,
     settings: Settings,
-    mcp_url: str | None = None,
 ) -> AsyncIterator[dict]:
     """Run one single-email agent and yield SSE events.
 
@@ -1008,7 +1005,7 @@ async def stream_single_executor(
     - "preview" events: rendered email HTML in an iframe (same as other executors)
     - "close" event: tells HTMX to stop reconnecting
     """
-    mcp = create_code_mode_mcp(template_id, settings, url=mcp_url)
+    mcp = create_code_mode_mcp(template_id, settings)
     agent: Agent[None, str] = Agent(
         model=settings.agent_model,
         toolsets=[mcp],
