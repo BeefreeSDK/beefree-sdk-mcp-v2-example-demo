@@ -196,8 +196,6 @@ results. Session creation, template retrieval, and HTML rendering still use REST
 The dedicated Code Mode page remains a script-inspection demo using the same
 executor as single-email generation.
 
-The sequence proxy forwards to Code Mode while retaining its legacy guards for
-direct tool calls. Those guards do not inspect operations inside TypeScript.
 Sequence sessions carry server-side Brand Rules row limits. Header and footer
 baselines are captured separately from each seeded session, after Beefree
 normalizes the shared layout. This avoids treating server-added metadata as an
