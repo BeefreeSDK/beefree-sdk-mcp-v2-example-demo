@@ -1,3 +1,75 @@
+.header-usage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+}
+.model-picker { min-width: 0; }
+.model-picker-trigger {
+  border: 0;
+  background: transparent;
+  color: var(--primary-lt);
+  font: inherit;
+  font-size: 11px;
+  padding: 5px 0;
+  cursor: pointer;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.model-picker-trigger::after { content: ' \2304'; margin-left: 5px; }
+.model-picker-trigger:focus-visible { outline: 2px solid var(--accent); }
+.model-selection {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: end;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 250px;
+  max-width: calc(100vw - 48px);
+  min-width: 0;
+  margin-top: 0;
+  padding: 12px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+}
+.model-selection[hidden] { display: none; }
+.model-selection label { display: grid; gap: 4px; font-size: 11px; }
+.model-selection select {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 5px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 11px;
+}
+.model-selection select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.model-selection [role="status"] {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  text-align: right;
+  color: var(--text-muted);
+}
+.model-selection [role="status"]:empty { display: none; }
+
 /* ─── Reset & base ─────────────────────────────────────────────────────────── */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -96,6 +168,7 @@ main.container { flex: 1; padding-top: 3rem; padding-bottom: 3rem; }
   align-items: flex-end;
   gap: .15rem;
   flex-shrink: 0;
+  max-width: 100%;
 }
 
 .token-badge {

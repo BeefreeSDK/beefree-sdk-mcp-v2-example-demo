@@ -141,7 +141,7 @@
       class="pal-col"
       data-template-id="{{ template_id }}"
       hx-ext="sse"
-      sse-connect="/stream-palette/{{ template_id }}?palette_id={{ palette.id }}"
+      sse-connect="/stream-palette/{{ template_id }}?palette_id={{ palette.id }}&amp;model={{ llm_model | urlencode }}"
       sse-close="close"
     >
       <div class="pal-col-header">

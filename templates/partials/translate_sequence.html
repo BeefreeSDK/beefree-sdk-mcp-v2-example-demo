@@ -141,7 +141,7 @@
       class="trans-col"
       data-template-id="{{ template_id }}"
       hx-ext="sse"
-      sse-connect="/stream-translate/{{ template_id }}?language={{ language | urlencode }}"
+      sse-connect="/stream-translate/{{ template_id }}?language={{ language | urlencode }}&amp;model={{ llm_model | urlencode }}"
       sse-close="close"
     >
       <div class="trans-col-header">

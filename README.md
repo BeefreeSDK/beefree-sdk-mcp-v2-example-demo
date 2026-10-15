@@ -87,6 +87,23 @@ You can override the model for all agents with a single env var:
 LLM_MODEL=anthropic:claude-sonnet-4-6
 ```
 
+#### Model selection in the browser
+
+Every demo has Provider and Model selectors in its header. Providers appear only
+when their `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_API_KEY` is non-empty
+in the server environment or `.env`. API keys never appear in the catalog sent
+to the browser. Restart the server after changing environment configuration.
+
+`AI_PROVIDER` and `LLM_MODEL` still define the initial model. An `LLM_MODEL`
+override using a supported provider prefix is included alongside the built-in
+model choices. If the initial provider has no key, explicitly choose an available
+model; the app does not silently fall back to another provider.
+
+Selections persist within the browser tab and apply to new runs or chat turns,
+not agents already running. Campaign and bulk transformation child agents retain
+their parent run's model. Choices are validated server-side against the catalog
+in `app/config.py`; key presence does not guarantee model access or valid credentials.
+
 #### Embedded editor (optional — in-editor experience)
 
 The headless modes (single, sequence, translate, palette, edit, code mode) only

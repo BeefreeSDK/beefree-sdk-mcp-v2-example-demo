@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()  # put .env vars into os.environ so PydanticAI can read them
 
-from fastapi import FastAPI, Form, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -32,7 +32,15 @@ from .agent import (
     stream_edit_executor,
 )
 from .beefree import create_seeded_template, create_template, get_template
-from .config import get_settings
+from .config import Settings, get_settings
+
+
+def get_run_settings(request: Request) -> Settings:
+    try:
+        return get_settings().for_model(request.query_params.get("model"))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
 
 app = FastAPI(title="Beefree Headless MCP Demo")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -245,6 +253,14 @@ PALETTES = [
 # ─── Routes ──────────────────────────────────────────────────────────────────
 
 
+@app.get("/ai-models")
+async def ai_models():
+    return JSONResponse(
+        get_settings().model_catalog(),
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 async def landing(request: Request):
     return templates.TemplateResponse(
@@ -335,9 +351,11 @@ async def codemode_page(request: Request):
 
 
 @app.get("/codemode-stream")
-async def codemode_stream(request: Request, brief: str):
+async def codemode_stream(
+    request: Request, brief: str,
+    settings: Settings = Depends(get_run_settings),
+):
     """SSE endpoint: creates a template, runs single email agent via Code Mode endpoint, streams previews."""
-    settings = get_settings()
 
     async def generator():
         try:
@@ -377,9 +395,11 @@ async def generate(request: Request, brief: str = Form(...)):
 
 
 @app.get("/generate-stream")
-async def generate_stream(request: Request, brief: str):
+async def generate_stream(
+    request: Request, brief: str,
+    settings: Settings = Depends(get_run_settings),
+):
     """SSE endpoint: creates a template, runs single email agent, streams previews."""
-    settings = get_settings()
 
     async def generator():
         try:
@@ -538,9 +558,11 @@ async def translate_submit(
 
 
 @app.get("/translate-stream")
-async def translate_stream_route(request: Request, session_id: str):
+async def translate_stream_route(
+    request: Request, session_id: str,
+    settings: Settings = Depends(get_run_settings),
+):
     """SSE: seed N template copies, render the column grid, agents stream previews."""
-    settings = get_settings()
     data = translation_sessions.pop(session_id, None)
 
     async def generator():
@@ -557,7 +579,8 @@ async def translate_stream_route(request: Request, session_id: str):
 
             tmpl = templates.env.get_template("partials/translate_sequence.html")
             result_html = tmpl.render(
-                languages_with_ids=list(zip(languages, template_ids))
+                languages_with_ids=list(zip(languages, template_ids)),
+                llm_model=settings.llm_model,
             )
             yield {"event": "ready", "data": result_html}
         except Exception as exc:
@@ -574,8 +597,10 @@ async def translate_stream_route(request: Request, session_id: str):
 
 
 @app.get("/stream-translate/{template_id}")
-async def stream_translate(request: Request, template_id: str, language: str):
-    settings = get_settings()
+async def stream_translate(
+    request: Request, template_id: str, language: str,
+    settings: Settings = Depends(get_run_settings),
+):
 
     async def generator():
         async for event in stream_translation_executor(template_id, language, settings):
@@ -616,9 +641,11 @@ async def palette_submit(
 
 
 @app.get("/palette-stream")
-async def palette_stream_route(request: Request, session_id: str):
+async def palette_stream_route(
+    request: Request, session_id: str,
+    settings: Settings = Depends(get_run_settings),
+):
     """SSE: seed N template copies, render palette column grid."""
-    settings = get_settings()
     data = palette_sessions.pop(session_id, None)
 
     async def generator():
@@ -635,7 +662,8 @@ async def palette_stream_route(request: Request, session_id: str):
 
             tmpl = templates.env.get_template("partials/palette_sequence.html")
             result_html = tmpl.render(
-                palettes_with_ids=list(zip(palettes, template_ids))
+                palettes_with_ids=list(zip(palettes, template_ids)),
+                llm_model=settings.llm_model,
             )
             yield {"event": "ready", "data": result_html}
         except Exception as exc:
@@ -652,8 +680,10 @@ async def palette_stream_route(request: Request, session_id: str):
 
 
 @app.get("/stream-palette/{template_id}")
-async def stream_palette(request: Request, template_id: str, palette_id: str):
-    settings = get_settings()
+async def stream_palette(
+    request: Request, template_id: str, palette_id: str,
+    settings: Settings = Depends(get_run_settings),
+):
     palette = next((p for p in PALETTES if p["id"] == palette_id), None)
     if not palette:
         async def err():
@@ -681,9 +711,11 @@ async def plan(
 
 
 @app.get("/plan-stream")
-async def plan_stream(request: Request, goal: str, preset_id: str = ""):
+async def plan_stream(
+    request: Request, goal: str, preset_id: str = "",
+    settings: Settings = Depends(get_run_settings),
+):
     """SSE endpoint: runs the planner LLM and yields the rendered plan HTML."""
-    settings = get_settings()
     sections_per_step = SEQUENCE_PRESETS.get(preset_id) if preset_id else None
 
     async def generator():
@@ -719,9 +751,11 @@ async def execute(request: Request, plan_json: str = Form(...)):
 
 
 @app.get("/execute-stream")
-async def execute_stream(request: Request, plan_json: str):
+async def execute_stream(
+    request: Request, plan_json: str,
+    settings: Settings = Depends(get_run_settings),
+):
     """SSE: build shared layout, seed templates, stream the sequence view."""
-    settings = get_settings()
     email_plan = EmailPlan.model_validate_json(plan_json)
     n = len(email_plan.emails)
 
@@ -799,6 +833,7 @@ async def execute_stream(request: Request, plan_json: str):
             sequence_html = tmpl.render(
                 plan=email_plan,
                 emails_with_ids=emails_with_ids,
+                llm_model=settings.llm_model,
             )
             yield {"event": "sequence", "data": sequence_html}
 
@@ -984,9 +1019,11 @@ async def edit_start(request: Request, template_json: str = Form(...)):
 
 
 @app.get("/edit-stream")
-async def edit_stream_route(request: Request, session_id: str, message: str):
+async def edit_stream_route(
+    request: Request, session_id: str, message: str,
+    settings: Settings = Depends(get_run_settings),
+):
     """SSE: run one edit-agent turn, stream previews + the agent's reply."""
-    settings = get_settings()
     session = edit_sessions.get(session_id)
     if not session:
         async def _err():
@@ -1015,8 +1052,10 @@ async def edit_stream_route(request: Request, session_id: str, message: str):
 
 
 @app.get("/stream/{template_id}")
-async def stream(request: Request, template_id: str, prompt: str):
-    settings = get_settings()
+async def stream(
+    request: Request, template_id: str, prompt: str,
+    settings: Settings = Depends(get_run_settings),
+):
     proxy_url = str(request.base_url).rstrip("/") + "/mcp-proxy"
 
     async def generator():

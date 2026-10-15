@@ -174,7 +174,7 @@
     <div
       class="seq-col"
       hx-ext="sse"
-      sse-connect="/stream/{{ template_id }}?prompt={{ email.agent_prompt | urlencode }}"
+      sse-connect="/stream/{{ template_id }}?prompt={{ email.agent_prompt | urlencode }}&amp;model={{ llm_model | urlencode }}"
       sse-close="close"
     >
       <!-- Column header: fixed identity + live status -->
