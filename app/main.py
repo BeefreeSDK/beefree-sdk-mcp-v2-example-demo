@@ -361,9 +361,7 @@ async def codemode_stream(
         try:
             template_id = await create_template(settings)
             yield {"event": "template-id", "data": template_id}
-            # Use Code Mode MCP endpoint instead of standard
-            codemode_url = f"{settings.bee_api_base}/v2/sdk/mcp/codemode"
-            async for event in stream_single_executor(template_id, brief, settings, mcp_url=codemode_url):
+            async for event in stream_single_executor(template_id, brief, settings):
                 yield event
         except Exception as exc:
             log.error("Code Mode gen error: %s", exc)
@@ -805,8 +803,8 @@ async def execute_stream(
             )
 
             # Register row IDs per template for the proxy.
-            # mode="sequence" causes the proxy to block beefree_add_section entirely,
-            # enforcing that executor agents can only edit existing placeholder rows.
+            # Legacy direct-tool calls are guarded by the proxy; Code Mode scripts
+            # must follow the protected-row instructions in their executor prompt.
             for tid in template_ids:
                 template_layouts[tid] = {
                     "header_row_id": header_row_id,
@@ -852,11 +850,11 @@ async def execute_stream(
 
 @app.post("/mcp-proxy")
 async def mcp_proxy(request: Request):
-    """Transparent MCP proxy that enforces footer position.
+    """Code Mode transport proxy with legacy direct-tool guards.
 
-    Intercepts every beefree_add_section call and forces
-    before_row_id = footer_row_id, ensuring the footer row always stays last.
-    All other calls are forwarded untouched.
+    Direct beefree_add_section calls retain the legacy layout checks below.
+    Those checks cannot inspect operations inside TypeScript scripts; script
+    restrictions are agent instructions, not a server-side permission boundary.
     """
     body = await request.json()
     template_id = request.headers.get("x-bee-template-id", "")
@@ -934,7 +932,7 @@ async def mcp_proxy(request: Request):
     client = httpx.AsyncClient(timeout=300.0)
     upstream = client.build_request(
         "POST",
-        f"{settings.bee_api_base}/v2/sdk/mcp",
+        f"{settings.bee_api_base.rstrip('/')}/v2/sdk/mcp/codemode",
         json=body,           # httpx serialises + sets Content-Type: application/json
         headers=fwd_headers,
     )

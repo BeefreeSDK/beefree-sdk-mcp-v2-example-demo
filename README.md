@@ -170,6 +170,28 @@ uv run uvicorn app.main:app --reload
 
 ---
 
+## Code Mode
+
+All MCP-backed agents use `/v2/sdk/mcp/codemode`: shared layouts, campaign
+executors, single emails, translations, palette changes, and chat editing in
+both headless and embedded-editor modes. The planner only generates structured
+text and does not connect to MCP.
+
+The endpoint exposes a TypeScript execution tool. Agents use its schema to batch
+related operations, inspect partial failures before retrying, and validate their
+results. Session creation, template retrieval, and HTML rendering still use REST.
+The dedicated Code Mode page remains a script-inspection demo using the same
+executor as single-email generation.
+
+The sequence proxy forwards to Code Mode while retaining its legacy guards for
+direct tool calls. Those guards do not inspect operations inside TypeScript.
+Protected-row, translation-only, and palette-only restrictions are currently
+agent instructions, not a security boundary. Server-side Brand Rules and
+template invariant enforcement remain separate follow-up work.
+
+Code Mode requires a Beefree account with Code Mode access and a model that can
+generate valid TypeScript. There is no automatic fallback to standard MCP tools.
+
 ## How it works
 
 ```

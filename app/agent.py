@@ -21,6 +21,43 @@ _CACHE_SETTINGS: dict = {
 from .config import Settings
 
 
+CODE_MODE_INSTRUCTIONS = """
+
+EXECUTION MODE: Beefree Code Mode.
+The MCP server exposes a TypeScript execution tool rather than individual
+beefree_* tools. Read its description and schema for the supported script API.
+All beefree_* operations named above or in the user request refer to operations
+to perform INSIDE that script using the documented API, not standalone MCP calls.
+Do not invent imports, API names, or method signatures.
+Batch related operations in a script to reduce round trips. Await dependent
+operations in order and use returned IDs rather than guessing them. Inspect
+execution results before continuing. After a partial failure, inspect the current
+template before retrying; do not blindly repeat mutations that already succeeded.
+Keep every operation-specific restriction above, including protected rows and
+text-only or color-only editing rules, inside scripts too. Validate the result.
+For shared layouts, return the requested row-ID JSON in your final text response.
+"""
+
+
+def create_code_mode_mcp(
+    template_id: str,
+    settings: Settings,
+    *,
+    url: str | None = None,
+    max_retries: int = 3,
+) -> MCPServerStreamableHTTP:
+    return MCPServerStreamableHTTP(
+        url=url or f"{settings.bee_api_base.rstrip('/')}/v2/sdk/mcp/codemode",
+        headers={
+            "Authorization": f"Bearer {settings.bee_api_key}",
+            "x-bee-template-id": template_id,
+        },
+        max_retries=max_retries,
+        timeout=60,
+        read_timeout=300,
+    )
+
+
 def _format_exc(exc: BaseException) -> str:
     """Flatten an exception into a readable message, unwrapping ExceptionGroups.
 
@@ -366,20 +403,11 @@ async def build_shared_layout(
 
     layout_template_id = await create_template(settings)
 
-    mcp = MCPServerStreamableHTTP(
-        url=f"{settings.bee_api_base}/v2/sdk/mcp",
-        headers={
-            "Authorization": f"Bearer {settings.bee_api_key}",
-            "x-bee-template-id": layout_template_id,
-        },
-        max_retries=5,
-        timeout=60,
-        read_timeout=300,
-    )
+    mcp = create_code_mode_mcp(layout_template_id, settings, max_retries=5)
     layout_agent: Agent[None, str] = Agent(
         model=settings.llm_model,
         toolsets=[mcp],
-        system_prompt=_build_layout_agent_system_prompt(num_sections),
+        system_prompt=_build_layout_agent_system_prompt(num_sections) + CODE_MODE_INSTRUCTIONS,
         model_settings=_CACHE_SETTINGS,
         retries=6,
     )
@@ -511,21 +539,13 @@ async def stream_executor(
     - "preview" events: rendered email HTML in an iframe
     - "close" event: tells HTMX to stop reconnecting
     """
-    effective_url = mcp_url or f"{settings.bee_api_base}/v2/sdk/mcp"
-    mcp = MCPServerStreamableHTTP(
-        url=effective_url,
-        headers={
-            "Authorization": f"Bearer {settings.bee_api_key}",
-            "x-bee-template-id": template_id,
-        },
-        max_retries=5,
-        timeout=60,
-        read_timeout=300,
+    mcp = create_code_mode_mcp(
+        template_id, settings, url=mcp_url, max_retries=5,
     )
     executor: Agent[None, str] = Agent(
         model=settings.llm_model,
         toolsets=[mcp],
-        system_prompt=EXECUTOR_SYSTEM_PROMPT,
+        system_prompt=EXECUTOR_SYSTEM_PROMPT + CODE_MODE_INSTRUCTIONS,
         model_settings=_CACHE_SETTINGS,
         retries=6,
     )
@@ -614,20 +634,11 @@ async def stream_translation_executor(
     - "preview" events: rendered email HTML in an iframe
     - "close" event: tells HTMX to stop reconnecting
     """
-    mcp = MCPServerStreamableHTTP(
-        url=f"{settings.bee_api_base}/v2/sdk/mcp",
-        headers={
-            "Authorization": f"Bearer {settings.bee_api_key}",
-            "x-bee-template-id": template_id,
-        },
-        max_retries=3,
-        timeout=60,
-        read_timeout=300,
-    )
+    mcp = create_code_mode_mcp(template_id, settings)
     agent: Agent[None, str] = Agent(
         model=settings.llm_model,
         toolsets=[mcp],
-        system_prompt=TRANSLATION_AGENT_SYSTEM_PROMPT.format(language=language),
+        system_prompt=TRANSLATION_AGENT_SYSTEM_PROMPT.format(language=language) + CODE_MODE_INSTRUCTIONS,
         model_settings=_CACHE_SETTINGS,
         retries=3,
     )
@@ -716,16 +727,7 @@ async def stream_palette_executor(
     - "preview" events: rendered email HTML in an iframe
     - "close" event: tells HTMX to stop reconnecting
     """
-    mcp = MCPServerStreamableHTTP(
-        url=f"{settings.bee_api_base}/v2/sdk/mcp",
-        headers={
-            "Authorization": f"Bearer {settings.bee_api_key}",
-            "x-bee-template-id": template_id,
-        },
-        max_retries=3,
-        timeout=60,
-        read_timeout=300,
-    )
+    mcp = create_code_mode_mcp(template_id, settings)
     system_prompt = PALETTE_AGENT_SYSTEM_PROMPT.format(
         palette_name=palette["name"],
         **palette["colors"],
@@ -733,7 +735,7 @@ async def stream_palette_executor(
     agent: Agent[None, str] = Agent(
         model=settings.llm_model,
         toolsets=[mcp],
-        system_prompt=system_prompt,
+        system_prompt=system_prompt + CODE_MODE_INSTRUCTIONS,
         model_settings=_CACHE_SETTINGS,
         retries=3,
     )
@@ -812,20 +814,11 @@ async def stream_edit_executor(
     If *out_messages* (a mutable list) is supplied, it is populated with the full
     conversation history after the run so the caller can persist it for the next turn.
     """
-    mcp = MCPServerStreamableHTTP(
-        url=f"{settings.bee_api_base}/v2/sdk/mcp",
-        headers={
-            "Authorization": f"Bearer {settings.bee_api_key}",
-            "x-bee-template-id": template_id,
-        },
-        max_retries=3,
-        timeout=60,
-        read_timeout=300,
-    )
+    mcp = create_code_mode_mcp(template_id, settings)
     agent: Agent[None, str] = Agent(
         model=settings.llm_model,
         toolsets=[mcp],
-        system_prompt=EDIT_AGENT_SYSTEM_PROMPT,
+        system_prompt=EDIT_AGENT_SYSTEM_PROMPT + CODE_MODE_INSTRUCTIONS,
         model_settings=_CACHE_SETTINGS,
         retries=2,
     )
@@ -896,20 +889,11 @@ async def stream_single_executor(
     - "preview" events: rendered email HTML in an iframe (same as other executors)
     - "close" event: tells HTMX to stop reconnecting
     """
-    mcp = MCPServerStreamableHTTP(
-        url=mcp_url or f"{settings.bee_api_base}/v2/sdk/mcp",
-        headers={
-            "Authorization": f"Bearer {settings.bee_api_key}",
-            "x-bee-template-id": template_id,
-        },
-        max_retries=3,
-        timeout=60,
-        read_timeout=300,
-    )
+    mcp = create_code_mode_mcp(template_id, settings, url=mcp_url)
     agent: Agent[None, str] = Agent(
         model=settings.llm_model,
         toolsets=[mcp],
-        system_prompt=SINGLE_EMAIL_AGENT_SYSTEM_PROMPT,
+        system_prompt=SINGLE_EMAIL_AGENT_SYSTEM_PROMPT + CODE_MODE_INSTRUCTIONS,
         model_settings=_CACHE_SETTINGS,
         retries=3,
     )
@@ -922,24 +906,21 @@ async def stream_single_executor(
                         tok = _tokens_event(node.model_response.usage)
                         if tok:
                             yield tok
-                        # Emit the agent's tool call code for Code Mode visibility
-                        if mcp_url:
-                            for part in node.model_response.parts:
-                                args = getattr(part, "args", None)
-                                # Tool-call args may arrive as a dict or as a JSON string
-                                if isinstance(args, str):
-                                    try:
-                                        args = _json.loads(args)
-                                    except Exception:
-                                        args = None
-                                if isinstance(args, dict):
-                                    code = (
-                                        args.get("script")
-                                        or args.get("code")
-                                        or args.get("typescript")
-                                    )
-                                    if code:
-                                        yield {"event": "code", "data": code}
+                        for part in node.model_response.parts:
+                            args = getattr(part, "args", None)
+                            if isinstance(args, str):
+                                try:
+                                    args = _json.loads(args)
+                                except _json.JSONDecodeError:
+                                    args = None
+                            if isinstance(args, dict):
+                                code = (
+                                    args.get("script")
+                                    or args.get("code")
+                                    or args.get("typescript")
+                                )
+                                if isinstance(code, str) and code:
+                                    yield {"event": "code", "data": code}
                     if isinstance(node, ModelRequestNode):
                         has_tool_returns = any(
                             getattr(p, "part_kind", "") == "tool-return"
