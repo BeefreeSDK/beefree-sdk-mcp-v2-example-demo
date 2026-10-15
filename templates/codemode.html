@@ -360,6 +360,36 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
         + '</div>';
 
       const es = new EventSource('/codemode-stream?brief=' + encodeURIComponent(brief));
+      let failed = false;
+      let completed = false;
+      delete output.dataset.templateId;
+
+      function showFailure(message) {
+        failed = true;
+        panel.className = 'codemode-preview-panel is-error';
+        badge.className = 'single-gen-status error';
+        badgeText.textContent = 'Failed / partial result';
+        const error = document.createElement('p');
+        error.className = 'plan-error';
+        error.textContent = message;
+        output.appendChild(error);
+      }
+
+      es.addEventListener('agent-error', (e) => {
+        const decoded = document.createElement('div');
+        decoded.innerHTML = e.data;
+        showFailure(decoded.textContent);
+      });
+
+      es.addEventListener('outcome', (e) => {
+        const outcome = JSON.parse(e.data);
+        completed = outcome.status === 'completed';
+        if (!completed && !failed) showFailure('Generation did not complete.');
+      });
+
+      es.addEventListener('status', (e) => {
+        if (!failed) badgeText.textContent = e.data;
+      });
 
       es.addEventListener('template-id', (e) => {
         output.dataset.templateId = e.data;
@@ -391,6 +421,11 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
         es.close();
         btn.disabled = false;
         btn.textContent = 'Generate with Code Mode';
+
+        if (failed || !completed) {
+          if (!failed) showFailure('Generation ended without a successful result.');
+          return;
+        }
 
         // Transition to done state
         panel.className = 'codemode-preview-panel is-done';

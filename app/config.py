@@ -4,22 +4,29 @@ from typing import Literal
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Best model per provider — used for all agents.
+# Default model per provider — used for all agents.
 # Override with LLM_MODEL in .env if needed.
-#
-# OpenAI:    openai:o4-mini  openai:o3  openai:gpt-4.1
-# Google:    google-gla:gemini-2.5-pro  google-gla:gemini-2.5-flash
-# Anthropic: anthropic:claude-sonnet-4-6  anthropic:claude-opus-4-6
 _PROVIDER_MODEL: dict[str, str] = {
-    "anthropic": "anthropic:claude-sonnet-4-6",
-    "openai":    "openai:gpt-5.2",
-    "google":    "google-gla:gemini-2.5-pro",
+    "anthropic": "anthropic:claude-sonnet-5-5",
+    "openai": "openai:gpt-6.1-sol",
+    "google": "google-gla:gemini-3.8-flash",
 }
 
 PROVIDER_MODELS = {
-    "anthropic": ("Anthropic", ["anthropic:claude-sonnet-4-6", "anthropic:claude-opus-4-6", "anthropic:claude-haiku-4-5"]),
-    "openai": ("OpenAI", ["openai:gpt-5.2", "openai:gpt-5-mini", "openai:gpt-4.1"]),
-    "google": ("Google", ["google-gla:gemini-2.5-pro", "google-gla:gemini-2.5-flash"]),
+    "anthropic": ("Anthropic", [
+        "anthropic:claude-sonnet-5-5", "anthropic:claude-opus-5-5",
+        "anthropic:claude-haiku-5-5", "anthropic:claude-fable-5-1",
+        "anthropic:claude-sonnet-4-6", "anthropic:claude-opus-4-6",
+    ]),
+    "openai": ("OpenAI", [
+        "openai:gpt-6.1-sol", "openai:gpt-6-astra", "openai:gpt-6-luna",
+        "openai:gpt-5.2", "openai:gpt-5-mini", "openai:gpt-4.1",
+    ]),
+    "google": ("Google", [
+        "google-gla:gemini-3.8-flash", "google-gla:gemini-4-argon",
+        "google-gla:gemini-3.5-flash-lite",
+        "google-gla:gemini-2.5-pro", "google-gla:gemini-2.5-flash",
+    ]),
 }
 
 
@@ -38,8 +45,15 @@ class Settings(BaseSettings):
     anthropic_api_key: SecretStr = SecretStr("")
     openai_api_key: SecretStr = SecretStr("")
     google_api_key: SecretStr = SecretStr("")
+    gemini_api_key: SecretStr = SecretStr("")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @property
+    def agent_model(self) -> str:
+        if self.llm_model.startswith("openai:"):
+            return self.llm_model.replace("openai:", "openai-responses:", 1)
+        return self.llm_model
 
     @model_validator(mode="after")
     def resolve_model(self) -> "Settings":
@@ -50,7 +64,10 @@ class Settings(BaseSettings):
     def model_catalog(self) -> dict:
         providers = []
         for provider, (label, supported_models) in PROVIDER_MODELS.items():
-            if not getattr(self, f"{provider}_api_key").get_secret_value().strip():
+            key = getattr(self, f"{provider}_api_key").get_secret_value().strip()
+            if provider == "google" and not key:
+                key = self.gemini_api_key.get_secret_value().strip()
+            if not key:
                 continue
             models = list(supported_models)
             prefix = "google-gla:" if provider == "google" else f"{provider}:"

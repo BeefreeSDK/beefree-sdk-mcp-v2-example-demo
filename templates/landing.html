@@ -274,7 +274,10 @@
         var modes = document.getElementById('headless-modes');
         modes.hidden = false;
         document.getElementById('path-headless-btn').classList.add('path-card-active');
-        modes.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        var header = document.querySelector('.site-header');
+        var headerHeight = header ? header.getBoundingClientRect().height : 0;
+        var top = window.scrollY + modes.getBoundingClientRect().top - headerHeight - 20;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
       }
     }
 

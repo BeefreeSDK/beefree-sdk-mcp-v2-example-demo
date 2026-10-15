@@ -2,6 +2,7 @@ import asyncio
 import html as html_lib
 import json
 import logging
+import secrets
 import uuid
 from urllib.parse import quote
 
@@ -23,8 +24,6 @@ from .agent import (
     EmailStep,
     _tokens_event,
     append_layout_context,
-    build_shared_layout,
-    generate_plan,
     stream_executor,
     stream_single_executor,
     stream_translation_executor,
@@ -33,6 +32,18 @@ from .agent import (
 )
 from .beefree import create_seeded_template, create_template, get_template
 from .config import Settings, get_settings
+from .guards import sequence_guard, validate_sequence
+from .plans import build_preset_plan
+from .layouts import build_preset_layout
+
+
+def validate_download(template_id: str, template: dict) -> None:
+    policy = template_layouts.get(template_id, {}).get("policy")
+    if policy:
+        try:
+            validate_sequence(template, policy)
+        except ValueError as exc:
+            log.warning("Exporting sequence %s with layout warning: %s", template_id, exc)
 
 
 def get_run_settings(request: Request) -> Settings:
@@ -362,13 +373,15 @@ async def codemode_stream(
             template_id = await create_template(settings)
             yield {"event": "template-id", "data": template_id}
             async for event in stream_single_executor(template_id, brief, settings):
-                yield event
+                if event["event"] != "close":
+                    yield event
         except Exception as exc:
             log.error("Code Mode gen error: %s", exc)
             yield {
-                "event": "preview",
-                "data": f"<p class='plan-error'>Generation failed: {exc}</p>",
+                "event": "agent-error",
+                "data": html_lib.escape(f"Generation failed: {exc}"),
             }
+            yield {"event": "outcome", "data": '{"status":"failed"}'}
         finally:
             yield {"event": "close", "data": ""}
 
@@ -405,14 +418,16 @@ async def generate_stream(
             # Tell the frontend which template was created so it can offer a download
             yield {"event": "template-id", "data": template_id}
             async for event in stream_single_executor(template_id, brief, settings):
-                yield event
+                if event["event"] != "close":
+                    yield event
         except Exception as exc:
             import logging
             logging.getLogger(__name__).error("Single gen error: %s", exc)
             yield {
-                "event": "preview",
-                "data": f"<p class='plan-error'>Generation failed: {exc}</p>",
+                "event": "agent-error",
+                "data": html_lib.escape(f"Generation failed: {exc}"),
             }
+            yield {"event": "outcome", "data": '{"status":"failed"}'}
         finally:
             yield {"event": "close", "data": ""}
 
@@ -425,6 +440,7 @@ async def download_template(template_id: str):
     settings = get_settings()
     data = await get_template(template_id, settings)
     template = data.get("template", data)
+    validate_download(template_id, template)
     filename = f"email-{template_id[:8]}.json"
     return Response(
         content=json.dumps(template, indent=2),
@@ -440,6 +456,7 @@ async def download_html(template_id: str):
     settings = get_settings()
     data = await get_template(template_id, settings)
     template = data.get("template", data)
+    validate_download(template_id, template)
     html_content = await _render_html(template, settings)
     filename = f"email-{template_id[:8]}.html"
     return Response(
@@ -463,6 +480,7 @@ async def download_all(ids: str):
         for i, tid in enumerate(template_ids, 1):
             data = await get_template(tid, settings)
             template = data.get("template", data)
+            validate_download(tid, template)
             zf.writestr(f"email-{i:02d}-{tid[:8]}.json", json.dumps(template, indent=2))
     buf.seek(0)
 
@@ -489,6 +507,7 @@ async def download_all_html(ids: str):
         for i, tid in enumerate(template_ids, 1):
             data = await get_template(tid, settings)
             template = data.get("template", data)
+            validate_download(tid, template)
             html_content = await _render_html(template, settings)
             zf.writestr(f"email-{i:02d}-{tid[:8]}.html", html_content)
     buf.seek(0)
@@ -701,31 +720,36 @@ async def plan(
     goal: str = Form(...),
     preset_id: str = Form(""),
 ):
-    """Return the loading partial immediately; SSE streams in the plan."""
+    """Render a predefined plan immediately, without AI or an SSE wait."""
+    sections = SEQUENCE_PRESETS.get(preset_id)
+    if sections is None:
+        raise HTTPException(status_code=400, detail="Choose a supported campaign preset.")
+    email_plan = build_preset_plan(preset_id, goal, sections, secrets.randbelow(3))
     return templates.TemplateResponse(
-        "partials/plan_loading.html",
-        {"request": request, "goal": goal, "preset_id": preset_id},
+        "partials/preset_plan.html",
+        {"request": request, "plan": email_plan,
+         "plan_json": email_plan.model_dump_json()},
     )
 
 
 @app.get("/plan-stream")
 async def plan_stream(
     request: Request, goal: str, preset_id: str = "",
-    settings: Settings = Depends(get_run_settings),
 ):
-    """SSE endpoint: runs the planner LLM and yields the rendered plan HTML."""
-    sections_per_step = SEQUENCE_PRESETS.get(preset_id) if preset_id else None
+    """Compatibility endpoint for older pages; also uses predefined plans."""
+    sections_per_step = SEQUENCE_PRESETS.get(preset_id)
+    if sections_per_step is None:
+        raise HTTPException(status_code=400, detail="Choose a supported campaign preset.")
 
     async def generator():
         try:
-            email_plan, plan_usage = await generate_plan(goal, settings, sections_per_step)
+            email_plan = build_preset_plan(
+                preset_id, goal, sections_per_step, secrets.randbelow(3),
+            )
             plan_json = email_plan.model_dump_json()
             tmpl = templates.env.get_template("partials/plan.html")
             plan_html = tmpl.render(plan=email_plan, plan_json=plan_json)
             yield {"event": "plan", "data": plan_html}
-            tok = _tokens_event(plan_usage)
-            if tok:
-                yield tok
         except Exception as exc:
             import logging
             logging.getLogger(__name__).error("Planner error: %s", exc)
@@ -741,10 +765,16 @@ async def plan_stream(
 
 @app.post("/execute", response_class=HTMLResponse)
 async def execute(request: Request, plan_json: str = Form(...)):
-    """Return the loading partial immediately; SSE does the real work."""
+    """Show email cards immediately while SSE prepares their sessions."""
+    try:
+        email_plan = EmailPlan.model_validate_json(plan_json)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid campaign plan.") from exc
     return templates.TemplateResponse(
         "partials/execute_loading.html",
-        {"request": request, "plan_json": plan_json},
+        {"request": request, "plan_json": plan_json, "plan": email_plan,
+         "emails_with_ids": [(email, None) for email in email_plan.emails],
+         "pending_sessions": True},
     )
 
 
@@ -753,64 +783,48 @@ async def execute_stream(
     request: Request, plan_json: str,
     settings: Settings = Depends(get_run_settings),
 ):
-    """SSE: build shared layout, seed templates, stream the sequence view."""
+    """SSE: load a static preset layout, seed templates, stream the sequence view."""
     email_plan = EmailPlan.model_validate_json(plan_json)
-    n = len(email_plan.emails)
-
+    num_sections = max((e.body_section_count for e in email_plan.emails), default=3)
+    try:
+        header_row_id, footer_row_id, placeholder_row_ids, layout_json = (
+            build_preset_layout(email_plan.preset_id, num_sections)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     async def generator():
         try:
-            # Phase 1 — shared layout (blocks until done)
-            # Use the max section count across all emails so the shared template
-            # has enough placeholder rows for the email that needs the most.
-            num_sections = max((e.body_section_count for e in email_plan.emails), default=3)
-            header_row_id, footer_row_id, placeholder_row_ids, layout_json, layout_usage = (
-                await build_shared_layout(email_plan.sequence_title, settings, num_sections)
-            )
-            tok = _tokens_event(layout_usage)
-            if tok:
-                yield tok
-
-            # Signal layout complete so the UI flips to phase 2
-            s = "s" if n != 1 else ""
-            yield {
-                "event": "layout-done",
-                "data": (
-                    '<div class="exec-phase is-done">'
-                    '<span class="phase-check">&#10003;</span>'
-                    '<div class="phase-content">'
-                    '<p class="phase-title">Shared layout ready</p>'
-                    "<p class='phase-sub'>"
-                    f"Header, {num_sections} placeholder section(s), footer and global styles applied"
-                    "</p></div></div>"
-                    '<div class="exec-phase is-active">'
-                    '<span class="phase-spinner"></span>'
-                    '<div class="phase-content">'
-                    f"<p class='phase-title'>"
-                    f"Launching {n} email agent{s} in parallel"
-                    "</p>"
-                    "<p class='phase-sub'>"
-                    "Previews stream in as each agent builds"
-                    "</p></div></div>"
-                ),
-            }
-
-            # Phase 2 — seed templates + register layouts for the proxy
+            policy = sequence_guard(layout_json, header_row_id, footer_row_id)
             template_ids: list[str] = await asyncio.gather(
                 *[
-                    create_seeded_template(settings, layout_json)
+                    create_seeded_template(settings, layout_json, brand_rules={
+                        "limits": {"rows": {"max": len(policy["ids"]), "min": 2}},
+                    })
                     for _ in email_plan.emails
                 ]
             )
 
+            seeded_templates = await asyncio.gather(
+                *[get_template(tid, settings) for tid in template_ids]
+            )
+            policies = []
+            for data in seeded_templates:
+                seeded = data.get("template", data)
+                child_policy = sequence_guard(seeded, header_row_id, footer_row_id)
+                if child_policy["ids"] != policy["ids"]:
+                    raise ValueError("Seeded sequence row IDs differ from the shared layout.")
+                policies.append(child_policy)
+
             # Register row IDs per template for the proxy.
             # Legacy direct-tool calls are guarded by the proxy; Code Mode scripts
             # must follow the protected-row instructions in their executor prompt.
-            for tid in template_ids:
+            for tid, child_policy in zip(template_ids, policies):
                 template_layouts[tid] = {
                     "header_row_id": header_row_id,
                     "footer_row_id": footer_row_id,
                     "placeholder_row_ids": placeholder_row_ids,
                     "mode": "sequence",
+                    "policy": child_policy,
                 }
 
             enriched_emails = [
@@ -1058,7 +1072,8 @@ async def stream(
 
     async def generator():
         async for event in stream_executor(
-            template_id, prompt, settings, mcp_url=proxy_url
+            template_id, prompt, settings, mcp_url=proxy_url,
+            sequence_policy=template_layouts.get(template_id, {}).get("policy"),
         ):
             yield event
 

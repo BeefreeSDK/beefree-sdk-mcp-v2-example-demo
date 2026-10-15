@@ -1,6 +1,8 @@
 import html as html_module
+import asyncio
 import json as _json
 import logging
+from functools import wraps
 from typing import AsyncIterator
 
 log = logging.getLogger(__name__)
@@ -14,29 +16,139 @@ _CACHE_SETTINGS: dict = {
     "anthropic_cache_instructions":    True,  # cache the (large) system prompt
     "anthropic_cache_tool_definitions": True,  # cache MCP tool schema list
     "anthropic_cache_messages":        True,  # cache conversation history between rounds
-    # Google — cap thinking tokens to keep latency/cost reasonable
-    "google_thinking_config": {"thinking_budget": 256},
 }
 
 from .config import Settings
+from .guards import validate_sequence
 
 
 CODE_MODE_INSTRUCTIONS = """
 
 EXECUTION MODE: Beefree Code Mode.
-The MCP server exposes a TypeScript execution tool rather than individual
+The MCP server exposes beefree_execute with a code string rather than individual
 beefree_* tools. Read its description and schema for the supported script API.
 All beefree_* operations named above or in the user request refer to operations
 to perform INSIDE that script using the documented API, not standalone MCP calls.
 Do not invent imports, API names, or method signatures.
-Batch related operations in a script to reduce round trips. Await dependent
-operations in order and use returned IDs rather than guessing them. Inspect
+Batch related operations in a script to reduce round trips.
+Prefer separate scripts for inspection, each major design phase, and validation
+so the host can show meaningful progress and intermediate previews.
+The sandbox API is synchronous. Use documented positional addressing when
+building new content; do not assume mutation calls return live IDs. Use out(data)
+for results. Respect the tool's operation, code-size, and timeout limits. Inspect
 execution results before continuing. After a partial failure, inspect the current
 template before retrying; do not blindly repeat mutations that already succeeded.
 Keep every operation-specific restriction above, including protected rows and
 text-only or color-only editing rules, inside scripts too. Validate the result.
 For shared layouts, return the requested row-ID JSON in your final text response.
+After layout writes finish, use a separate read-only script with
+out(getContentHierarchy()) to retrieve live section IDs for that JSON.
 """
+
+
+def monitored_stream(function):
+    @wraps(function)
+    async def wrapped(template_id, *args, **kwargs):
+        settings = kwargs.get("settings")
+        if settings is None:
+            settings = args[1]
+        guard = kwargs.pop("sequence_policy", None)
+        source = function(template_id, *args, **kwargs)
+        events = asyncio.Queue(maxsize=1)
+        producer = None
+        pending = None
+        failed = False
+        review = False
+
+        async def produce():
+            try:
+                try:
+                    async for event in source:
+                        await events.put(event)
+                finally:
+                    await source.aclose()
+            except Exception as exc:
+                await events.put(exc)
+            else:
+                await events.put(None)
+
+        async def check_layout():
+            if guard:
+                from .beefree import get_template
+                current = await get_template(template_id, settings)
+                validate_sequence(current.get("template", current), guard)
+
+        try:
+            yield {"event": "status", "data": "Agent running"}
+            producer = asyncio.create_task(produce())
+            pending = asyncio.create_task(events.get())
+            while True:
+                done, _ = await asyncio.wait({pending}, timeout=5)
+                if not done:
+                    yield {"event": "status", "data": "Agent working; checking preview"}
+                    try:
+                        await check_layout()
+                    except Exception as exc:
+                        log.warning("Preview check for %s: %s", template_id, exc)
+                        yield {"event": "validation-warning", "data": (
+                            "Layout check warning on this email; generation continues."
+                        )}
+                    else:
+                        if guard:
+                            yield {"event": "validation-warning", "data": ""}
+                    preview = await _fetch_preview(template_id, settings)
+                    if preview:
+                        yield _preview_event(preview)
+                    continue
+                event = pending.result()
+                if event is None:
+                    break
+                if isinstance(event, Exception):
+                    raise event
+                if event["event"] == "agent-error":
+                    failed = True
+                    event = {**event, "data": html_module.escape(event["data"])}
+                if event["event"] == "preview" and guard:
+                    try:
+                        await check_layout()
+                    except Exception as exc:
+                        log.warning("Preview check for %s: %s", template_id, exc)
+                        yield {"event": "validation-warning", "data": (
+                            "Layout check warning on this email; generation continues."
+                        )}
+                    else:
+                        yield {"event": "validation-warning", "data": ""}
+                if event["event"] != "close":
+                    yield event
+                pending = asyncio.create_task(events.get())
+            try:
+                await check_layout()
+            except Exception as exc:
+                review = True
+                log.warning("Final sequence check for %s: %s", template_id, exc)
+                yield {"event": "validation-warning", "data": (
+                    "Generation finished with a layout warning. "
+                    + html_module.escape(str(exc))
+                    + " You can still download the result."
+                )}
+            else:
+                yield {"event": "validation-warning", "data": ""}
+            yield {"event": "outcome", "data": _json.dumps({
+                "status": "failed" if failed else "needs_review" if review else "completed",
+            })}
+        except Exception as exc:
+            yield {"event": "agent-error", "data": html_module.escape(_format_exc(exc))}
+            yield {"event": "outcome", "data": '{"status":"failed"}'}
+        finally:
+            if pending is not None and not pending.done():
+                pending.cancel()
+                await asyncio.gather(pending, return_exceptions=True)
+            if producer is not None:
+                if not producer.done():
+                    producer.cancel()
+                await asyncio.gather(producer, return_exceptions=True)
+        yield {"event": "close", "data": ""}
+    return wrapped
 
 
 def create_code_mode_mcp(
@@ -97,6 +209,7 @@ class EmailStep(BaseModel):
 class EmailPlan(BaseModel):
     sequence_title: str
     emails: list[EmailStep]
+    preset_id: str = ""
 
 
 
@@ -344,7 +457,7 @@ async def generate_plan(
     exactly the prescribed rows and nothing else.
     """
     skeleton_agent: Agent[None, EmailSkeletonPlan] = Agent(
-        model=settings.llm_model,
+        model=settings.agent_model,
         output_type=EmailSkeletonPlan,
         system_prompt=PLANNER_SKELETON_PROMPT,
         model_settings=_CACHE_SETTINGS,
@@ -405,7 +518,7 @@ async def build_shared_layout(
 
     mcp = create_code_mode_mcp(layout_template_id, settings, max_retries=5)
     layout_agent: Agent[None, str] = Agent(
-        model=settings.llm_model,
+        model=settings.agent_model,
         toolsets=[mcp],
         system_prompt=_build_layout_agent_system_prompt(num_sections) + CODE_MODE_INSTRUCTIONS,
         model_settings=_CACHE_SETTINGS,
@@ -526,6 +639,7 @@ async def _fetch_preview(template_id: str, settings: Settings) -> str | None:
         return None
 
 
+@monitored_stream
 async def stream_executor(
     template_id: str,
     prompt: str,
@@ -543,7 +657,7 @@ async def stream_executor(
         template_id, settings, url=mcp_url, max_retries=5,
     )
     executor: Agent[None, str] = Agent(
-        model=settings.llm_model,
+        model=settings.agent_model,
         toolsets=[mcp],
         system_prompt=EXECUTOR_SYSTEM_PROMPT + CODE_MODE_INSTRUCTIONS,
         model_settings=_CACHE_SETTINGS,
@@ -621,6 +735,7 @@ stop calling tools and respond with: "Done."
 """
 
 
+@monitored_stream
 async def stream_translation_executor(
     template_id: str,
     language: str,
@@ -636,7 +751,7 @@ async def stream_translation_executor(
     """
     mcp = create_code_mode_mcp(template_id, settings)
     agent: Agent[None, str] = Agent(
-        model=settings.llm_model,
+        model=settings.agent_model,
         toolsets=[mcp],
         system_prompt=TRANSLATION_AGENT_SYSTEM_PROMPT.format(language=language) + CODE_MODE_INSTRUCTIONS,
         model_settings=_CACHE_SETTINGS,
@@ -713,6 +828,7 @@ stop calling tools and respond with: "Done."
 """
 
 
+@monitored_stream
 async def stream_palette_executor(
     template_id: str,
     palette: dict,
@@ -733,7 +849,7 @@ async def stream_palette_executor(
         **palette["colors"],
     )
     agent: Agent[None, str] = Agent(
-        model=settings.llm_model,
+        model=settings.agent_model,
         toolsets=[mcp],
         system_prompt=system_prompt + CODE_MODE_INSTRUCTIONS,
         model_settings=_CACHE_SETTINGS,
@@ -797,6 +913,7 @@ RULES:
 """
 
 
+@monitored_stream
 async def stream_edit_executor(
     template_id: str,
     message: str,
@@ -816,7 +933,7 @@ async def stream_edit_executor(
     """
     mcp = create_code_mode_mcp(template_id, settings)
     agent: Agent[None, str] = Agent(
-        model=settings.llm_model,
+        model=settings.agent_model,
         toolsets=[mcp],
         system_prompt=EDIT_AGENT_SYSTEM_PROMPT + CODE_MODE_INSTRUCTIONS,
         model_settings=_CACHE_SETTINGS,
@@ -854,6 +971,7 @@ async def stream_edit_executor(
     except Exception as exc:
         detail = _format_exc(exc)
         log.error("Edit agent error for %s: %s", template_id, detail)
+        yield {"event": "agent-error", "data": detail}
         agent_text = f"I encountered an issue while editing: {detail}"
 
     # Final preview after agent finishes
@@ -874,6 +992,7 @@ async def stream_edit_executor(
 # --- Single email executor SSE stream ----------------------------------------
 
 
+@monitored_stream
 async def stream_single_executor(
     template_id: str,
     brief: str,
@@ -891,7 +1010,7 @@ async def stream_single_executor(
     """
     mcp = create_code_mode_mcp(template_id, settings, url=mcp_url)
     agent: Agent[None, str] = Agent(
-        model=settings.llm_model,
+        model=settings.agent_model,
         toolsets=[mcp],
         system_prompt=SINGLE_EMAIL_AGENT_SYSTEM_PROMPT + CODE_MODE_INSTRUCTIONS,
         model_settings=_CACHE_SETTINGS,

@@ -1,4 +1,4 @@
-<!-- Plan preview — swapped into #plan-result via SSE from /plan-stream -->
+<!-- Plan preview returned immediately by POST /plan. -->
 
 <section class="card plan-card">
   <div class="plan-header">
@@ -32,6 +32,11 @@
         </div>
         {% endfor %}
       </div>
+
+      <p class="preview-subject" style="margin-top:1rem;">
+        Every email starts with the same predefined header, footer, colour palette,
+        and typography. Dedicated agents build the email bodies in parallel.
+      </p>
 
       <form
         hx-post="/execute"

@@ -1,4 +1,5 @@
 import unittest
+import os
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
@@ -8,6 +9,70 @@ from app import main as routes
 
 
 class ModelSelectionTests(unittest.TestCase):
+    def test_gemini_key_alias_enables_google_without_exposing_secret(self):
+        for google_key in ["", "   ", "google-test-secret"]:
+            with self.subTest(google_key_present=bool(google_key.strip())):
+                settings = self.settings(
+                    google_api_key=google_key, gemini_api_key="gemini-test-secret",
+                )
+                catalog = settings.model_catalog()
+                self.assertIn("google", [item["id"] for item in catalog["providers"]])
+                self.assertEqual(
+                    settings.for_model("google-gla:gemini-3.8-flash").ai_provider,
+                    "google",
+                )
+                self.assertNotIn("gemini-test-secret", str(catalog))
+                self.assertNotIn("google-test-secret", str(catalog))
+
+    def test_gemini_environment_alias_is_loaded_and_supported_by_sdk(self):
+        from pydantic_ai.models import infer_model
+
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "gemini-test"}, clear=True):
+            settings = Settings(_env_file=None, bee_api_key="test", ai_provider="google")
+            self.assertEqual(settings.for_model().ai_provider, "google")
+            self.assertEqual(infer_model(settings.agent_model).model_name, "gemini-3.8-flash")
+
+    def test_openai_agents_use_responses_without_changing_selection(self):
+        from pydantic_ai.models import infer_model
+        from pydantic_ai.models.openai import OpenAIResponsesModel
+
+        settings = self.settings().for_model("openai:gpt-6.1-sol")
+        self.assertEqual(settings.llm_model, "openai:gpt-6.1-sol")
+        self.assertEqual(settings.agent_model, "openai-responses:gpt-6.1-sol")
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test"}):
+            self.assertIsInstance(infer_model(settings.agent_model), OpenAIResponsesModel)
+        for model in ["anthropic:claude-sonnet-5-5", "google-gla:gemini-3.8-flash"]:
+            self.assertEqual(self.settings(llm_model=model).agent_model, model)
+
+    def test_current_provider_defaults(self):
+        expected = {
+            "anthropic": "anthropic:claude-sonnet-5-5",
+            "openai": "openai:gpt-6.1-sol",
+            "google": "google-gla:gemini-3.8-flash",
+        }
+        for provider, model in expected.items():
+            with self.subTest(provider=provider):
+                settings = self.settings(
+                    ai_provider=provider,
+                    anthropic_api_key="test", google_api_key="test",
+                )
+                self.assertEqual(settings.llm_model, model)
+                self.assertEqual(settings.for_model().llm_model, model)
+
+    def test_current_models_construct_with_installed_sdk(self):
+        from pydantic_ai.models import infer_model
+        from app.config import PROVIDER_MODELS
+
+        with patch.dict(os.environ, {
+            "ANTHROPIC_API_KEY": "test", "OPENAI_API_KEY": "test",
+            "GOOGLE_API_KEY": "test",
+        }):
+            for _, models in PROVIDER_MODELS.values():
+                for model in models:
+                    with self.subTest(model=model):
+                        instance = infer_model(model)
+                        self.assertEqual(instance.model_name, model.split(":", 1)[1])
+
     def settings(self, **overrides):
         return Settings(
             _env_file=None,
@@ -17,6 +82,7 @@ class ModelSelectionTests(unittest.TestCase):
                 "llm_model": "",
                 "anthropic_api_key": "",
                 "google_api_key": "",
+                "gemini_api_key": "",
                 "openai_api_key": "test-secret",
                 **overrides,
             },
@@ -74,32 +140,45 @@ class ModelSelectionTests(unittest.TestCase):
                     self.assertEqual(response.status_code, 200)
                     self.assertEqual(captured, [provider_model])
 
-    def test_planner_and_layout_use_selection_and_children_pin_it(self):
+    def test_static_layout_skips_ai_and_children_pin_selected_model(self):
         from app.agent import EmailPlan, EmailStep
 
-        plan = EmailPlan(sequence_title="Test", emails=[EmailStep(
+        plan = EmailPlan(sequence_title="Test", preset_id="black-friday-fashion", emails=[EmailStep(
             step=1, title="Email", subject_line="Subject", agent_prompt="Build",
         )])
         planner = AsyncMock(return_value=(plan, None))
-        layout = AsyncMock(return_value=("header", "footer", ["body"], {}, None))
+        layout = AsyncMock()
         model = "openai:gpt-5-mini"
+        normalized = routes.build_preset_layout(plan.preset_id, 3)[3]
+        normalized["page"]["rows"][-1]["server-normalized"] = True
         with (
             patch.object(routes, "get_settings", return_value=self.settings()),
-            patch.object(routes, "generate_plan", planner),
-            patch.object(routes, "build_shared_layout", layout),
-            patch.object(routes, "create_seeded_template", AsyncMock(return_value="child")),
+            patch("app.agent.generate_plan", planner),
+            patch("app.agent.build_shared_layout", layout),
+            patch.object(routes, "create_seeded_template", AsyncMock(return_value="child")) as seed,
+            patch.object(routes, "get_template", AsyncMock(return_value=normalized)),
             patch.dict(routes.template_layouts, {}, clear=True),
         ):
             client = TestClient(routes.app)
-            response = client.get("/plan-stream", params={"goal": "Test", "model": model})
+            response = client.get("/plan-stream", params={
+                "goal": "Test", "model": model, "preset_id": "black-friday-fashion",
+            })
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(planner.call_args.args[1].llm_model, model)
+            planner.assert_not_awaited()
             response = client.get("/execute-stream", params={
                 "plan_json": plan.model_dump_json(), "model": model,
             })
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(layout.call_args.args[1].llm_model, model)
+            layout.assert_not_awaited()
+            self.assertEqual(seed.call_args.args[0].llm_model, model)
+            self.assertIn("VAULTURA", str(seed.call_args.args[1]))
+            self.assertNotIn("event: tokens", response.text)
+            self.assertNotIn("event: layout-done", response.text)
             self.assertIn("model=openai%3Agpt-5-mini", response.text)
+            from app.guards import validate_sequence
+            child_policy = routes.template_layouts["child"]["policy"]
+            validate_sequence(normalized, child_policy)
+            self.assertEqual(child_policy["rows"][-1], normalized["page"]["rows"][-1])
 
     def test_bulk_children_pin_selected_model(self):
         cases = [

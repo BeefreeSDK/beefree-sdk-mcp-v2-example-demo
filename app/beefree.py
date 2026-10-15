@@ -25,13 +25,16 @@ async def create_template(settings: Settings) -> str:
 async def create_seeded_template(
     settings: Settings,
     template_json: dict,
+    brand_rules: dict | None = None,
 ) -> str:
     """Create a template session pre-seeded with existing template content."""
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
             f"{settings.bee_api_base}/v2/sdk/mcp/template",
             headers={"Authorization": f"Bearer {settings.bee_api_key}"},
-            json={"template": template_json},
+            json={"template": template_json, **(
+                {"brandRules": brand_rules} if brand_rules else {}
+            )},
         )
         if not resp.is_success:
             raise httpx.HTTPStatusError(

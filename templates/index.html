@@ -152,6 +152,7 @@
   <script>
     /* ── Preset prompt selection ── */
     function selectPrompt(el) {
+      document.getElementById('workspace').hidden = true;
       document.querySelectorAll('.seq-prompt-card').forEach(function(c) {
         c.classList.remove('seq-prompt-card-selected');
       });
@@ -184,6 +185,7 @@
 
       // Plan appeared → collapse the campaign form
       if (tgt.id === 'workspace') {
+        tgt.hidden = false;
         var fs = document.getElementById('form-section');
         if (fs) fs.classList.add('is-collapsed');
       }

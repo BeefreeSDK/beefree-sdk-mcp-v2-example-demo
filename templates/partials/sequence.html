@@ -32,6 +32,16 @@
     border-color: #82EDA8;
   }
 
+  .seq-col.is-review { border-color: #d7a536; }
+  .seq-status.review { background: #fff4ce; color: #775914; }
+  .sequence-warning:not(:empty) {
+    padding: .75rem 1rem;
+    background: #fff8df;
+    color: #775914;
+    font-size: .78rem;
+    border-top: 1px solid #ead9a4;
+  }
+
   /* Error: red accent */
   .seq-col.is-error {
     border-color: #F87171;
@@ -141,10 +151,10 @@
   }
 </style>
 
-<section>
+<section class="card sequence-results">
   <div class="seq-header">
     <h2 class="seq-title">{{ plan.sequence_title }}</h2>
-    <span class="plan-badge running" id="seq-status-badge">{{ emails_with_ids | length }} agents in parallel</span>
+    <span class="plan-badge running" id="seq-status-badge">{{ emails_with_ids | length }} {% if pending_sessions %}emails queued{% else %}agents in parallel{% endif %}</span>
     <a id="seq-download-btn"
        class="btn-outline"
        style="display:none;"
@@ -173,9 +183,11 @@
     {% for email, template_id in emails_with_ids %}
     <div
       class="seq-col"
+      {% if not pending_sessions %}
       hx-ext="sse"
       sse-connect="/stream/{{ template_id }}?prompt={{ email.agent_prompt | urlencode }}&amp;model={{ llm_model | urlencode }}"
       sse-close="close"
+      {% endif %}
     >
       <!-- Column header: fixed identity + live status -->
       <div class="seq-col-header">
@@ -184,7 +196,7 @@
           <span class="seq-col-title" title="{{ email.title }}">{{ email.title }}</span>
         </div>
         <span class="seq-status generating">
-          <span class="status-dot"></span>Generating&hellip;
+          <span class="status-dot"></span>{% if pending_sessions %}Queued{% else %}Generating&hellip;{% endif %}
         </span>
       </div>
 
@@ -193,18 +205,22 @@
         <div class="seq-placeholder">Waiting for agent&hellip;</div>
       </div>
       <div class="agent-error-panel" sse-swap="agent-error" hx-swap="innerHTML"></div>
+      <div class="sequence-warning" sse-swap="validation-warning" hx-swap="innerHTML" role="status"></div>
     </div>
     {% endfor %}
   </div>
 </section>
 
+{% if not pending_sessions %}
 <script>
 (function () {
+  var results = document.currentScript.previousElementSibling;
+  var sequenceRow = results.querySelector('#seq-row');
 
   /* ── Scale iframe wraps to fit column width ── */
   function scaleWraps() {
-    var row = document.getElementById('seq-row');
-    if (!row) return;
+    var row = sequenceRow;
+    if (!row || !row.isConnected) return;
     row.querySelectorAll('.seq-col').forEach(function (col) {
       var w = col.offsetWidth;
       var scale = w / 700;
@@ -220,7 +236,8 @@
   document.body.addEventListener('htmx:afterSwap', function () { setTimeout(scaleWraps, 100); });
   document.body.addEventListener('htmx:sseMessage', function (e) {
     var col = e.target && e.target.closest('.seq-col');
-    if (!col) return;
+    if (!col || !results.contains(col)) return;
+    if (e.target.getAttribute('sse-swap') === 'validation-warning') return;
     if (e.target.getAttribute('sse-swap') === 'agent-error') {
       col.classList.remove('is-generating');
       col.classList.add('is-error');
@@ -244,50 +261,95 @@
   // Mark column as actively generating when SSE connection opens
   document.body.addEventListener('htmx:sseOpen', function (e) {
     var col = e.target.closest('.seq-col');
-    if (col) col.classList.add('is-generating');
+    if (!col || !results.contains(col)) return;
+    col.classList.add('is-generating');
+    e.detail.source.addEventListener('outcome', function (event) {
+      var outcome;
+      try { outcome = JSON.parse(event.data).status; } catch (_) { return; }
+      if (['completed', 'failed', 'needs_review'].indexOf(outcome) < 0) return;
+      col.dataset.outcome = outcome;
+      col.classList.remove('is-generating', 'is-error', 'is-done', 'is-review');
+      var pill = col.querySelector('.seq-status');
+      if (outcome === 'completed') {
+        col.classList.add('is-done');
+        pill.className = 'seq-status done';
+        pill.textContent = 'Done';
+        col.querySelector('.sequence-warning').textContent = '';
+      } else if (outcome === 'needs_review') {
+        col.classList.add('is-review');
+        pill.className = 'seq-status review';
+        pill.textContent = 'Needs review';
+        var warning = col.querySelector('.sequence-warning');
+        if (!warning.textContent.trim()) {
+          warning.textContent = 'Generation finished with a layout warning. You can still download the result.';
+        }
+      } else {
+        col.classList.add('is-error');
+        pill.className = 'seq-status error';
+        pill.textContent = 'Failed';
+      }
+      updateSummary();
+    });
   });
+
+  document.body.addEventListener('htmx:sseError', function (e) {
+    var col = e.target.closest('.seq-col');
+    if (!col || !results.contains(col) || col.dataset.outcome) return;
+    col.removeAttribute('sse-connect');
+    e.detail.source.close();
+    markConnectionLost(col);
+  });
+
+  function markConnectionLost(col) {
+    col.dataset.outcome = 'failed';
+    col.classList.remove('is-generating');
+    col.classList.add('is-error');
+    var pill = col.querySelector('.seq-status');
+    pill.className = 'seq-status error';
+    pill.textContent = 'Connection lost';
+    col.querySelector('.agent-error-panel').textContent =
+      'Live connection lost. Remote work may still be running; generation was not restarted.';
+    updateSummary();
+  }
 
   // Collect template IDs from SSE connect URLs for later download
   var _seqTemplateIds = [];
-  document.querySelectorAll('.seq-col[sse-connect]').forEach(function (col) {
+  sequenceRow.querySelectorAll('.seq-col[sse-connect]').forEach(function (col) {
     var url = col.getAttribute('sse-connect');
     var m = url.match(/\/stream\/([^?]+)/);
     if (m) _seqTemplateIds.push(m[1]);
   });
-  var _seqDoneCount = 0;
-  var _seqTotal = document.querySelectorAll('.seq-col').length;
 
-  // Flip status pill to Done when SSE stream closes (skip if already in error state)
+  function updateSummary() {
+    var columns = sequenceRow.querySelectorAll('.seq-col');
+    var _seqTotal = columns.length;
+    var settled = Array.from(columns).filter(function (col) { return col.dataset.outcome; });
+    var done = settled.filter(function (col) { return col.dataset.outcome === 'completed'; }).length;
+    var reviews = settled.filter(function (col) { return col.dataset.outcome === 'needs_review'; }).length;
+    var failures = settled.length - done - reviews;
+    var badge = results.querySelector('#seq-status-badge');
+    if (badge) {
+      badge.textContent = done + ' done' + (reviews ? ', ' + reviews + ' need review' : '') +
+        (failures ? ', ' + failures + ' failed' : '') +
+        (settled.length < _seqTotal ? ', ' + (_seqTotal - settled.length) + ' running' : '');
+      badge.className = 'plan-badge' + (done === _seqTotal ? ' done' : '');
+    }
+    if (settled.length === _seqTotal && failures === 0) {
+      var ids = _seqTemplateIds.join(',');
+      [['seq-download-btn', '/download-all'], ['seq-download-html-btn', '/download-all-html']].forEach(function (item) {
+        var button = results.querySelector('#' + item[0]);
+        if (button && ids) { button.href = item[1] + '?ids=' + ids; button.style.display = ''; }
+      });
+    }
+  }
+
   document.body.addEventListener('htmx:sseClose', function (e) {
     var col = e.target.closest('.seq-col');
-    if (!col) return;
-    if (col.classList.contains('is-error')) return;
-    col.classList.remove('is-generating');
-    col.classList.add('is-done');
-    var pill = col.querySelector('.seq-status');
-    if (pill) {
-      pill.className = 'seq-status done';
-      pill.textContent = '✓ Done';
-    }
-
-    _seqDoneCount++;
-    if (_seqDoneCount >= _seqTotal) {
-      var badge = document.getElementById('seq-status-badge');
-      if (badge) { badge.className = 'plan-badge done'; badge.textContent = '✓ All done'; }
-
-      var ids = _seqTemplateIds.join(',');
-      var dlBtn = document.getElementById('seq-download-btn');
-      if (dlBtn && ids) {
-        dlBtn.href = '/download-all?ids=' + ids;
-        dlBtn.style.display = '';
-      }
-      var dlHtmlBtn = document.getElementById('seq-download-html-btn');
-      if (dlHtmlBtn && ids) {
-        dlHtmlBtn.href = '/download-all-html?ids=' + ids;
-        dlHtmlBtn.style.display = '';
-      }
-    }
+    if (!col || !results.contains(col)) return;
+    if (e.detail.type !== 'message') return;
+    if (!col.dataset.outcome) markConnectionLost(col);
   });
 
 })();
 </script>
+{% endif %}
