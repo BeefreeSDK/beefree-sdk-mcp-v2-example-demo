@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()  # put .env vars into os.environ so PydanticAI can read them
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sse_starlette import EventSourceResponse
@@ -289,6 +289,13 @@ PALETTES = [
 ]
 
 # ─── Routes ──────────────────────────────────────────────────────────────────
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Browsers ask for /favicon.ico on their own; pages link the SVG and PNGs."""
+    return FileResponse("static/favicon-32.png", media_type="image/png",
+                        headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/healthcheck")

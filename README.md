@@ -258,6 +258,7 @@ Chat sessions, pending runs and sequence layout checks are kept in memory
 │   ├── ui.js            # Shared UI: inline server errors, collapse state, sample loader
 │   ├── model-selection.js  # Provider/model picker
 │   ├── tokens.js        # Header token counter (sessionStorage)
+│   ├── favicon.svg      # Beefree mark (plus favicon-32/-192 and apple-touch-icon PNGs)
 │   └── vendor/          # Self-hosted htmx and its SSE extension
 └── tests/               # unittest suite
 ```
