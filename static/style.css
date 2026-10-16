@@ -1711,8 +1711,50 @@ textarea { resize: vertical; }
   flex-shrink: 0;
 }
 
+/* Collapsed, the chat shrinks to a round chat button in the top-left corner;
+   the editor takes the rest of the width. */
+.demo-workspace .edit-chat-panel { position: relative; }
+.demo-workspace .edit-chat-panel > :not(.demo-chat-rail) { transition: opacity .18s ease; }
 .demo-workspace.chat-collapsed .edit-chat-panel {
+  width: 48px !important;
+  height: 48px !important;
+  min-height: 0 !important;
+  flex: none;
+  align-self: flex-start;
+  padding: 0;
+  border-radius: 50%;
+  overflow: visible;
+  animation: chat-pop .22s cubic-bezier(.2, .8, .3, 1.2);
+}
+.demo-workspace.chat-collapsed .edit-chat-panel > :not(.demo-chat-rail) { display: none; }
+@keyframes chat-pop { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.demo-chat-rail {
+  position: absolute;
+  inset: 0;
   display: none;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--primary-dk);
+  cursor: pointer;
+}
+.demo-workspace.chat-collapsed .demo-chat-rail { display: flex; }
+.demo-chat-rail:hover { background: #F6F2FF; color: var(--primary); }
+.demo-chat-rail:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.demo-chat-rail-dot {
+  display: none;
+  position: absolute; top: 1px; right: 1px;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--primary); border: 2px solid var(--surface);
+}
+.demo-chat-rail.has-unread .demo-chat-rail-dot { display: block; }
+.demo-chat-rail-unread { display: none; }
+.demo-chat-rail.has-unread .demo-chat-rail-unread { display: inline; }
+@media (prefers-reduced-motion: reduce) {
+  .demo-workspace .edit-chat-panel, .demo-workspace .edit-chat-panel > * { transition: none; animation: none; }
 }
 
 /* Let the message list fill the (tall) chat panel so the input pins to the bottom */
@@ -1812,17 +1854,6 @@ textarea { resize: vertical; }
 }
 
 .demo-icon-btn:hover { border-color: var(--primary-lt); color: var(--primary); }
-
-/* "Show AI chat" reopen button only appears once the chat is collapsed */
-.demo-chat-reopen {
-  width: auto;
-  padding: 0 .7rem;
-  font-size: .76rem;
-  font-weight: 600;
-  display: none;
-}
-
-.demo-workspace.chat-collapsed .demo-chat-reopen { display: inline-flex; }
 
 /* Status badge variants for the chat panel header */
 .edit-status-badge.is-offline {

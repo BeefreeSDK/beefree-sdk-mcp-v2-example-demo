@@ -71,7 +71,9 @@ class IntegrationTemplateUxTests(unittest.TestCase):
         html = self.client.get("/builder").text
         self.assertIn("<title>Beefree SDK MCP — Agent in the builder</title>", html)
         self.assertIn('class="page-integration page-builder"', html)
-        self.assertIn('class="builder-titlebar"', html)
+        self.assertIn('Design your email with an AI agent and watch it appear in the editor.', html)
+        self.assertNotIn('class="builder-titlebar"', html)
+        self.assertEqual(html.count('class="demo-chat-rail"'), 1)
         self.assertIn("Describe the email you want, or ask for a change to the one in the editor.", html)
         self.assertNotIn("Connecting to the editor...", html)
         self.assertIn("focus({ preventScroll: true })", html)

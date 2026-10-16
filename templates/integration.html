@@ -119,18 +119,13 @@
       min-height: 560px;
       margin: 0;
     }
-    .builder-titlebar {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: .25rem 1rem;
-      margin-bottom: .6rem;
-      flex-shrink: 0;
+    /* Link from the builder to the integration guide, in the editor's header */
+    .builder-guide-link {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-size: .8rem; font-weight: 600; color: var(--primary); text-decoration: none;
+      padding: .3rem .65rem; border-radius: 999px; white-space: nowrap;
     }
-    .builder-titlebar h2 { font-size: 1.05rem; font-weight: 700; color: var(--text); line-height: 1.3; }
-    .builder-guide-link { font-size: .8rem; font-weight: 500; color: var(--primary); text-decoration: none; }
-    .builder-guide-link:hover { text-decoration: underline; }
+    .builder-guide-link:hover { background: #F3EFFF; color: var(--primary-dk); }
     .builder-narrow-note { display: none; }
 
     .page-builder .demo-panel { flex: 1; min-height: 0; display: flex; }
@@ -210,7 +205,7 @@
           </a>
           <h1 class="brand-tag">{% if simple_builder %}Agent in the builder{% else %}Integration guide{% endif %}</h1>
         </div>
-        <p class="header-sub">{% if simple_builder %}Describe what you want and watch it appear in the editor.{% else %}Connect AI agents to the Beefree SDK editor via MCP — two session models, one powerful result.{% endif %}</p>
+        <p class="header-sub">{% if simple_builder %}Design your email with an AI agent and watch it appear in the editor.{% else %}Connect AI agents to the Beefree SDK editor via MCP — two session models, one powerful result.{% endif %}</p>
       </div>
       <div class="header-tokens">
         <div class="token-badge">
@@ -232,10 +227,6 @@
     <div class="demo-stage">
 
       {% if simple_builder %}
-      <div class="builder-titlebar">
-        <h2>Design your email with an AI agent</h2>
-        <a href="/integration" class="builder-guide-link">How it works: integration guide &rarr;</a>
-      </div>
       <p class="builder-narrow-note" role="note">
         The visual editor works best on a computer. On a small screen, chat with the agent here, then scroll down to the editor and swipe sideways to see all of it.
       </p>
@@ -243,10 +234,10 @@
       <section class="guide-section demo-intro">
         <div class="demo-lead">
           <div class="demo-lead-text">
-            <h2>Live demo</h2>
+            <h2>Try both session models</h2>
             <p class="guide-text" style="margin-bottom:0;">
-              Pick a session model, then chat with the AI agent — the embedded Beefree editor updates in
-              real time as the agent makes MCP tool calls. Collapse the chat any time to give the builder
+              Pick a session model, then chat with the AI agent. The embedded Beefree editor updates in
+              real time as the agent makes MCP tool calls. Collapse the chat any time to give the editor
               the full width.
             </p>
           </div>
@@ -280,6 +271,17 @@
 
           <!-- Left: chat -->
           <div class="edit-chat-panel" id="em-chat-panel">
+            <!-- Collapsed, the chat shrinks to this round button -->
+            <button type="button" class="demo-chat-rail" id="em-chat-reopen" onclick="toggleChat('em')"
+                    aria-expanded="true" aria-controls="em-chat-panel" title="Show chat">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
+                      stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              </svg>
+              <span class="visually-hidden">Show chat</span>
+              <span class="demo-chat-rail-dot" aria-hidden="true"></span>
+              <span class="visually-hidden demo-chat-rail-unread">New reply</span>
+            </button>
             <div class="edit-panel-header">
               <h3 class="edit-panel-title">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0" aria-hidden="true">
@@ -341,14 +343,12 @@
                 {% if simple_builder %}Your email{% else %}Beefree editor{% endif %}
               </h3>
               <div class="demo-header-actions">
-                <button type="button" class="demo-icon-btn demo-chat-reopen" id="em-chat-reopen" onclick="toggleChat('em')"
-                        title="Show chat" aria-expanded="true" aria-controls="em-chat-panel">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
-                          stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                  </svg>
-                  Show chat
-                </button>
+                {% if simple_builder %}
+                <a href="/integration" class="builder-guide-link">
+                  Build this in your app
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </a>
+                {% endif %}
                 {% if not simple_builder %}
                 <span class="start-arrow" id="em-start-arrow" style="display:none;" aria-hidden="true">
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
@@ -386,6 +386,17 @@
 
           <!-- Left: chat -->
           <div class="edit-chat-panel" id="am-chat-panel">
+            <!-- Collapsed, the chat shrinks to this round button -->
+            <button type="button" class="demo-chat-rail" id="am-chat-reopen" onclick="toggleChat('am')"
+                    aria-expanded="true" aria-controls="am-chat-panel" title="Show chat">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
+                      stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              </svg>
+              <span class="visually-hidden">Show chat</span>
+              <span class="demo-chat-rail-dot" aria-hidden="true"></span>
+              <span class="visually-hidden demo-chat-rail-unread">New reply</span>
+            </button>
             <div class="edit-panel-header">
               <h3 class="edit-panel-title">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0" aria-hidden="true">
@@ -448,14 +459,6 @@
                 <span class="edit-preview-badge" style="margin-left:.15rem;">co-editing</span>
               </h3>
               <div class="demo-header-actions">
-                <button type="button" class="demo-icon-btn demo-chat-reopen" id="am-chat-reopen" onclick="toggleChat('am')"
-                        title="Show chat" aria-expanded="true" aria-controls="am-chat-panel">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
-                          stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                  </svg>
-                  Show chat
-                </button>
               </div>
             </div>
             <div class="demo-editor-container" id="am-editor-container">
@@ -670,6 +673,24 @@ final_template = resp.json()</code></pre>
   });
 
   // ── Collapse / reopen the AI chat side panel (gives the builder full width) ─
+  // Collapsed, the chat shrinks to a rail on the left; a dot on the rail marks
+  // agent replies that arrived while it was closed.
+  ['em', 'am'].forEach(function (prefix) {
+    var messages = document.getElementById(prefix + '-messages');
+    var rail = document.getElementById(prefix + '-chat-reopen');
+    if (!messages || !rail) return;
+    new MutationObserver(function (changes) {
+      var ws = rail.closest('.demo-workspace');
+      if (!ws || !ws.classList.contains('chat-collapsed')) return;
+      var reply = changes.some(function (c) {
+        return Array.prototype.some.call(c.addedNodes, function (n) {
+          return n.nodeType === 1 && n.classList.contains('agent-bubble');
+        });
+      });
+      if (reply) rail.classList.add('has-unread');
+    }).observe(messages, { childList: true });
+  });
+
   function toggleChat(prefix) {
     var panelId = prefix === 'em' ? 'panel-editor-managed' : 'panel-api-managed';
     var ws = document.querySelector('#' + panelId + ' .demo-workspace');
@@ -677,12 +698,14 @@ final_template = resp.json()</code></pre>
     var collapsed = ws.classList.toggle('chat-collapsed');
     var collapseBtn = document.getElementById(prefix + '-chat-collapse');
     var reopenBtn = document.getElementById(prefix + '-chat-reopen');
+    if (!collapsed) reopenBtn.classList.remove('has-unread');
     [collapseBtn, reopenBtn].forEach(function (b) {
       if (b) b.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
     });
     // Keep keyboard focus on the control that is still visible
+    // (after the style change has applied, or the target may not be focusable yet)
     var next = collapsed ? reopenBtn : collapseBtn;
-    if (next) next.focus({ preventScroll: true });
+    if (next) setTimeout(function () { next.focus({ preventScroll: true }); }, 30);
   }
   </script>
 
