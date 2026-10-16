@@ -349,9 +349,19 @@ async def sample_template():
     return JSONResponse(build_sample_template())
 
 
+EDITOR_UID = re.compile(r"^demo-[0-9a-f]{32}$")
+
+
 @app.get("/integration-auth")
-async def integration_auth():
-    """Return a fresh Beefree SDK auth token for the embedded editor."""
+async def integration_auth(uid: str | None = None):
+    """Return a fresh Beefree SDK auth token for the embedded editor.
+
+    Each browser gets its own editor user ID, so visitors don't share Beefree's
+    per-user state (file manager uploads, co-editing presence). The browser keeps
+    the ID it was given and sends it back; anything else gets a new random one.
+    """
+    if not uid or not EDITOR_UID.match(uid):
+        uid = f"demo-{secrets.token_hex(16)}"
     settings = get_settings()
     if not settings.bee_client_id or not settings.bee_client_secret:
         return JSONResponse(
@@ -364,7 +374,7 @@ async def integration_auth():
             json={
                 "client_id": settings.bee_client_id,
                 "client_secret": settings.bee_client_secret,
-                "uid": "integration-demo-user",
+                "uid": uid,
             },
         )
         if not resp.is_success:
@@ -372,7 +382,7 @@ async def integration_auth():
                 {"error": f"Auth failed: {resp.status_code}"},
                 status_code=502,
             )
-        return JSONResponse(resp.json())
+        return JSONResponse({"token": resp.json(), "uid": uid})
 
 
 @app.post("/integration-start")

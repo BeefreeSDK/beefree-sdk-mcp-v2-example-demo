@@ -160,9 +160,10 @@ co-editing** session models are demonstrated on `/integration`. If they are not 
 the in-editor pages show a configuration error while every headless mode keeps
 working.
 
-All visitors currently share one editor user ID (`integration-demo-user`), so
-anything Beefree stores per user, such as images uploaded through the editor's file
-manager, is shared between them.
+Each browser gets its own random editor user ID (`demo-` followed by 32 hex
+characters), issued by `/integration-auth` and kept in `localStorage`. Visitors
+never share an editor user, so file manager uploads and co-editing sessions stay
+separate. Clearing site data, or a browser without storage, starts a new ID.
 
 ---
 
