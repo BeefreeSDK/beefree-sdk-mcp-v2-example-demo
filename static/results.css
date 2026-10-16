@@ -367,3 +367,14 @@
   .preview-refreshing { animation: none; }
   .plan-prompt summary::before { transition: none; }
 }
+
+/* Palette columns: note shown when the server completed colors the agent missed */
+.col-fix-note:empty { display: none; }
+.col-fix-note {
+  margin: 0;
+  padding: .55rem .85rem;
+  border-top: 1px solid var(--border);
+  font-size: .75rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}

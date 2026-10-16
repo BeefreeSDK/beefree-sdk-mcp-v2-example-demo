@@ -2,6 +2,7 @@ import html as html_module
 import asyncio
 import json as _json
 import logging
+import re
 from functools import wraps
 from typing import AsyncIterator
 
@@ -41,9 +42,8 @@ execution results before continuing. After a partial failure, inspect the curren
 template before retrying; do not blindly repeat mutations that already succeeded.
 Keep every operation-specific restriction above, including protected rows and
 text-only or color-only editing rules, inside scripts too. Validate the result.
-For shared layouts, return the requested row-ID JSON in your final text response.
-After layout writes finish, use a separate read-only script with
-out(getContentHierarchy()) to retrieve live section IDs for that JSON.
+Script output is for you, not the user: never paste script results, JSON or
+element IDs into your final reply.
 """
 
 
@@ -374,6 +374,49 @@ def append_layout_context(
 # --- SSE helpers --------------------------------------------------------------
 
 
+_FENCED = re.compile(r"```.*?(```|$)", re.S)
+_UUID = re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", re.I)
+_TECH_SENTENCE = re.compile(
+    r"[^.\n]*\b(content hierarchy|hierarchy json|block ids?|section ids?|element ids?|json)\b[^.\n]*[.:]?", re.I)
+
+
+def _strip_json_blocks(text: str) -> str:
+    """Remove multi-line {...} / [...] blocks (pasted JSON) from a reply."""
+    out, i = [], 0
+    while i < len(text):
+        ch = text[i]
+        if ch in "{[" and (i == 0 or text[i - 1] == "\n"):
+            close = "}" if ch == "{" else "]"
+            depth, j = 0, i
+            while j < len(text):
+                if text[j] in "{[":
+                    depth += 1
+                elif text[j] in "}]":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                j += 1
+            block = text[i:j + 1]
+            if "\n" in block and len(block) > 40 and text[j:j + 1] == close:
+                i = j + 1
+                continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def clean_reply(text: str) -> str:
+    """Keep the chat reply readable for non-developers: drop code, JSON and IDs."""
+    cleaned = _FENCED.sub("", text or "")
+    cleaned = _strip_json_blocks(cleaned)
+    cleaned = _TECH_SENTENCE.sub("", cleaned)
+    cleaned = _UUID.sub("", cleaned)
+    cleaned = re.sub(r"`([^`]*)`", r"\1", cleaned)          # inline code -> plain text
+    cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+    return cleaned or "Done. The email in the editor has been updated."
+
+
 def _tokens_event(usage, model: str) -> dict | None:
     """Build a tokens SSE event from a PydanticAI usage object. Returns None if no usage.
 
@@ -581,34 +624,33 @@ async def stream_translation_executor(
 # --- Color palette executor SSE stream ---------------------------------------
 
 PALETTE_AGENT_SYSTEM_PROMPT = """You are a color palette agent working inside the Beefree headless editor.
-The email template is already fully built. Your only task is to restyle it using the exact color palette below.
+The email template is already fully built. Your only task is to recolor it with
+the "{palette_name}" palette by applying the color plan below.
 
-TARGET PALETTE — {palette_name}:
-  Page background:      {page_bg}
-  Content area:         {content_bg}
-  Header row bg:        {header_bg}
-  Heading text:         {heading}
-  Body text:            {text}
-  Buttons / CTAs:       {primary}
-  Links / accents:      {accent}
-  Footer row bg:        {footer_bg}
-  Footer text:          {footer_text}
+The plan was computed from the template and lists EVERY color that must change:
+the page background, each row's full-width container background AND its content
+area background, text colors, link colors, buttons, and colors written inline
+inside text HTML (style="color:..."). Rows are numbered from the top; the first
+row is the header and the last row is the footer.
 
-WORKFLOW — follow this order exactly, calling beefree_check_template after each phase:
-1. Call beefree_set_template_styles to set page background to {page_bg}, content area background to {content_bg}, default text color to {text}, and link color to {accent}. Then call beefree_check_template.
-2. Identify the first row (header) and update its background color to {header_bg}. Update any text inside it to a contrasting light color if needed. Then call beefree_check_template.
-3. Update all heading elements throughout the template to use {heading}. Update all button and CTA elements to use {primary} as the background color. Then call beefree_check_template.
-4. Identify the last row (footer) and update its background to {footer_bg} and its text to {footer_text}. Then call beefree_check_template.
+COLOR PLAN ({change_count} changes):
+{plan}
+
+HOW TO WORK:
+1. Read the template structure first so you can find each row and block in order.
+2. Apply the plan in a few scripts, roughly top to bottom (global styles and the
+   header first, then the body rows, then the footer), so the preview updates as
+   you go. For inline colors, edit the text's HTML and replace only the color value.
+3. Re-read the template and compare it with the plan. Fix anything still using an
+   old color, then run the template check.
 
 STRICT RULES — you must NEVER:
 - Change any text content, copy, or wording
 - Add, remove, reorder, or restructure rows, columns, or content blocks
 - Change fonts, font sizes, spacing, padding, or any layout property
-- Call beefree_add_section or beefree_delete_section
+- Use colors that are not in the plan
 
-beefree_check_template MUST be called after every phase, not just at the end.
-When all four phases are complete and the final beefree_check_template has passed,
-stop calling tools and respond with: "Done."
+When every change in the plan is applied, stop calling tools and respond with: "Done."
 """
 
 
@@ -627,10 +669,24 @@ async def stream_palette_executor(
     - "preview" events: rendered email HTML in an iframe
     - "close" event: tells HTMX to stop reconnecting
     """
+    from .beefree import get_template, render_html
+    from .recolor import apply_plan, build_plan, describe, missed
+
+    def _template_of(data: dict) -> dict:
+        return data.get("template", data)
+
+    # Compute the full color plan from the template before the agent starts.
+    plan = []
+    try:
+        plan = build_plan(_template_of(await get_template(template_id, settings)), palette["colors"])
+    except Exception as exc:
+        log.warning("Could not build a color plan for %s: %s", template_id, exc)
+
     mcp = create_code_mode_mcp(template_id, settings)
     system_prompt = PALETTE_AGENT_SYSTEM_PROMPT.format(
         palette_name=palette["name"],
-        **palette["colors"],
+        change_count=len(plan),
+        plan=describe(plan) or "(no color plan could be computed: recolor backgrounds, text and links with the palette)",
     )
     agent: Agent[None, str] = Agent(
         model=settings.agent_model,
@@ -666,8 +722,29 @@ async def stream_palette_executor(
         log.error("Palette agent error for %s (%s): %s", template_id, palette["name"], detail)
         yield {"event": "agent-error", "data": detail}
 
+    # Safety net: apply whatever part of the plan the agent missed. Beefree has no
+    # update endpoint, so the fixed template is handed back to the route
+    # ("fixed-template", internal) and used for the preview and the downloads.
+    final_preview = None
     try:
-        preview_html = await _fetch_preview(template_id, settings)
+        final = _template_of(await get_template(template_id, settings))
+        left = missed(final, plan) if plan else []
+        if left:
+            fixed = apply_plan(final, plan)
+            yield {"event": "fixed-template", "data": fixed}
+            final_preview = await render_html(fixed, settings)
+            done = len(plan) - len(left)
+            yield {"event": "fix-note", "data": html_module.escape(
+                f"The agent applied {done} of {len(plan)} color changes. "
+                f"The remaining {len(left)} were completed automatically."
+            )}
+            log.info("Palette %s on %s: safety net applied %d of %d changes",
+                     palette["name"], template_id, len(left), len(plan))
+    except Exception as exc:
+        log.warning("Palette safety net failed for %s: %s", template_id, exc)
+
+    try:
+        preview_html = final_preview or await _fetch_preview(template_id, settings)
         if preview_html:
             yield _preview_event(preview_html)
     except Exception:
@@ -692,7 +769,12 @@ RULES:
 - Always call beefree_check_template after making structural or style changes to validate the result.
 - When the user asks you to inspect or describe the email, call beefree_get_content_hierarchy first.
 - Keep changes focused on what the user asked — don't redesign the whole email unless explicitly told to.
-- When done, respond with a short, friendly summary of what you changed (1-3 sentences).
+- When done, reply with a short, friendly summary of what you changed (1-3 sentences),
+  written for a marketer rather than a developer. You may end with one short
+  suggestion for a next step.
+- Never include code, scripts, JSON, the content hierarchy, element or section IDs,
+  tool or function names, or color hex codes in your reply. Describe changes in
+  plain words ("made the header dark green", "added a three-column benefits row").
 - If you cannot fulfil a request with the available tools, explain why clearly.
 """
 
@@ -767,7 +849,7 @@ async def stream_edit_executor(
         pass
 
     # Escape and format the agent reply as safe HTML
-    escaped = html_module.escape(agent_text)
+    escaped = html_module.escape(clean_reply(agent_text))
     formatted = escaped.replace("\n\n", "</p><p>").replace("\n", "<br>")
     yield {"event": "agent-message", "data": f"<p>{formatted}</p>"}
     yield {"event": "close", "data": ""}

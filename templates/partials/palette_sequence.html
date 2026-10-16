@@ -56,6 +56,7 @@
       </div>
       <div class="agent-error-panel" sse-swap="agent-error" hx-swap="innerHTML"></div>
       <div class="sequence-warning" sse-swap="validation-warning" hx-swap="innerHTML" role="status"></div>
+      <p class="col-fix-note" sse-swap="fix-note" hx-swap="innerHTML" role="status"></p>
     </div>
     {% endfor %}
   </div>
@@ -151,7 +152,7 @@
     var col = ownColumn(e.target);
     if (!col) return;
     var kind = e.target.getAttribute('sse-swap');
-    if (kind === 'validation-warning') return;
+    if (kind === 'validation-warning' || kind === 'fix-note') return;
     if (kind === 'agent-error') {
       if (!col.dataset.outcome) setPill(col, 'failed');
       return;

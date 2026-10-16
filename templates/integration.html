@@ -820,7 +820,73 @@ final_template = resp.json()</code></pre>
       input.focus({ preventScroll: true });
     }
 
-    // Starter ideas: clicking one fills the composer (it does not send).
+    var STARTER_IDEAS = [
+      {
+        label: 'A welcome email for new subscribers with a hero image and a button',
+        prompt: [
+          'Create a welcome email for new subscribers of Fernway, a sustainable houseplant shop.',
+          '',
+          'Style: calm, modern and airy. Colors: deep green #1F3D2B for the header and buttons, warm off-white #F7F4EE background, charcoal #2B2B2B text, sage #A3B18A for accents. Clean sans-serif font, bold headings, generous spacing.',
+          '',
+          'Layout, top to bottom:',
+          '1. Header: the brand name "FERNWAY", centered, on the deep green.',
+          '2. Hero: full-width image placeholder (600x300), the headline "Welcome to the Fernway family", one short sentence about bringing nature indoors, and a "Shop the collection" button.',
+          '3. Three benefits in three columns, each with an icon placeholder, a short title and one line of text: free delivery over $50, plant-care guides, 30-day happy-plant guarantee.',
+          '4. A highlighted box with the first-order code WELCOME10 for 10% off.',
+          '5. Footer: address, a short "You are receiving this because you signed up" line and an unsubscribe link.',
+          '',
+          'Keep paragraphs short, buttons at least 44px tall, and give every image alt text.'
+        ].join('\n')
+      },
+      {
+        label: 'A spring sale announcement with three featured products',
+        prompt: [
+          'Create a spring sale email for Haven, a home and living brand.',
+          '',
+          'Style: fresh and energetic but still premium. Colors: coral #E4572E for buttons and the sale banner, soft blush #FFF1EC background, navy #1D2D44 text, white product cards. Bold, large headline; clean sans-serif body.',
+          '',
+          'Layout, top to bottom:',
+          '1. Header with the brand name "HAVEN" on navy.',
+          '2. Sale banner in coral: "Spring sale: up to 40% off", with "Ends Sunday at midnight" underneath.',
+          '3. Hero: full-width image placeholder of a bright living room and a "Shop the sale" button.',
+          '4. Three featured products side by side, each card with a square image placeholder, the product name, the old price crossed out, the sale price in coral, and a "Shop now" button. Use: Linen throw ($89 → $59), Ceramic vase ($48 → $32), Oak side table ($240 → $165).',
+          '5. A short urgency strip: "Free shipping on all sale orders this week".',
+          '6. Footer with address and unsubscribe link.',
+          '',
+          'Buttons at least 44px tall, product cards evenly spaced, alt text on every image.'
+        ].join('\n')
+      },
+      {
+        label: 'A monthly newsletter with a short intro and two articles',
+        prompt: [
+          'Create the monthly newsletter "The Monthly Brief" from Northline, a design studio.',
+          '',
+          'Style: editorial and clean, like a well-designed magazine. Colors: indigo #312E81 for the masthead and links, white background, light grey #F4F4F7 for alternating sections, dark grey #1F2937 text. Large serif-style headings if available, sans-serif body.',
+          '',
+          'Layout, top to bottom:',
+          '1. Masthead: "The Monthly Brief" with "Issue 12, October" underneath, on indigo.',
+          '2. A short intro note from the editor (two or three friendly sentences) signed "Ana, Northline".',
+          '3. Two article blocks. Each has an image on the left and text on the right: a title, a two-line summary and a "Read more" link. Article 1: "Designing for slow attention". Article 2: "What we learned redesigning a museum website".',
+          '4. "Quick links": a short list of three useful links (a tool, a talk and a book) with one line each.',
+          '5. Footer with social icon placeholders, address and unsubscribe link.',
+          '',
+          'Keep it scannable, use plenty of white space and give every image alt text.'
+        ].join('\n')
+      }
+    ];
+
+    // Grow the composer with its content (up to a limit) so long briefs stay readable.
+    function autosize(input) {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight + 2, 240) + 'px';
+    }
+    ['em', 'am'].forEach(function (prefix) {
+      var input = $(prefix + '-input');
+      if (input) input.addEventListener('input', function () { autosize(input); });
+    });
+
+    // Starter ideas: a short label on the button; clicking fills the composer with
+    // a detailed brief (layout, colors, copy) that can be edited before sending.
     function appendSuggestions(prefix, ideas) {
       var wrap = document.createElement('div');
       wrap.className = 'chat-suggestions';
@@ -830,12 +896,15 @@ final_template = resp.json()</code></pre>
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'chat-suggestion';
-        b.textContent = idea;
+        b.textContent = idea.label;
         b.addEventListener('click', function () {
           var input = $(prefix + '-input');
-          input.value = idea;
+          input.value = idea.prompt;
+          autosize(input);
+          input.scrollTop = 0;
           updateSendState(prefix);
           input.focus({ preventScroll: true });
+          input.setSelectionRange(0, 0);
         });
         wrap.appendChild(b);
       });
@@ -960,11 +1029,7 @@ final_template = resp.json()</code></pre>
           $('em-messages').replaceChildren();
           enableChat('em');
           appendAgentNote('em', 'Describe the email you want, or ask for a change to the one in the editor.');
-          appendSuggestions('em', [
-            'A welcome email for new subscribers with a hero image and a button',
-            'A spring sale announcement with three featured products',
-            'A monthly newsletter with a short intro and two articles'
-          ]);
+          appendSuggestions('em', STARTER_IDEAS);
         } else {
           enableChat('em', 'MCP session active');
           appendAgentNote('em', 'MCP session active. What would you like to change?');
@@ -1087,7 +1152,7 @@ final_template = resp.json()</code></pre>
         (sel ? '<p class="chat-selection-tag">About the selected ' + SELECTION_NAMES[sel.type].toLowerCase() +
                ' ' + escapeHtml(sel.uuid.slice(0, 8)) + '</p>' : '') + '</div>';
       appendToLog(prefix, userDiv, true);
-      if (!retryText) input.value = '';
+      if (!retryText) { input.value = ''; autosize(input); }
 
       // Reflect the "working" state. Keep the textarea editable (so the user can
       // draft the next message) but block sending until the turn finishes.

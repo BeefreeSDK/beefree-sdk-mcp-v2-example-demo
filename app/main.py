@@ -78,6 +78,20 @@ palette_sessions = ExpiringStore()
 # Temporary store for edit sessions (session_id → {template_id, messages})
 edit_sessions = ExpiringStore()
 
+# Templates corrected on our side after an agent run (template_id → template
+# JSON). Beefree has no update endpoint, so downloads serve these instead.
+# Kept for a day so result pages left open still download the fixed version.
+template_overrides = ExpiringStore(ttl_seconds=24 * 60 * 60)
+
+
+async def load_template(template_id: str, settings: Settings) -> dict:
+    """The template to download: our corrected copy if there is one, else Beefree's."""
+    override = template_overrides.get(template_id)
+    if override is not None:
+        return override
+    data = await get_template(template_id, settings)
+    return data.get("template", data)
+
 AVAILABLE_LANGUAGES = [
     "Spanish", "French", "German", "Italian", "Portuguese (Brazil)",
     "Portuguese (Portugal)", "Dutch", "Russian", "Japanese",
@@ -391,7 +405,7 @@ async def integration_refresh(session_id: str, template_id: str):
     session = edit_sessions.get(session_id)
     if not session:
         return JSONResponse(
-            {"error": "This chat has expired after an hour without activity. Reload the page to start a new one."},
+            {"error": "This chat is no longer available: it was inactive for over an hour, or the server restarted. Reload the page to start a new one."},
             status_code=404,
         )
     session["template_id"] = template_id
@@ -481,8 +495,7 @@ async def generate_stream(
 async def download_template(template_id: str):
     """Return the Beefree template JSON as a downloadable file."""
     settings = get_settings()
-    data = await get_template(template_id, settings)
-    template = data.get("template", data)
+    template = await load_template(template_id, settings)
     validate_download(template_id, template)
     filename = f"email-{template_id[:8]}.json"
     return Response(
@@ -497,8 +510,7 @@ async def download_html(template_id: str):
     """Return the rendered email HTML as a downloadable file."""
     from .beefree import render_html as _render_html
     settings = get_settings()
-    data = await get_template(template_id, settings)
-    template = data.get("template", data)
+    template = await load_template(template_id, settings)
     validate_download(template_id, template)
     html_content = await _render_html(template, settings)
     filename = f"email-{template_id[:8]}.html"
@@ -544,8 +556,7 @@ async def download_all(ids: str, steps: str | None = None):
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for i, tid in entries:
-            data = await get_template(tid, settings)
-            template = data.get("template", data)
+            template = await load_template(tid, settings)
             validate_download(tid, template)
             zf.writestr(f"email-{i:02d}-{tid[:8]}.json", json.dumps(template, indent=2))
     buf.seek(0)
@@ -571,8 +582,7 @@ async def download_all_html(ids: str, steps: str | None = None):
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for i, tid in entries:
-            data = await get_template(tid, settings)
-            template = data.get("template", data)
+            template = await load_template(tid, settings)
             validate_download(tid, template)
             html_content = await _render_html(template, settings)
             zf.writestr(f"email-{i:02d}-{tid[:8]}.html", html_content)
@@ -773,6 +783,9 @@ async def stream_palette(
 
     async def generator():
         async for event in stream_palette_executor(template_id, palette, settings):
+            if event["event"] == "fixed-template":
+                template_overrides[template_id] = event["data"]  # internal, not sent to the browser
+                continue
             yield event
 
     return EventSourceResponse(generator())
@@ -968,8 +981,8 @@ async def edit_stream_route(
     if not session:
         async def _err():
             yield {"event": "agent-message", "data": (
-                "<p>This chat has expired after an hour without activity. "
-                "Reload the page to start a new one.</p>"
+                "<p>This chat is no longer available: it was inactive for over an hour, "
+                "or the server restarted. Reload the page to start a new one.</p>"
             )}
             yield {"event": "close", "data": ""}
         return EventSourceResponse(_err())
