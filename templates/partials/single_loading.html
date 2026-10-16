@@ -108,29 +108,43 @@
 /* ── Body: sidebar + canvas ── */
 .se-body {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: 250px minmax(0, 1fr);
   align-items: start;
 }
 
+/* The sidebar never grows past the viewport: the log scrolls inside it and
+   follows the newest step, so the whole activity stays in view. */
 .se-side {
-  padding: 1.25rem;
-  border-right: 1px solid var(--border);
+  padding: 1.25rem 1rem 1rem 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
   position: sticky;
   top: var(--se-side-top, 0px);
+  max-height: calc(100vh - var(--se-side-top, 0px));
+  box-sizing: border-box;
 }
-.se-side h3 { font-size: .85rem; font-weight: 700; margin: 0 0 .6rem; }
-.se-log { list-style: none; margin: 0; padding: 0; display: grid; gap: .1rem; }
+.se-side h3 { font-size: .85rem; font-weight: 700; margin: 0 0 .5rem; flex: none; }
+.se-log {
+  list-style: none; margin: 0; padding: 0 .25rem 0 0;
+  display: grid; gap: 0; align-content: start;
+  min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
 .se-log li {
   display: grid;
-  grid-template-columns: 2.6rem 1fr;
-  gap: .5rem;
-  padding: .3rem 0;
-  font-size: .78rem;
-  line-height: 1.4;
+  grid-template-columns: 2.2rem 1fr;
+  gap: .4rem;
+  padding: .22rem 0;
+  font-size: .76rem;
+  line-height: 1.35;
 }
+.se-log li > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.se-log li:last-child > span { -webkit-line-clamp: unset; }
 .se-log time { color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .se-log small { display: block; color: var(--text-muted); font-size: .72rem; }
 .se-log li[data-kind="done"]  span { color: #1a7a40; font-weight: 600; }
@@ -140,6 +154,7 @@
 .se-canvas {
   position: relative;
   background: #EEEBF5;
+  border-left: 1px solid var(--border);
   padding: 2rem 1.5rem 2.5rem;
   min-height: 520px;
   border-radius: 0 0 var(--radius) 0;
@@ -199,9 +214,10 @@
 
 @media (max-width: 900px) {
   .se-body { grid-template-columns: 1fr; }
-  .se-side { position: static; border-right: 0; border-top: 1px solid var(--border); }
+  .se-side { position: static; max-height: none; border-top: 1px solid var(--border); }
+  .se-log { max-height: 14rem; }
   .se-seg { margin-left: 0; }
-  .se-canvas { order: -1; padding: 1.25rem .75rem 1.75rem; border-radius: 0; }
+  .se-canvas { order: -1; border-left: 0; padding: 1.25rem .75rem 1.75rem; border-radius: 0; }
   .se-toolbar { position: static; }
 }
 </style>
@@ -298,6 +314,22 @@
     card.style.setProperty('--se-side-top', (h + toolbar.offsetHeight) + 'px');
   }
   offsets();
+
+  /* Fit the sidebar to the visible space below its top edge, so the latest
+     activity is on screen even before the page is scrolled. */
+  var side = card.querySelector('.se-side');
+  var fitQueued = false;
+  function fitSide() {
+    fitQueued = false;
+    if (getComputedStyle(side).position !== 'sticky') { side.style.maxHeight = ''; return; }
+    var top = Math.max(side.getBoundingClientRect().top, 0);
+    side.style.maxHeight = Math.max(window.innerHeight - top - 12, 200) + 'px';
+  }
+  function queueFitSide() {
+    if (!fitQueued) { fitQueued = true; requestAnimationFrame(fitSide); }
+  }
+  window.addEventListener('scroll', queueFitSide, { passive: true });
+  queueFitSide();
   var started = Date.now();
   var templateId = null;
   var scripts = 0;
@@ -320,9 +352,12 @@
     time.textContent = clock();
     var span = document.createElement('span');
     span.textContent = text;
+    span.title = text;  // long steps are clamped to two lines; the full text shows on hover
     li.appendChild(time);
     li.appendChild(span);
+    var following = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
     log.appendChild(li);
+    if (following) log.scrollTop = log.scrollHeight;  // don't yank someone reading older steps
     return li;
   }
   function setNote(li, text) {
@@ -414,7 +449,7 @@
   document.querySelectorAll('.se-seg button').forEach(function (b) {
     b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
   });
-  window.addEventListener('resize', function () { offsets(); fit(); });
+  window.addEventListener('resize', function () { offsets(); fit(); queueFitSide(); });
   fit();
 
   /* ── Actions ── */
