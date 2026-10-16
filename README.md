@@ -6,16 +6,45 @@ A FastAPI web application that demonstrates AI-powered email campaign generation
 
 ## Features
 
-- **Generation modes** — five distinct ways to create and manipulate email templates:
-  - **Campaign generator** — choose a preset and immediately review a predefined plan, then let AI build the emails in parallel with live previews. Each of the 3 presets (streaming onboarding, SaaS trial nurture, Black Friday fashion) has 3 predefined variations, selected randomly per submission. Planning and shared-layout preparation require no LLM calls: each preset has a fixed branded header, footer, colors, typography, and placeholder body rows.
-  - **Single email generator** — generate a standalone, production-ready email from a free-form prompt with a single AI agent.
-  - **Bulk translation** — upload a template and translate it into any combination of 29 languages simultaneously; parallel agents replace text only, leaving layout and design intact.
-  - **Palette swap** — apply one or more of 10 built-in color palettes to an existing template in parallel; colors change, everything else stays identical.
-  - **Email editor** — load any template and chat with an AI agent to iteratively refine it; each message triggers a live MCP edit.
-- **In-editor experience** — at `/integration`, the AI agent works alongside the embedded **visual Beefree editor**: changes the agent makes over MCP appear live in the editor. Demonstrates both session models — **Editor-Managed** (a fresh MCP session per chat turn) and **API-Managed + co-editing** (a persistent shared session). Requires `BEE_CLIENT_ID` / `BEE_CLIENT_SECRET`.
-- **Export** — download any result as Beefree SDK JSON, rendered HTML, or a full sequence as a ZIP archive.
-- **Token counter** — live usage tracker in the page header showing input, output, cache-write (↑cache), and cache-read (↓cache) tokens; accumulated across all agent calls and persisted across mode switches within the same browser session.
-- **Multi-provider AI** — switch between Anthropic, OpenAI, and Google Gemini by changing a single env var; prompt caching is enabled automatically for all three.
+The home page offers two paths: **In the editor** (`/editor`) and **Headless** (`/headless`).
+
+### In the editor
+
+Both need the editor credentials `BEE_CLIENT_ID` / `BEE_CLIENT_SECRET`.
+
+- **Agent in the builder** (`/builder`): a marketer-facing page with the visual Beefree editor and an AI chat side by side, sized to fit the window. Notable behaviour:
+  - **Starter ideas:** three short buttons. Each fills the composer with a detailed brief (brand, colors, layout, copy) that can be edited before sending.
+  - **Selection-aware chat:** selecting a row or block in the editor shows a "Selected row/block" chip above the composer. The selection is sent with the next message, so "make this bigger" applies to that element. This uses the SDK's `onSelectElement` callback.
+  - **Plain-language replies:** the agent is instructed to answer without code, JSON or element IDs, and `clean_reply()` strips any that slip through.
+- **Integration guide** (`/integration`): the developer page. It runs live demos of both session models, **Editor-managed** (a fresh MCP session per chat turn) and **API-managed + co-editing** (a persistent shared session), with implementation code for each.
+
+### Headless
+
+These only need `BEE_API_KEY`.
+
+**Create a new email**
+- **Single email** (`/single`): generate one email from a preset or a free-form brief.
+  - The agent builds it step by step (one script per section), so the preview fills in progressively.
+  - An Activity log describes each step.
+  - The toolbar shows the run's tokens and estimated cost.
+  - Desktop/Mobile preview toggle.
+- **Code Mode** (`/codemode`): the same generation, but the agent batches everything into as few TypeScript scripts as possible. The script it writes is shown next to the result.
+- **Email sequence** (`/sequence`): pick a campaign preset, review a predefined plan, then build every email at the same time.
+  - Each of the 3 presets (streaming onboarding, SaaS trial nurture, Black Friday fashion) has 3 predefined variations, selected randomly.
+  - Planning and the shared layout need no LLM calls.
+
+**Change an existing template.** Each of these has a **Use a sample template** button (served by `/sample-template`), so they can be tried without bringing your own Beefree JSON.
+- **Edit an email** (`/edit`): chat with an agent to refine a template.
+- **Bulk translations** (`/translate`): translate a template into any of 29 languages at once. Only the text changes.
+- **Color palettes** (`/palette`): recolor a template with any of 10 palettes at once.
+  - The server builds a complete color plan from the template (`app/recolor.py`), and the agent applies it.
+  - Anything the agent misses is completed automatically, and the result column says so.
+
+### Across all pages
+
+- **Export:** download any result as Beefree JSON or rendered HTML, or a whole sequence as a ZIP. Partial sequences keep each email's number.
+- **Model selection:** pick the provider and model in the header for each run. Anthropic, OpenAI and Google are supported, with prompt caching on all three.
+- **Usage:** the header counts input, output and cache tokens for the browser tab. The Single email result shows the cost of that run, using prices in `app/pricing.py`.
 
 ---
 
@@ -25,7 +54,7 @@ A FastAPI web application that demonstrates AI-powered email campaign generation
 - [uv](https://docs.astral.sh/uv/) (package manager)
 - A **Beefree CSAPI key** — get one at [developers.beefree.io](https://developers.beefree.io)
 - An API key for at least one LLM provider (Anthropic, OpenAI, or Google AI Studio)
-- *(Optional)* **Beefree SDK editor credentials** (`BEE_CLIENT_ID` / `BEE_CLIENT_SECRET`) — only needed for the in-editor experience at `/integration`
+- *(Optional)* **Beefree SDK editor credentials** (`BEE_CLIENT_ID` / `BEE_CLIENT_SECRET`) — only needed for the in-editor pages (`/builder` and `/integration`)
 
 ---
 
@@ -54,7 +83,7 @@ Open `.env` and set:
 BEE_API_KEY=your_csapi_key_here
 
 # Optional — Beefree SDK editor credentials. Required ONLY for the in-editor
-# experience at /integration, where the AI agent works alongside
+# pages (/builder and /integration), where the AI agent works alongside
 # the embedded visual Beefree editor. Get them from developers.beefree.io.
 BEE_CLIENT_ID=your_client_id_here
 BEE_CLIENT_SECRET=your_client_secret_here
@@ -116,9 +145,9 @@ in `app/config.py`; key presence does not guarantee model access or valid creden
 #### Embedded editor (optional — in-editor experience)
 
 The headless modes (single, sequence, translate, palette, edit, code mode) only
-need `BEE_API_KEY`. The **in-editor experience** at `/integration` — where the AI
-agent edits the email live inside the embedded visual Beefree editor — additionally
-requires editor credentials:
+need `BEE_API_KEY`. The **in-editor pages** (`/builder` and `/integration`), where the AI
+agent edits the email live inside the embedded visual Beefree editor, additionally
+require editor credentials:
 
 ```dotenv
 BEE_CLIENT_ID=your_client_id_here
@@ -127,25 +156,59 @@ BEE_CLIENT_SECRET=your_client_secret_here
 
 These are used by the `/integration-auth` endpoint to mint a short-lived editor
 token (`auth.getbee.io/loginV2`). Both **Editor-Managed** and **API-Managed +
-co-editing** session models are demonstrated on that page. If they are not set,
-the `/integration` demo returns a configuration error while every headless mode
-keeps working.
+co-editing** session models are demonstrated on `/integration`. If they are not set,
+the in-editor pages show a configuration error while every headless mode keeps
+working.
+
+All visitors currently share one editor user ID (`integration-demo-user`), so
+anything Beefree stores per user, such as images uploaded through the editor's file
+manager, is shared between them.
 
 ---
 
 ## Running the app
 
+### Local development
+
 ```bash
 uv run python main.py
 ```
 
-The server starts at [http://localhost:8000](http://localhost:8000) with hot-reload enabled.
+The server starts at [http://localhost:8000](http://localhost:8000) with hot reload.
+Hot reload restarts the server on every Python change, which clears all open chats
+and runs (see [Sessions](#sessions)).
 
-Alternatively, you can start it directly with uvicorn:
+### Production
+
+Run a single worker without reload:
 
 ```bash
-uv run uvicorn app.main:app --reload
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 ```
+
+- **Health check:** `GET /healthcheck` returns `{"status": "ok"}` instantly, with no
+  external calls. Point your platform's liveness or readiness probe at it.
+- **One worker only:** sessions live in memory, so with more than one worker a
+  visitor's requests can land on a process that doesn't know their session.
+- **Streaming responses:** results stream over Server-Sent Events. Make sure your
+  proxy or gateway doesn't buffer them and allows connections of several minutes.
+- **Shared limits:** every visitor's agents use your LLM and Beefree API keys, so many
+  simultaneous runs can hit provider rate limits. Set spending alerts with your
+  providers.
+- **No built-in login:** the app has no authentication of its own. Put it behind
+  your SSO or another access control before sharing the URL.
+
+### Sessions
+
+Chat sessions, pending runs and sequence layout checks are kept in memory
+(`app/sessions.py`):
+- **Expiry:** an entry is dropped after an hour without activity, so memory stays
+  flat. Using a chat keeps it alive.
+- **Restarts:** a restart or redeploy clears every session. Visitors see "This chat
+  is no longer available" and need to reload the page.
+- **Templates are safe:** the emails themselves live in Beefree, so already-generated
+  results can still be downloaded.
+- **Corrected palette versions:** these are kept for a day.
 
 ---
 
@@ -153,28 +216,40 @@ uv run uvicorn app.main:app --reload
 
 ```
 .
-├── main.py              # Entrypoint — starts uvicorn
+├── main.py              # Development entrypoint (uvicorn with hot reload)
 ├── pyproject.toml       # Project metadata and dependencies
-├── .env                 # Local config (git-ignored)
-├── .env.example         # Config template
+├── .env.example         # Config template (copy to .env)
 ├── app/
-│   ├── main.py          # FastAPI application and routes
-│   ├── agent.py         # PydanticAI agents
+│   ├── main.py          # FastAPI app: pages, SSE endpoints, downloads, /healthcheck
+│   ├── agent.py         # PydanticAI agents, prompts, stream monitoring, reply cleaning
 │   ├── beefree.py       # Beefree REST API client
-│   └── config.py        # Settings (pydantic-settings)
+│   ├── config.py        # Settings and the model catalog
+│   ├── pricing.py       # Per-model token prices for the cost readout
+│   ├── recolor.py       # Color plan for palette changes (plus the safety net)
+│   ├── samples.py       # Sample template for the template-based demos
+│   ├── sessions.py      # In-memory stores that expire after an hour of inactivity
+│   ├── plans.py         # Predefined campaign plans
+│   ├── layouts.py       # Predefined campaign layouts
+│   └── guards.py        # Sequence layout checks
 ├── templates/
-│   ├── landing.html     # Home page — mode selection
-│   ├── index.html       # Campaign sequence generator UI
-│   ├── single.html      # Single email generator UI
-│   ├── translate.html   # Bulk translation UI
-│   ├── palette.html     # Palette swap UI
-│   ├── edit.html        # Email editor UI
-│   ├── codemode.html    # Code Mode UI (single TypeScript-script generation)
-│   ├── integration.html # In-editor (co-editing) experience with the embedded editor
-│   └── partials/        # HTMX partial templates (SSE targets, loading states)
-└── static/
-    ├── style.css        # Application styles
-    └── tokens.js        # Live token usage counter (sessionStorage-backed)
+│   ├── landing.html     # Home, /editor and /headless (one template, `section` variable)
+│   ├── builder.html     # /builder (renders integration.html in builder mode)
+│   ├── integration.html # /integration guide and the shared editor + chat workspace
+│   ├── single.html      # Single email
+│   ├── codemode.html    # Code Mode
+│   ├── index.html       # Email sequence
+│   ├── translate.html   # Bulk translations
+│   ├── palette.html     # Color palettes
+│   ├── edit.html        # Edit an email
+│   └── partials/        # htmx partials: loading states and results views
+├── static/
+│   ├── style.css        # Site styles
+│   ├── results.css      # Shared styles for the sequence, palette and translation results
+│   ├── ui.js            # Shared UI: inline server errors, collapse state, sample loader
+│   ├── model-selection.js  # Provider/model picker
+│   ├── tokens.js        # Header token counter (sessionStorage)
+│   └── vendor/          # Self-hosted htmx and its SSE extension
+└── tests/               # unittest suite
 ```
 
 ---
@@ -216,8 +291,16 @@ Agents are instructed to split work into meaningful phases. Streams distinguish
 `outcome` (completed/failed) from transport `close`; the Code Mode page treats
 failed scripts as failed/partial results, not successful generations.
 
-Translation-only and palette-only field restrictions are still prompt guidance;
-they are not a general permission boundary.
+Translation-only restrictions are prompt guidance, not a permission boundary.
+Palette runs are verified: after the agent finishes, the server compares the
+template with the color plan, applies any missed change, and serves the corrected
+version for the final preview and downloads (Beefree has no template update
+endpoint, so the corrected copy is kept server-side).
+
+The Single email page asks the agent to build one section per script
+(`PROGRESSIVE_BUILD_INSTRUCTIONS`) so its preview fills in step by step, and to
+start each script with a one-line comment that the Activity log shows. Code Mode
+keeps the "as few scripts as possible" behaviour.
 
 Code Mode requires a Beefree account with Code Mode access and a model that can
 generate valid TypeScript. There is no automatic fallback to standard MCP tools.
@@ -259,6 +342,10 @@ Browser → FastAPI (app/main.py)
 | `app/layouts.py` | Predefined campaign branding and shared Beefree template JSON |
 | `app/beefree.py` | Thin async HTTP wrapper around the Beefree REST API |
 | `app/config.py` | `pydantic-settings` config — reads `.env`, resolves model defaults per provider |
+| `app/pricing.py` | Per-model token prices (update when providers change prices) |
+| `app/recolor.py` | Color plan for palette runs, plus the safety net that applies missed changes |
+| `app/samples.py` | Sample template served at `/sample-template` |
+| `app/sessions.py` | `ExpiringStore`: in-memory stores that forget entries after an hour of inactivity |
 | `templates/` | Jinja2 HTML templates for the web UI |
 | `static/` | CSS and JS assets (including `tokens.js` for live token tracking) |
 
