@@ -37,6 +37,7 @@ from .guards import sequence_guard, validate_sequence
 from .plans import build_preset_plan
 from .layouts import build_preset_layout
 from .samples import build_sample_template
+from .sessions import ExpiringStore
 
 
 def validate_download(template_id: str, template: dict) -> None:
@@ -62,17 +63,20 @@ templates = Jinja2Templates(directory="templates")
 # Expose urlencode as a Jinja2 filter for prompt embedding in SSE URLs
 templates.env.filters["urlencode"] = quote
 
+# In-memory stores. Entries untouched for an hour are dropped (app/sessions.py),
+# so memory stays flat on a public deployment.
+
 # Maps template_id → {policy} for sequence layout validation
-template_layouts: dict[str, dict] = {}
+template_layouts = ExpiringStore()
 
 # Temporary store for bulk-translation sessions (session_id → {template_json, languages})
-translation_sessions: dict[str, dict] = {}
+translation_sessions = ExpiringStore()
 
 # Temporary store for palette sessions (session_id → {template_json, palettes})
-palette_sessions: dict[str, dict] = {}
+palette_sessions = ExpiringStore()
 
 # Temporary store for edit sessions (session_id → {template_id, messages})
-edit_sessions: dict[str, dict] = {}
+edit_sessions = ExpiringStore()
 
 AVAILABLE_LANGUAGES = [
     "Spanish", "French", "German", "Italian", "Portuguese (Brazil)",
@@ -380,7 +384,10 @@ async def integration_refresh(session_id: str, template_id: str):
     """
     session = edit_sessions.get(session_id)
     if not session:
-        return JSONResponse({"error": "session not found"}, status_code=404)
+        return JSONResponse(
+            {"error": "This chat has expired after an hour without activity. Reload the page to start a new one."},
+            status_code=404,
+        )
     session["template_id"] = template_id
     return JSONResponse({"ok": True, "template_id": template_id})
 
@@ -954,7 +961,10 @@ async def edit_stream_route(
     session = edit_sessions.get(session_id)
     if not session:
         async def _err():
-            yield {"event": "agent-message", "data": "<p>Session not found.</p>"}
+            yield {"event": "agent-message", "data": (
+                "<p>This chat has expired after an hour without activity. "
+                "Reload the page to start a new one.</p>"
+            )}
             yield {"event": "close", "data": ""}
         return EventSourceResponse(_err())
 
@@ -973,7 +983,9 @@ async def edit_stream_route(
             yield event
         # Persist updated conversation history after the stream completes
         if new_messages:
-            edit_sessions[session_id]["messages"] = new_messages
+            # Re-store the session: keeps the history and marks it active again
+            session["messages"] = new_messages
+            edit_sessions[session_id] = session
 
     return EventSourceResponse(generator())
 
