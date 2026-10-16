@@ -198,6 +198,10 @@
 .se-scale iframe { display: block; border: 0; }
 
 .se-skeleton { display: grid; gap: 10px; padding: 18px; }
+/* Once part of the email exists, only the lower placeholder rows stay below
+   it, standing in for the sections still to come. */
+.se-skeleton.is-tail div:nth-child(-n+2) { display: none; }
+.se-card:not([data-state="building"]) .se-skeleton { display: none; }
 .se-skeleton div {
   border-radius: 4px;
   background: linear-gradient(90deg, #F0EDFA 25%, #E4DEFF 50%, #F0EDFA 75%);
@@ -268,8 +272,8 @@
       <div class="se-progress" aria-hidden="true"></div>
       <div class="se-error" id="se-error" role="alert" hidden></div>
       <div class="se-frame" id="se-frame">
-        <div class="se-scale" id="se-scale">
-          <div class="se-skeleton" aria-hidden="true">
+        <div class="se-scale" id="se-scale"></div>
+        <div class="se-skeleton" id="se-skeleton" aria-hidden="true">
             <div style="height:64px"></div>
             <div style="height:220px"></div>
             <div style="height:18px;width:70%"></div>
@@ -278,7 +282,6 @@
             <div style="height:120px"></div>
             <div style="height:44px;width:40%;margin:0 auto"></div>
             <div style="height:56px"></div>
-          </div>
         </div>
       </div>
       <p class="se-caption" id="se-caption">The preview appears after the agent's first script runs.</p>
@@ -297,6 +300,7 @@
   var frame = document.getElementById('se-frame');
   var scaleBox = document.getElementById('se-scale');
   var caption = document.getElementById('se-caption');
+  var skeleton = document.getElementById('se-skeleton');
   var errorBox = document.getElementById('se-error');
   var openBtn = document.getElementById('se-open');
   var jsonBtn = document.getElementById('se-json');
@@ -395,7 +399,7 @@
     scaleBox.style.width = width + 'px';
     scaleBox.style.transform = scale < 1 ? 'scale(' + scale + ')' : '';
     frame.style.width = Math.round(width * scale) + 'px';
-    if (!iframe) { frame.style.height = ''; return; }
+    if (!iframe) { scaleBox.style.height = ''; return; }
     iframe.style.width = width + 'px';
     iframe.style.height = '1px';  // let the document report its own height, not the frame's
     var height = 600;
@@ -404,7 +408,9 @@
       height = Math.max(doc.documentElement.scrollHeight, doc.body ? doc.body.scrollHeight : 0);
     } catch (_) {}
     iframe.style.height = height + 'px';
-    frame.style.height = Math.round(height * scale) + 'px';
+    // The transform doesn't change layout size, so give the box its scaled height;
+    // the placeholder rows then sit right below the email.
+    scaleBox.style.height = Math.round(height * scale) + 'px';
   }
 
   function watchImages(iframe) {
@@ -413,6 +419,15 @@
         if (!img.complete) img.addEventListener('load', fit, { once: true });
       });
     } catch (_) {}
+  }
+
+  /* Early scripts may only set styles; a render with no text or images would
+     replace the placeholder with an empty page. */
+  function isBlank(iframe) {
+    try {
+      var body = iframe.contentDocument.body;
+      return !body || (!body.innerText.trim() && !body.querySelector('img'));
+    } catch (_) { return false; }
   }
 
   function showPreview(markup) {
@@ -424,11 +439,13 @@
     next.dataset.loading = '1';
     next.style.cssText = 'position:absolute;visibility:hidden;width:' + WIDTHS[mode] + 'px;';
     next.addEventListener('load', function () {
+      if (isBlank(next)) { next.remove(); return; }  // nothing to see yet; keep what's shown
       Array.prototype.forEach.call(scaleBox.children, function (child) {
         if (child !== next) child.remove();
       });
       delete next.dataset.loading;
       next.style.cssText = '';
+      skeleton.classList.add('is-tail');
       fit();
       watchImages(next);
     }, { once: true });
@@ -450,6 +467,9 @@
     b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
   });
   window.addEventListener('resize', function () { offsets(); fit(); queueFitSide(); });
+  // While building, the frame never gets shorter than the placeholder it started
+  // with, so the page doesn't jump when a short first section replaces it.
+  frame.style.minHeight = frame.offsetHeight + 'px';
   fit();
 
   /* ── Actions ── */
@@ -479,6 +499,7 @@
     clearInterval(timer);
     card.dataset.state = state;
     statusEl.dataset.state = state;
+    frame.style.minHeight = '';
     if (state === 'error') {
       statusText.textContent = currentFrame() ? 'Partial result' : 'Failed';
       if (!/[.!?]$/.test(message)) message += '.';
