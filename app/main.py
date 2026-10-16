@@ -270,6 +270,12 @@ PALETTES = [
 # ─── Routes ──────────────────────────────────────────────────────────────────
 
 
+@app.get("/healthcheck")
+async def healthcheck():
+    """Liveness probe for the hosting platform: no external calls, always fast."""
+    return JSONResponse({"status": "ok"}, headers={"Cache-Control": "no-store"})
+
+
 @app.get("/ai-models")
 async def ai_models():
     return JSONResponse(

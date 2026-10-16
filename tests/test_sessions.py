@@ -49,3 +49,13 @@ class ExpiringStoreTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HealthcheckTests(unittest.TestCase):
+    def test_healthcheck_is_ok_without_external_calls(self):
+        from fastapi.testclient import TestClient
+        from app.main import app
+        response = TestClient(app).get("/healthcheck")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+        self.assertEqual(response.headers["cache-control"], "no-store")
