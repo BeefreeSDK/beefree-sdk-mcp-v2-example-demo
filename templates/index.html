@@ -3,15 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Beefree Headless MCP — Sequence Demo</title>
+  <title>Beefree SDK MCP — Email sequence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
-  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
-  <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+  <link rel="stylesheet" href="/static/results.css" />
+  <script src="/static/vendor/htmx.min.js"></script>
+  <script src="/static/vendor/sse.js"></script>
   <script src="/static/model-selection.js"></script>
   <script src="/static/tokens.js"></script>
+  <script src="/static/ui.js"></script>
 </head>
 <body>
 
@@ -43,17 +45,17 @@
               <clipPath id="clip0_7680_11003"><rect width="163.105" height="32" fill="white"/></clipPath>
             </defs>
           </svg>
-          <span class="brand-tag">Email Sequence</span>
+          <h1 class="brand-tag">Email sequence</h1>
         </div>
         <p class="header-sub">
-          Generate a full email sequence in parallel — no browser required.
+          Build a whole email sequence at once, with a shared header, footer and style.
         </p>
       </div>
       <div class="header-tokens">
         <div class="token-badge">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 4.5H15l-4 3 1.5 4.5L8 10.5 3.5 13 5 8.5 1 5.5h5z" fill="currentColor"/></svg>
           <span id="token-total">0 tokens</span>
-          <button class="token-reset-btn" onclick="beeTokensReset()" title="Reset token counter">↺</button>
+          <button class="token-reset-btn" onclick="beeTokensReset()" title="Reset token counter" aria-label="Reset token counter">↺</button>
         </div>
         <div class="token-breakdown" id="token-breakdown"></div>
       </div>
@@ -66,11 +68,19 @@
     <section class="card form-card" id="form-section">
       <div class="card-header-row">
         <h2 class="card-title">Design your campaign</h2>
-        <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <button type="button" class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-expanded="true" aria-label="Collapse section">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
+      </div>
+
+      <!-- Shown in the collapsed card once a campaign has been chosen -->
+      <div class="brief-summary" id="brief-summary" hidden>
+        <p class="brief-summary-label" id="brief-summary-label"></p>
+        <p class="brief-summary-text" id="brief-summary-text"></p>
+        <button type="button" class="brief-summary-more" id="brief-summary-more" aria-expanded="false">Show full brief</button>
+        <button type="button" class="brief-summary-more" id="brief-summary-change" style="margin-left:1rem;">Choose a different campaign</button>
       </div>
 
       <div class="card-body">
@@ -80,6 +90,8 @@
             hx-target="#workspace"
             hx-swap="innerHTML"
             hx-indicator="#spinner"
+            hx-disabled-elt="find button[type='submit']"
+            id="plan-form"
             onsubmit="return !!document.getElementById('goal').value"
           >
             <input type="hidden" id="goal" name="goal" value="" />
@@ -87,49 +99,49 @@
 
             <div class="seq-prompt-grid">
               <!-- Preset 1: E-commerce Black Friday -->
-              <button type="button" class="seq-prompt-card" onclick="selectPrompt(this)" data-preset-id="black-friday-fashion"
+              <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectPrompt(this)" data-preset-id="black-friday-fashion"
                 data-prompt="Campaign: 3-email Black Friday campaign for VAULTURA — a premium fashion e-commerce brand. Brand: VAULTURA · Primary #0A0A0A (jet black) · Accent #F5E642 (electric yellow) · Background #FAFAF8 (near-white) · Font: bold, editorial · Tone: exclusive, high-fashion, urgency-driven. Audience: existing customers and subscribers; fashion-forward, respond strongly to exclusivity and scarcity. Email 1 — Teaser (48 h before launch): build maximum anticipation without revealing the deal; drive early-access sign-ups. Key message: 'Something extraordinary arrives Friday.' CTA: 'Secure Early Access'. Email 2 — Launch day: hero announcement, promo code VAULT30 reveal, curated 3-product grid, maximum urgency. CTA: 'Shop Now'. Email 3 — Last chance (24 h remaining): all-in on urgency and scarcity; showcase 3 best-sellers still in stock, reinforce promo code, drive the final conversion. CTA: 'Shop Before It&apos;s Gone'.">
                 <div class="seq-prompt-header">
                   <span class="seq-prompt-tag">Promotional · 3 emails</span>
-                  <span class="seq-prompt-check">
+                  <span class="seq-prompt-check" aria-hidden="true">
                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </span>
                 </div>
-                <h3 class="seq-prompt-title">Black Friday Fashion Campaign</h3>
+                <h3 class="seq-prompt-title">Black Friday fashion campaign</h3>
                 <p class="seq-prompt-desc">Teaser, launch day, and last-chance emails for VAULTURA — a premium fashion brand.</p>
               </button>
 
               <!-- Preset 2: SaaS trial nurture -->
-              <button type="button" class="seq-prompt-card" onclick="selectPrompt(this)" data-preset-id="saas-trial-nurture"
+              <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectPrompt(this)" data-preset-id="saas-trial-nurture"
                 data-prompt="Campaign: 4-email trial-to-paid nurture for Taskflow — a B2B project management SaaS (think Asana or Linear). Brand: Taskflow · Primary #1E3A5F (slate blue) · Accent #0EA5E9 (electric blue) · Background #F8FAFC (light grey-white) · Tone: professional, encouraging, results-focused. Audience: free-trial users at mid-size tech companies; signed up but need to form a habit and see ROI. Email 1 — Trial activated (Day 0): welcome + quick-start; make the first meaningful action obvious. CTA: 'Open Your Dashboard'. Email 2 — Day 3 check-in: 3 actionable tips to maximise the trial + 2 short tutorial resources; reduce friction and build a habit. CTA: 'Back to Dashboard'. Email 3 — Day 7 feature spotlight: showcase the single premium feature (Automation) they haven't discovered yet; plant upgrade intent with concrete ROI. CTA: 'Upgrade Now'. Email 4 — Trial ending (Day 14): create urgency, recap what they've built, present a time-limited 20% discount offer. CTA: 'Upgrade Now'.">
                 <div class="seq-prompt-header">
                   <span class="seq-prompt-tag">Nurture · 4 emails</span>
-                  <span class="seq-prompt-check">
+                  <span class="seq-prompt-check" aria-hidden="true">
                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </span>
                 </div>
-                <h3 class="seq-prompt-title">SaaS Trial-to-Paid Nurture</h3>
+                <h3 class="seq-prompt-title">SaaS trial-to-paid nurture</h3>
                 <p class="seq-prompt-desc">4-step sequence converting Taskflow free-trial users into paid subscribers.</p>
               </button>
 
               <!-- Preset 3: Streaming service onboarding -->
-              <button type="button" class="seq-prompt-card" onclick="selectPrompt(this)" data-preset-id="streaming-onboarding"
+              <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectPrompt(this)" data-preset-id="streaming-onboarding"
                 data-prompt="Campaign: 3 transactional emails for StreamVault — a premium dark-themed streaming platform. Brand: StreamVault · Primary #1C1C2E (deep navy) · Accent #E94560 (crimson red) · Background #F5F5F0 (off-white) · Font: modern sans-serif · Tone: cinematic, warm, confidence-building. Audience: new subscribers who just created an account. Email 1 — Welcome &amp; account confirmed: celebrate the sign-up, surface the top content genres, drive the very first watch session. Key message: 'Your StreamVault account is ready.' CTA: 'Start Watching Now'. Email 2 — Password reset (purely functional, zero marketing): secure and reassuring, prominent reset CTA, 24-hour expiry notice, ignore-if-not-you note. CTA: 'Reset My Password'. Email 3 — Subscription confirmed: recap the active plan and next billing date, communicate full subscription value (screens, quality, downloads), invite catalogue exploration. CTA: 'Explore the Catalogue'.">
                 <div class="seq-prompt-header">
                   <span class="seq-prompt-tag">Transactional · 3 emails</span>
-                  <span class="seq-prompt-check">
+                  <span class="seq-prompt-check" aria-hidden="true">
                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </span>
                 </div>
-                <h3 class="seq-prompt-title">Streaming Service Onboarding</h3>
+                <h3 class="seq-prompt-title">Streaming service onboarding</h3>
                 <p class="seq-prompt-desc">Welcome, password reset, and subscription confirmation for StreamVault — a Netflix-style platform.</p>
               </button>
             </div>
 
             <div class="field full actions" style="margin-top:1.25rem;">
-              <button type="submit" class="btn btn-primary" id="seq-submit" disabled>
-                Generate Sequence
-                <span id="spinner" class="htmx-indicator spinner"></span>
+              <button type="submit" class="btn btn-primary" id="seq-submit" disabled aria-disabled="true">
+                Plan the sequence
+                <span id="spinner" class="htmx-indicator spinner" aria-hidden="true"></span>
               </button>
             </div>
           </form>
@@ -137,7 +149,16 @@
       </div>
     </section>
 
-    <!-- ── Dynamic workspace (plan → execution) ── -->
+    <!-- ── Disclaimer ── -->
+    <p class="demo-disclaimer">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:.1rem" aria-hidden="true">
+        <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+      </svg>
+      Output quality varies across AI providers and models. This is a showcase of the Beefree SDK MCP integration — not a benchmark. System prompts, model choice, and workflow design can all be tuned to match your specific use case.
+    </p>
+
+    <!-- ── Dynamic workspace (plan → build) ── -->
     <div id="workspace"></div>
 
   </main>
@@ -150,50 +171,104 @@
   </footer>
 
   <script>
+    var formSection = document.getElementById('form-section');
+    var runStarted = false;
+
     /* ── Preset prompt selection ── */
     function selectPrompt(el) {
-      document.getElementById('workspace').hidden = true;
-      document.querySelectorAll('.seq-prompt-card').forEach(function(c) {
+      if (formSection.classList.contains('is-locked')) return;
+      document.querySelectorAll('.seq-prompt-card').forEach(function (c) {
         c.classList.remove('seq-prompt-card-selected');
+        c.setAttribute('aria-pressed', 'false');
       });
       el.classList.add('seq-prompt-card-selected');
+      el.setAttribute('aria-pressed', 'true');
       document.getElementById('goal').value = el.dataset.prompt;
       document.getElementById('preset_id').value = el.dataset.presetId || '';
-      document.getElementById('seq-submit').disabled = false;
+      var submit = document.getElementById('seq-submit');
+      submit.disabled = false;
+      submit.removeAttribute('aria-disabled');
     }
 
-    /* ── Thumbnail rescaling ── */
-    function rescaleThumbs() {
-      document.querySelectorAll('.thumb-viewport').forEach(vp => {
-        const w = vp.offsetWidth;
-        const scale = w / 700;
-        const inner = vp.querySelector('.thumb-inner');
-        if (inner) inner.style.transform = 'scale(' + scale + ')';
-      });
+    function setDisabled(el, disabled) {
+      el.disabled = disabled;
+      if (disabled) el.setAttribute('aria-disabled', 'true');
+      else el.removeAttribute('aria-disabled');
     }
-    window.addEventListener('resize', rescaleThumbs);
+
+    /* ── Once a plan is shown the campaign choice is locked and summarised ── */
+    function lockForm() {
+      formSection.classList.add('is-locked');
+      formSection.querySelectorAll('.seq-prompt-card, #seq-submit').forEach(function (el) {
+        setDisabled(el, true);
+      });
+      var preset = formSection.querySelector('.seq-prompt-card-selected');
+      document.getElementById('brief-summary-label').textContent = preset
+        ? 'Campaign: ' + preset.querySelector('.seq-prompt-title').textContent.trim()
+        : 'Campaign';
+      document.getElementById('brief-summary-text').textContent = preset
+        ? preset.querySelector('.seq-prompt-desc').textContent.trim()
+        : '';
+      var more = document.getElementById('brief-summary-more');
+      more.hidden = !preset;
+      more.setAttribute('aria-expanded', 'false');
+      more.textContent = 'Show full brief';
+      document.getElementById('brief-summary').classList.remove('is-expanded');
+      document.getElementById('brief-summary-change').hidden = runStarted;
+      document.getElementById('brief-summary').hidden = false;
+      formSection.classList.add('is-collapsed');
+    }
+
+    /* Before the build starts the plan is free, so the campaign can still be changed. */
+    function unlockForm() {
+      if (runStarted) return;
+      formSection.classList.remove('is-locked', 'is-collapsed');
+      document.getElementById('brief-summary').hidden = true;
+      formSection.querySelectorAll('.seq-prompt-card').forEach(function (el) { setDisabled(el, false); });
+      setDisabled(document.getElementById('seq-submit'), !document.getElementById('goal').value);
+      document.getElementById('workspace').replaceChildren();
+      var selected = formSection.querySelector('.seq-prompt-card-selected') || formSection.querySelector('.seq-prompt-card');
+      if (selected) selected.focus();
+    }
+
+    document.getElementById('brief-summary-more').addEventListener('click', function () {
+      var summary = document.getElementById('brief-summary');
+      var text = document.getElementById('brief-summary-text');
+      var preset = formSection.querySelector('.seq-prompt-card-selected');
+      var open = summary.classList.toggle('is-expanded');
+      this.setAttribute('aria-expanded', String(open));
+      this.textContent = open ? 'Show less' : 'Show full brief';
+      if (preset) {
+        text.textContent = open ? document.getElementById('goal').value
+                                : preset.querySelector('.seq-prompt-desc').textContent.trim();
+      }
+    });
+    document.getElementById('brief-summary-change').addEventListener('click', unlockForm);
 
     /* ── Section collapse ── */
     function toggleCard(card) {
-      if (card) card.classList.toggle('is-collapsed');
+      if (!card) return;
+      var collapsed = card.classList.toggle('is-collapsed');
+      var btn = card.querySelector('.collapse-btn');
+      if (btn) {
+        btn.setAttribute('aria-expanded', String(!collapsed));
+        btn.setAttribute('aria-label', collapsed ? 'Expand section' : 'Collapse section');
+      }
     }
 
-    document.body.addEventListener('htmx:afterSwap', function(e) {
-      setTimeout(rescaleThumbs, 50);
-      var tgt = e.detail && e.detail.target;
-      if (!tgt) return;
-
-      // Plan appeared → collapse the campaign form
-      if (tgt.id === 'workspace') {
-        tgt.hidden = false;
-        var fs = document.getElementById('form-section');
-        if (fs) fs.classList.add('is-collapsed');
-      }
-
-      // Execute started → collapse the plan card
-      if (tgt.id === 'execution') {
-        var pc = document.querySelector('.plan-card');
-        if (pc) pc.classList.add('is-collapsed');
+    /* htmx re-enables hx-disabled-elt buttons when a request ends, so the
+       permanent locks are applied after the request instead of on swap. */
+    document.body.addEventListener('htmx:afterRequest', function (e) {
+      if (!e.detail.successful) return;
+      var form = e.detail.elt;
+      if (form && form.id === 'plan-form') {
+        lockForm();
+      } else if (form && form.classList && form.classList.contains('execute-form')) {
+        runStarted = true;
+        setDisabled(form.querySelector('button[type="submit"]'), true);
+        document.getElementById('brief-summary-change').hidden = true;
+        var pc = form.closest('.plan-card');
+        if (pc && !pc.classList.contains('is-collapsed')) toggleCard(pc);
       }
     });
   </script>

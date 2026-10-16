@@ -5,13 +5,13 @@
   <!-- ── Left: Chat panel ─────────────────────────────────────── -->
   <div class="edit-chat-panel">
     <div class="edit-panel-header">
-      <h3 class="edit-panel-title">
+      <h2 class="edit-panel-title">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
           <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
                 stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
         </svg>
         Chat with the agent
-      </h3>
+      </h2>
       <span class="edit-status-badge" id="edit-status-badge">Ready</span>
     </div>
 
@@ -34,20 +34,20 @@
           placeholder="e.g. Change the CTA button to green and update the headline to 'Get started today'"
           onkeydown="handleChatKey(event)"
         ></textarea>
-        <button type="submit" class="btn btn-primary edit-send-btn" id="send-btn">
+        <button type="submit" class="btn btn-primary edit-send-btn" id="send-btn" aria-label="Send message">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M2 8l12-6-6 12V9L2 8z" fill="currentColor"/>
           </svg>
         </button>
       </div>
-      <p class="edit-chat-hint">Press <kbd>Ctrl+Enter</kbd> to send &middot; <kbd>Enter</kbd> for new line</p>
+      <p class="edit-chat-hint">Press <kbd>Enter</kbd> to send, <kbd>Shift+Enter</kbd> for a new line</p>
     </form>
   </div>
 
   <!-- ── Right: Preview panel ─────────────────────────────────── -->
   <div class="edit-preview-panel">
     <div class="edit-panel-header">
-      <h3 class="edit-panel-title">
+      <h2 class="edit-panel-title">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
           <rect x="1" y="2" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
           <path d="M1 5h14" stroke="currentColor" stroke-width="1.5"/>
@@ -55,30 +55,28 @@
           <circle cx="6.5" cy="3.5" r=".75" fill="currentColor"/>
         </svg>
         Live preview
-      </h3>
+      </h2>
       <div style="display:flex;align-items:center;gap:.5rem;">
         <span class="edit-preview-badge" id="edit-preview-badge">Current version</span>
         <a
           href="/download-template/{{ template_id }}"
           download="email-{{ template_id[:8] }}.json"
-          class="btn-outline"
-          style="font-size:.75rem;padding:.25rem .65rem;"
+          class="btn-download"
         >
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0">
             <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          JSON
+          Download JSON
         </a>
         <a
           href="/download-html/{{ template_id }}"
           download="email-{{ template_id[:8] }}.html"
-          class="btn-outline"
-          style="font-size:.75rem;padding:.25rem .65rem;"
+          class="btn-download"
         >
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0">
             <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          HTML
+          Download HTML
         </a>
       </div>
     </div>
@@ -204,6 +202,18 @@
       }, { once: true });
     });
 
+    es.addEventListener('agent-error', function (ev) {
+      // The server HTML-escapes this text; a textarea decodes it without parsing markup.
+      var decoded = document.createElement('textarea');
+      decoded.innerHTML = ev.data;
+      agentBubble.div.classList.remove('agent-loading');
+      var p = document.createElement('p');
+      p.className = 'chat-error';
+      p.textContent = 'That change could not be made: ' + decoded.value + ' Try again, or rephrase the request.';
+      agentBubble.inner.replaceChildren(p);
+      scrollChat();
+    });
+
     es.addEventListener('agent-message', function (ev) {
       agentBubble.div.classList.remove('agent-loading');
       agentBubble.inner.innerHTML = ev.data;
@@ -215,7 +225,7 @@
       currentEs = null;
       chatInput.disabled = false;
       sendBtn.disabled = false;
-      chatInput.focus();
+      chatInput.focus({ preventScroll: true });
       statusBadge.textContent = 'Ready';
       statusBadge.className = 'edit-status-badge';
       previewBadge.textContent = 'Updated';
@@ -227,7 +237,7 @@
       currentEs = null;
       if (agentBubble.div.classList.contains('agent-loading')) {
         agentBubble.div.classList.remove('agent-loading');
-        agentBubble.inner.innerHTML = '<p class="chat-error">Connection error — please try again.</p>';
+        agentBubble.inner.innerHTML = '<p class="chat-error">The connection to the server was lost. Send your message again.</p>';
       }
       chatInput.disabled = false;
       sendBtn.disabled = false;
@@ -237,15 +247,23 @@
     };
   };
 
-  /* ── Ctrl+Enter to send ───────────────────────────────────────── */
+  /* ── Enter sends, Shift+Enter adds a new line ───────────────────── */
   window.handleChatKey = function (e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
       document.getElementById('chat-form').dispatchEvent(new Event('submit'));
     }
   };
 
-  /* Focus input on load */
-  chatInput.focus();
+  /* Focus the input without scrolling the page to it */
+  chatInput.focus({ preventScroll: true });
+
+  /* ── Scale the 700px email down when the panel is narrower ── */
+  function fitPreview() {
+    var available = previewOuter.clientWidth - 32;
+    previewDiv.style.zoom = String(Math.min(1, available / 700));
+  }
+  fitPreview();
+  window.addEventListener('resize', fitPreview);
 })();
 </script>

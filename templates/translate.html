@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Beefree Headless MCP — Bulk Translations</title>
+  <title>Beefree SDK MCP — Bulk translations</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
-  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
-  <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+  <script src="/static/vendor/htmx.min.js"></script>
+  <script src="/static/vendor/sse.js"></script>
   <script src="/static/model-selection.js"></script>
   <script src="/static/tokens.js"></script>
+  <script src="/static/ui.js"></script>
 </head>
 <body>
 
@@ -43,7 +44,7 @@
               <clipPath id="clip0_7680_11003"><rect width="163.105" height="32" fill="white"/></clipPath>
             </defs>
           </svg>
-          <span class="brand-tag">Bulk Translations</span>
+          <h1 class="brand-tag">Bulk translations</h1>
         </div>
         <p class="header-sub">
           Translate one template into multiple languages in parallel — text only, design untouched.
@@ -53,7 +54,7 @@
         <div class="token-badge">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 4.5H15l-4 3 1.5 4.5L8 10.5 3.5 13 5 8.5 1 5.5h5z" fill="currentColor"/></svg>
           <span id="token-total">0 tokens</span>
-          <button class="token-reset-btn" onclick="beeTokensReset()" title="Reset token counter">↺</button>
+          <button class="token-reset-btn" onclick="beeTokensReset()" title="Reset token counter" aria-label="Reset token counter">↺</button>
         </div>
         <div class="token-breakdown" id="token-breakdown"></div>
       </div>
@@ -72,6 +73,12 @@
         </button>
       </div>
 
+      <!-- Shown in the collapsed card after submitting -->
+      <div class="brief-summary" id="brief-summary" hidden>
+        <p class="brief-summary-label" id="brief-summary-label"></p>
+        <p class="brief-summary-text" id="brief-summary-text"></p>
+      </div>
+
       <div class="card-body">
         <div>
           <form
@@ -80,12 +87,14 @@
             hx-swap="innerHTML"
             hx-indicator="#spinner"
             class="campaign-form"
-            onsubmit="return validateForm()"
+            novalidate
+            hx-disabled-elt="find button[type=submit]"
+            hx-on::before-request="if (event.detail.elt === this && !validateForm()) event.preventDefault()"
           >
 
             <!-- ── Step 1: Template JSON ── -->
             <div class="field full">
-              <label>Template JSON</label>
+              <label for="template_json">Template JSON</label>
               <div class="tpl-input-preview-row">
                 <div class="tpl-input-side">
                   <textarea
@@ -109,6 +118,7 @@
                       Upload .json
                     </button>
                     <input type="file" id="file-upload" accept=".json" style="display:none" onchange="loadFile(this)" />
+                    <button type="button" class="btn-link" onclick="beeLoadSample('template_json', 'json-status')">Use a sample template</button>
                     <span id="json-status" class="json-status"></span>
                   </div>
                 </div>
@@ -126,15 +136,16 @@
 
             <!-- ── Step 2: Language chips ── -->
             <div class="field full">
-              <label>
+              <p class="field-label" id="lang-label">
                 Target languages
                 <span class="label-count" id="lang-count"></span>
-              </label>
-              <div class="langs-grid">
+              </p>
+              <div class="langs-grid" role="group" aria-labelledby="lang-label">
                 {% for lang in languages %}
                 <button
                   type="button"
                   class="chip"
+                  aria-pressed="false"
                   data-lang="{{ lang }}"
                   onclick="toggleLang(this)"
                 >{{ lang }}</button>
@@ -143,10 +154,12 @@
               <input type="hidden" id="languages" name="languages" value="" />
             </div>
 
+            <p class="inline-error" id="form-error" role="alert" hidden style="grid-column:1/-1;margin:0"></p>
+
             <!-- ── Actions ── -->
             <div class="field full actions">
               <button type="submit" class="btn btn-primary" id="submit-btn">
-                Translate
+                <span id="submit-label">Choose languages</span>
                 <span id="spinner" class="htmx-indicator spinner"></span>
               </button>
             </div>
@@ -155,6 +168,15 @@
         </div>
       </div>
     </section>
+
+    <!-- ── Disclaimer ── -->
+    <p class="demo-disclaimer">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:.1rem">
+        <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+      </svg>
+      Output quality varies across AI providers and models. This is a showcase of the Beefree SDK MCP integration, not a benchmark. System prompts, model choice, and workflow design can all be tuned to match your specific use case.
+    </p>
 
     <div id="workspace"></div>
 
@@ -180,10 +202,16 @@
         selectedLangs.push(lang);
         el.classList.add('chip-selected');
       }
+      el.setAttribute('aria-pressed', String(idx === -1));
       document.getElementById('languages').value = selectedLangs.join(',');
       var count = selectedLangs.length;
       document.getElementById('lang-count').textContent = count > 0 ? count + ' selected' : '';
+      document.getElementById('submit-label').textContent =
+        count === 0 ? 'Choose languages' : 'Translate into ' + count + (count === 1 ? ' language' : ' languages');
+      hideFormError();
     }
+
+    function selectedNames() { return selectedLangs.slice(); }
 
     function loadFile(input) {
       var file = input.files[0];
@@ -228,19 +256,38 @@
 
     function validateForm() {
       if (selectedLangs.length === 0) {
-        alert('Please select at least one target language.');
+        showFormError('Select at least one target language.');
         return false;
       }
       var json = document.getElementById('template_json').value.trim();
       if (!json) {
-        alert('Please paste or upload a template JSON.');
+        showFormError('Paste a template, upload a .json file, or use the sample template.');
         return false;
       }
       try { JSON.parse(json); } catch (e) {
-        alert('The template JSON is not valid. Please check and try again.');
+        showFormError('The template JSON is not valid. Check that you pasted the whole file, then try again.');
         return false;
       }
       return true;
+    }
+
+    function showFormError(message) {
+      var box = document.getElementById('form-error');
+      box.textContent = message;
+      box.hidden = false;
+    }
+    function hideFormError() {
+      var box = document.getElementById('form-error');
+      if (box) box.hidden = true;
+    }
+    document.getElementById('template_json').addEventListener('input', hideFormError);
+
+    function templateTitle() {
+      try {
+        var t = JSON.parse(document.getElementById('template_json').value);
+        var page = t.page || (t.json && t.json.page) || {};
+        return page.title || '';
+      } catch (_) { return ''; }
     }
 
     function toggleCard(card) {
@@ -252,6 +299,9 @@
       if (tgt && tgt.id === 'workspace') {
         var fs = document.getElementById('form-section');
         if (fs) fs.classList.add('is-collapsed');
+        document.getElementById('brief-summary-label').textContent = 'Languages: ' + selectedNames().join(', ');
+        document.getElementById('brief-summary-text').textContent = templateTitle() || 'Your template';
+        document.getElementById('brief-summary').hidden = false;
       }
     });
   </script>

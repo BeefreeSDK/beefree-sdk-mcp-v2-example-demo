@@ -1,0 +1,35 @@
+{# Included right after an element with sse-connect that prepares a run.
+   If its live connection fails, stop it instead of letting the sse extension
+   reconnect (a reconnect would prepare and start a second, paid run).
+   Expects stream_content_id and stream_error_message in the context. #}
+<script>
+(function () {
+  var stream = document.currentScript.previousElementSibling;
+  var contentId = {{ stream_content_id | tojson }};
+  var message = {{ stream_error_message | tojson }};
+  var received = false;
+  stream.addEventListener('htmx:sseMessage', function (e) {
+    if (e.target.id === contentId) received = true;
+  });
+  function showError(text) {
+    var box = document.createElement('p');
+    box.className = 'inline-error';
+    box.setAttribute('role', 'alert');
+    box.textContent = text;
+    document.getElementById(contentId).replaceChildren(box);
+  }
+  stream.addEventListener('htmx:sseError', function (e) {
+    if (e.target !== stream) return;  // errors from nested result columns are handled there
+    stream.removeAttribute('sse-connect');
+    if (e.detail && e.detail.source) e.detail.source.close();
+    if (!received) showError(message);
+  });
+  stream.addEventListener('htmx:sseClose', function (e) {
+    if (e.target !== stream) return;
+    stream.removeAttribute('sse-connect');
+    if (e.detail.type === 'message' && !received) {
+      showError('This run ended before anything was ready. Please try again.');
+    }
+  });
+})();
+</script>

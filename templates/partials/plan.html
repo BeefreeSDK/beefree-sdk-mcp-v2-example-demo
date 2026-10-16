@@ -4,8 +4,8 @@
   <div class="plan-header">
     <h2 class="card-title">{{ plan.sequence_title }}</h2>
     <span class="plan-badge">{{ plan.emails | length }} emails planned</span>
-    <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <button type="button" class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-expanded="true" aria-label="Collapse section">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
@@ -15,27 +15,38 @@
     <div>
       <div class="email-grid">
         {% for email in plan.emails %}
-        <div class="email-preview-card">
-          <div class="preview-step">Email {{ email.step }}</div>
+        {# Pull the human-readable section names ("Mystery hero", "Product grid", …)
+           out of the numbered body-section lines of the agent prompt. #}
+        {%- set ns = namespace(sections=[]) -%}
+        {%- for line in email.agent_prompt.split('\n') -%}
+          {%- set text = line.strip() -%}
+          {%- if text[:1].isdigit() and '. ' in text -%}
+            {%- set ns.sections = ns.sections + [text.split('. ', 1)[1].split(' (')[0].split(':')[0].strip()] -%}
+          {%- endif -%}
+        {%- endfor %}
+        <article class="email-preview-card">
+          <p class="preview-step">Email {{ email.step }} of {{ plan.emails | length }}</p>
           <h3 class="preview-title">{{ email.title }}</h3>
           <p class="preview-subject">
-            <span class="label">Subject:</span> {{ email.subject_line }}
+            <span class="label">Subject line:</span> {{ email.subject_line }}
           </p>
-          <p class="preview-prompt">{{ email.agent_prompt[:180] }}{% if email.agent_prompt | length > 180 %}…{% endif %}</p>
-          {% if email.agent_prompt | length > 180 %}
-          <span class="prompt-hint">Hover to read full prompt</span>
+          {% if ns.sections %}
+          <p class="plan-sections">
+            {{ ns.sections | length }} sections:
+            {% for name in ns.sections %}{{ name[:1] | lower if not loop.first and name[1:2].islower() else name[:1] }}{{ name[1:] }}{% if loop.revindex == 2 %} and {% elif not loop.last %}, {% endif %}{% endfor %}.
+          </p>
           {% endif %}
-          <div class="prompt-tooltip" aria-hidden="true">
-            <p class="prompt-tooltip-label">Full prompt</p>
-            <p class="prompt-tooltip-text">{{ email.agent_prompt }}</p>
-          </div>
-        </div>
+          <details class="plan-prompt">
+            <summary>View prompt</summary>
+            <div class="plan-prompt-text">{{ email.agent_prompt }}</div>
+          </details>
+        </article>
         {% endfor %}
       </div>
 
-      <p class="preview-subject" style="margin-top:1rem;">
-        Every email starts with the same predefined header, footer, colour palette,
-        and typography. Dedicated agents build the email bodies in parallel.
+      <p class="plan-note">
+        Every email shares the same header, footer, colours and fonts.
+        The emails are built at the same time, so the whole sequence takes about as long as one email.
       </p>
 
       <form
@@ -43,12 +54,13 @@
         hx-target="#execution"
         hx-swap="innerHTML"
         hx-indicator="#exec-spinner"
+        hx-disabled-elt="find button[type='submit']"
         class="execute-form"
       >
         <input type="hidden" name="plan_json" value="{{ plan_json | e }}" />
-        <button type="submit" class="btn btn-accent">
-          Execute Sequence — {{ plan.emails | length }} agents in parallel
-          <span id="exec-spinner" class="htmx-indicator spinner"></span>
+        <button type="submit" class="btn btn-primary" id="exec-submit">
+          Build the {{ plan.emails | length }} emails
+          <span id="exec-spinner" class="htmx-indicator spinner" aria-hidden="true"></span>
         </button>
       </form>
     </div>

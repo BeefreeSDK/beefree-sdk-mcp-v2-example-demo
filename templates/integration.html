@@ -3,15 +3,180 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Beefree SDK MCP — {% if simple_builder %}Agent in the Builder{% else %}Integration Guide{% endif %}</title>
+  <title>Beefree SDK MCP — {% if simple_builder %}Agent in the builder{% else %}Integration guide{% endif %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    /* ── Shared by /integration and /builder ─────────────────────────────── */
+    /* Header content lines up with every other page (1200px container); only
+       the demo workspace below breaks out wider. */
+    .page-integration .site-header .container { max-width: 1200px; width: 100%; }
+
+    /* In-page anchors land below the sticky header */
+    #integration-guide, #editor-managed, #api-managed { scroll-margin-top: 110px; }
+
+    .demo-lead-text h2 { font-size: 1.5rem; font-weight: 700; color: var(--text); margin-bottom: .4rem; }
+
+    /* The Beefree SDK needs a container with an explicit height: the editor div
+       fills its (sized) container instead of using a fixed pixel height. */
+    .demo-editor-panel .demo-editor-container { position: relative; }
+    .demo-bee-editor { position: absolute; inset: 0; }
+
+    .demo-editor-placeholder .inline-error { max-width: 420px; margin: 0; text-align: left; }
+    .edit-chat-form .inline-error { margin: 0 0 .6rem; }
+
+    .agent-working { display: inline-flex; align-items: center; gap: .55rem; color: var(--text-muted); font-size: .85rem; }
+    .edit-status-badge { white-space: nowrap; }
+    .chat-retry-btn { margin-top: .55rem; }
+    .chat-suggestions { display: flex; flex-direction: column; align-items: flex-start; gap: .4rem; }
+    .chat-suggestion {
+      max-width: 92%;
+      padding: .45rem .75rem;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: .8rem;
+      line-height: 1.4;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .chat-suggestion:hover { border-color: var(--primary); color: var(--primary-dk); }
+    .chat-error-details { margin-top: .4rem; font-size: .75rem; color: var(--text-muted); }
+
+    /* Selected editor element, sent along with the next message */
+    .selection-chip {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      margin-bottom: .5rem;
+      padding: .35rem .4rem .35rem .65rem;
+      border: 1px solid rgba(119,71,255,.35);
+      border-radius: 8px;
+      background: rgba(119,71,255,.07);
+      color: var(--primary-dk);
+      font-size: .8rem;
+      font-weight: 600;
+    }
+    .selection-chip[hidden] { display: none; }
+    .selection-chip-id { font-family: var(--mono); font-size: .72rem; font-weight: 500; color: var(--text-muted); }
+    .selection-chip-clear {
+      margin-left: auto;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px;
+      border: 0; border-radius: 6px; background: transparent;
+      color: var(--primary-dk); cursor: pointer;
+    }
+    .selection-chip-clear:hover { background: rgba(119,71,255,.12); }
+    .chat-selection-tag { margin-top: .3rem; font-size: .72rem; opacity: .8; }
+    .chat-error-details summary { cursor: pointer; }
+    .chat-error-details p { margin-top: .3rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+    /* Sticky header height, measured by JS on both pages */
+    .page-integration { --builder-header-h: 92px; }
+
+    /* ── /integration: each live demo fits the window ───────────────────────
+       The editor used to be a fixed 780px with the chat stretched to match, so
+       the chat box and the editor never fit on screen together. Size the demo
+       to the space below the sticky header; the message list scrolls inside. */
+    .page-integration:not(.page-builder) .demo-workspace {
+      height: calc(100vh - var(--builder-header-h) - 2rem);
+      height: calc(100dvh - var(--builder-header-h) - 2rem);
+      min-height: 560px;
+      max-height: 940px;
+      scroll-margin-top: calc(var(--builder-header-h) + 1rem);
+    }
+    .page-integration:not(.page-builder) .demo-workspace .edit-chat-panel { min-height: 0; }
+    .page-integration:not(.page-builder) .demo-workspace .edit-chat-messages { min-height: 0; overscroll-behavior: contain; }
+    .page-integration:not(.page-builder) .demo-editor-panel .demo-editor-container,
+    .page-integration:not(.page-builder) .demo-editor-placeholder { min-height: 0; }
+
+    @media (max-width: 1024px) {
+      .page-integration:not(.page-builder) .demo-workspace { height: auto; max-height: none; }
+      .page-integration:not(.page-builder) .demo-workspace .edit-chat-panel { height: min(440px, 60dvh); min-height: 320px; }
+      .page-integration:not(.page-builder) .demo-editor-panel {
+        flex: none;
+        height: calc(100dvh - var(--builder-header-h) - 2rem);
+        min-height: 520px;
+      }
+    }
+    @media (max-width: 899px) {
+      .page-integration:not(.page-builder) .demo-editor-panel .demo-editor-container { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+      .page-integration:not(.page-builder) .demo-bee-editor { right: auto; width: max(100%, 1000px); }
+    }
+
+    /* ── /builder: a workspace that fits the viewport ────────────────────── */
+    .page-builder main.container { flex: none; padding-top: .75rem; padding-bottom: 1rem; }
+    .page-builder .demo-stage {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - var(--builder-header-h) - 1.75rem);
+      height: calc(100dvh - var(--builder-header-h) - 1.75rem);
+      min-height: 560px;
+      margin: 0;
+    }
+    .builder-titlebar {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: .25rem 1rem;
+      margin-bottom: .6rem;
+      flex-shrink: 0;
+    }
+    .builder-titlebar h2 { font-size: 1.05rem; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .builder-guide-link { font-size: .8rem; font-weight: 500; color: var(--primary); text-decoration: none; }
+    .builder-guide-link:hover { text-decoration: underline; }
+    .builder-narrow-note { display: none; }
+
+    .page-builder .demo-panel { flex: 1; min-height: 0; display: flex; }
+    .page-builder .demo-workspace { flex: 1; min-height: 0; flex-direction: row; }
+    .page-builder .demo-workspace .edit-chat-panel { width: 340px; min-height: 0; }
+    .page-builder .demo-workspace .edit-chat-messages { min-height: 0; max-height: none; overscroll-behavior: contain; }
+    .page-builder .demo-editor-panel { min-height: 0; }
+    .page-builder .demo-editor-panel .demo-editor-container,
+    .page-builder .demo-editor-placeholder { min-height: 0; }
+
+    @media (max-width: 1024px) {
+      .page-builder .demo-workspace .edit-chat-panel { width: 300px; }
+    }
+
+    /* Narrow screens: stack chat above the editor; each gets a usable height
+       and the page scrolls between them. */
+    @media (max-width: 899px) {
+      .page-builder .demo-stage { height: auto; min-height: 0; }
+      .page-builder .demo-workspace { flex-direction: column; gap: 1rem; }
+      .page-builder .demo-workspace .edit-chat-panel { width: 100%; height: min(440px, 58dvh); min-height: 320px; }
+      .page-builder .demo-editor-panel {
+        flex: none;
+        height: calc(100dvh - var(--builder-header-h) - 1.5rem);
+        min-height: 520px;
+      }
+      /* The Beefree editor has a minimum usable width; below it, let the user
+         pan sideways inside the editor area instead of clipping it. */
+      .page-builder .demo-editor-panel .demo-editor-container { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+      .page-builder .demo-bee-editor { right: auto; width: max(100%, 1000px); }
+      .builder-narrow-note {
+        display: block;
+        margin-bottom: .75rem;
+        padding: .6rem .8rem;
+        border-radius: 8px;
+        background: #F3F0FB;
+        color: var(--text-muted);
+        font-size: .8rem;
+        line-height: 1.45;
+      }
+    }
+  </style>
   <script src="/static/model-selection.js"></script>
   <script src="/static/tokens.js"></script>
+  <script src="/static/ui.js"></script>
 </head>
-<body class="page-integration">
+<body class="page-integration{% if simple_builder %} page-builder{% endif %}">
 
   <header class="site-header">
     <div class="container">
@@ -41,15 +206,15 @@
               <clipPath id="clip0_7680_11003"><rect width="163.105" height="32" fill="white"/></clipPath>
             </defs>
           </svg>
-          <span class="brand-tag">{% if simple_builder %}Agent in the Builder{% else %}Integration Guide{% endif %}</span>
+          <h1 class="brand-tag">{% if simple_builder %}Agent in the builder{% else %}Integration guide{% endif %}</h1>
         </div>
-        <p class="header-sub">{% if simple_builder %}Create and refine your email with an AI agent.{% else %}Connect AI agents to the Beefree SDK editor via MCP — two session models, one powerful result.{% endif %}</p>
+        <p class="header-sub">{% if simple_builder %}Describe what you want and watch it appear in the editor.{% else %}Connect AI agents to the Beefree SDK editor via MCP — two session models, one powerful result.{% endif %}</p>
       </div>
       <div class="header-tokens">
         <div class="token-badge">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 4.5H15l-4 3 1.5 4.5L8 10.5 3.5 13 5 8.5 1 5.5h5z" fill="currentColor"/></svg>
           <span id="token-total">0 tokens</span>
-          <button class="token-reset-btn" onclick="beeTokensReset()" title="Reset token counter">↺</button>
+          <button type="button" class="token-reset-btn" onclick="beeTokensReset()" title="Reset token counter" aria-label="Reset token counter">↺</button>
         </div>
         <div class="token-breakdown" id="token-breakdown"></div>
       </div>
@@ -65,17 +230,18 @@
     <div class="demo-stage">
 
       {% if simple_builder %}
-      <section class="guide-section demo-intro">
-        <div class="demo-lead">
-          <h1>Agent in the Builder</h1>
-          <a href="/integration" class="btn-outline">Integration guide &rarr;</a>
-        </div>
-      </section>
+      <div class="builder-titlebar">
+        <h2>Design your email with an AI agent</h2>
+        <a href="/integration" class="builder-guide-link">How it works: integration guide &rarr;</a>
+      </div>
+      <p class="builder-narrow-note" role="note">
+        The visual editor works best on a computer. On a small screen, chat with the agent here, then scroll down to the editor and swipe sideways to see all of it.
+      </p>
       {% else %}
       <section class="guide-section demo-intro">
         <div class="demo-lead">
           <div class="demo-lead-text">
-            <h1>Live Demo</h1>
+            <h2>Live demo</h2>
             <p class="guide-text" style="margin-bottom:0;">
               Pick a session model, then chat with the AI agent — the embedded Beefree editor updates in
               real time as the agent makes MCP tool calls. Collapse the chat any time to give the builder
@@ -84,67 +250,81 @@
           </div>
           <a href="#integration-guide" class="btn-outline demo-doc-cta">
             Which one is for you?
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M8 3v9M4 8l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </a>
         </div>
 
         <!-- Tab switcher -->
-        <div class="demo-tabs">
-          <button class="demo-tab demo-tab-active" data-tab="editor-managed" onclick="switchTab('editor-managed')">
-            Editor-Managed
+        <div class="demo-tabs" role="tablist" aria-label="Session model">
+          <button type="button" class="demo-tab demo-tab-active" id="tab-editor-managed" role="tab"
+                  aria-selected="true" aria-controls="panel-editor-managed" tabindex="0"
+                  data-tab="editor-managed" onclick="switchTab('editor-managed')">
+            Editor-managed
           </button>
-          <button class="demo-tab" data-tab="api-managed" onclick="switchTab('api-managed')">
-            API-Managed + Co-editing
+          <button type="button" class="demo-tab" id="tab-api-managed" role="tab"
+                  aria-selected="false" aria-controls="panel-api-managed" tabindex="-1"
+                  data-tab="api-managed" onclick="switchTab('api-managed')">
+            API-managed + co-editing
           </button>
         </div>
       </section>
 
       <!-- Tab 1: Editor-Managed -->
       {% endif %}
-      <div class="demo-panel" id="panel-editor-managed">
+      <div class="demo-panel" id="panel-editor-managed"{% if not simple_builder %} role="tabpanel" aria-labelledby="tab-editor-managed"{% endif %}>
         <div class="edit-workspace demo-workspace">
 
           <!-- Left: chat -->
-          <div class="edit-chat-panel">
+          <div class="edit-chat-panel" id="em-chat-panel">
             <div class="edit-panel-header">
               <h3 class="edit-panel-title">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0" aria-hidden="true">
                   <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
                         stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                 </svg>
                 Chat with the agent
               </h3>
               <div class="demo-header-actions">
-                <span class="edit-status-badge is-offline" id="em-status-badge">{% if simple_builder %}Connecting...{% else %}Offline{% endif %}</span>
-                <button type="button" class="demo-icon-btn" onclick="toggleChat('em')" title="Collapse chat" aria-label="Collapse chat">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <span class="edit-status-badge is-offline" id="em-status-badge">{% if simple_builder %}Getting ready…{% else %}Offline{% endif %}</span>
+                <button type="button" class="demo-icon-btn demo-chat-collapse" id="em-chat-collapse" onclick="toggleChat('em')"
+                        title="Hide chat" aria-label="Hide chat" aria-expanded="true" aria-controls="em-chat-panel">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                     <path d="M10 3.5L5.5 8l4.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
               </div>
             </div>
 
-            <div class="edit-chat-messages" id="em-messages">
+            <div class="edit-chat-messages" id="em-messages" role="log" aria-live="polite" aria-label="Conversation with the agent">
               <div class="chat-bubble agent-bubble">
                 <div class="chat-bubble-content">
-                  <p>{% if simple_builder %}What would you like to create?{% else %}Initialize the editor, then start an MCP session to begin. Your messages will edit the email live.{% endif %}</p>
+                  <p>{% if simple_builder %}Getting the editor ready…{% else %}Initialize the editor, then start an MCP session to begin. Your messages will edit the email live.{% endif %}</p>
                 </div>
               </div>
             </div>
 
             <form class="edit-chat-form" onsubmit="sendDemoMessage(event, 'editor-managed')">
+              <div class="inline-error" id="em-error" role="alert" hidden></div>
+              <div class="selection-chip" id="em-selection" hidden>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2.5 2"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></svg>
+                <span class="selection-chip-label" id="em-selection-label"></span>
+                <code class="selection-chip-id" id="em-selection-id"></code>
+                <button type="button" class="selection-chip-clear" onclick="clearSelection('em')" aria-label="Clear selection" title="Clear selection">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                </button>
+              </div>
               <div class="edit-chat-input-row">
-                <textarea id="em-input" class="edit-chat-textarea" rows="2"
-                  placeholder="e.g. Add a hero section with a blue background" disabled></textarea>
-                <button type="submit" class="btn btn-primary edit-send-btn" id="em-send-btn" disabled>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <textarea id="em-input" class="edit-chat-textarea" rows="2" aria-label="Message to the agent"
+                  placeholder="{% if simple_builder %}e.g. A spring sale email with a hero image and a big button{% else %}e.g. Add a hero section with a blue background{% endif %}" disabled></textarea>
+                <button type="submit" class="btn btn-primary edit-send-btn" id="em-send-btn" aria-label="Send message" title="Send message" disabled>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                     <path d="M2 8l12-6-6 12V9L2 8z" fill="currentColor"/>
                   </svg>
                 </button>
               </div>
-              <p class="edit-chat-hint" id="em-hint">{% if simple_builder %}Connecting to the editor...{% else %}Start an MCP session to begin chatting{% endif %}</p>
+              <p class="edit-chat-hint" id="em-hint" aria-live="polite">{% if simple_builder %}The chat opens as soon as the editor is ready.{% else %}Start an MCP session to begin chatting{% endif %}</p>
             </form>
           </div>
 
@@ -152,39 +332,43 @@
           <div class="edit-preview-panel demo-editor-panel">
             <div class="edit-panel-header">
               <h3 class="edit-panel-title">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0" aria-hidden="true">
                   <rect x="1" y="2" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
                   <path d="M6 15h4M8 13v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
-                Beefree editor
+                {% if simple_builder %}Your email{% else %}Beefree editor{% endif %}
               </h3>
               <div class="demo-header-actions">
-                <button type="button" class="demo-icon-btn demo-chat-reopen" onclick="toggleChat('em')" title="Show AI chat">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <button type="button" class="demo-icon-btn demo-chat-reopen" id="em-chat-reopen" onclick="toggleChat('em')"
+                        title="Show chat" aria-expanded="true" aria-controls="em-chat-panel">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                     <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
                           stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                   </svg>
-                  Chat
+                  Show chat
                 </button>
+                {% if not simple_builder %}
                 <span class="start-arrow" id="em-start-arrow" style="display:none;" aria-hidden="true">
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
                     <path d="M4 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </span>
-                <button class="btn btn-primary demo-start-btn" id="em-start-btn" style="display:none;" onclick="startMcpSession()">
-                  Start MCP session
+                {% endif %}
+                <button type="button" class="btn btn-primary demo-start-btn" id="em-start-btn" style="display:none;" onclick="startMcpSession()">
+                  {% if simple_builder %}Connect the agent{% else %}Start MCP session{% endif %}
                 </button>
               </div>
             </div>
             <div class="demo-editor-container" id="em-editor-container">
               <div class="demo-editor-placeholder">
-                <svg width="40" height="40" viewBox="0 0 32 32" fill="none">
+                <svg width="40" height="40" viewBox="0 0 32 32" fill="none" aria-hidden="true">
                   <rect x="3" y="5" width="26" height="20" rx="3" stroke="currentColor" stroke-width="2"/>
                   <path d="M3 11h26M7 8.5h.01M10 8.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
-                <p>The Beefree editor will load here.</p>
-                <button class="btn btn-primary" id="em-init-btn" onclick="initEditorManaged()">
-                  Initialize editor
+                <p>{% if simple_builder %}Loading the editor…{% else %}The Beefree editor will load here.{% endif %}</p>
+                <div class="inline-error" id="em-editor-error" role="alert" hidden></div>
+                <button type="button" class="btn btn-primary" id="em-init-btn" onclick="initEditorManaged()"{% if simple_builder %} hidden{% endif %}>
+                  {% if simple_builder %}Try again{% else %}Initialize editor{% endif %}
                 </button>
               </div>
             </div>
@@ -195,14 +379,14 @@
 
       {% if not simple_builder %}
       <!-- Tab 2: API-Managed -->
-      <div class="demo-panel" id="panel-api-managed" style="display:none;">
+      <div class="demo-panel" id="panel-api-managed" role="tabpanel" aria-labelledby="tab-api-managed" hidden>
         <div class="edit-workspace demo-workspace">
 
           <!-- Left: chat -->
-          <div class="edit-chat-panel">
+          <div class="edit-chat-panel" id="am-chat-panel">
             <div class="edit-panel-header">
               <h3 class="edit-panel-title">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0" aria-hidden="true">
                   <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
                         stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                 </svg>
@@ -210,15 +394,16 @@
               </h3>
               <div class="demo-header-actions">
                 <span class="edit-status-badge is-offline" id="am-status-badge">Offline</span>
-                <button type="button" class="demo-icon-btn" onclick="toggleChat('am')" title="Collapse chat" aria-label="Collapse chat">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <button type="button" class="demo-icon-btn demo-chat-collapse" id="am-chat-collapse" onclick="toggleChat('am')"
+                        title="Hide chat" aria-label="Hide chat" aria-expanded="true" aria-controls="am-chat-panel">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                     <path d="M10 3.5L5.5 8l4.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
               </div>
             </div>
 
-            <div class="edit-chat-messages" id="am-messages">
+            <div class="edit-chat-messages" id="am-messages" role="log" aria-live="polite" aria-label="Conversation with the agent">
               <div class="chat-bubble agent-bubble">
                 <div class="chat-bubble-content">
                   <p>Create a session and join the editor to start. The agent and the editor stay in sync via co-editing.</p>
@@ -227,16 +412,25 @@
             </div>
 
             <form class="edit-chat-form" onsubmit="sendDemoMessage(event, 'api-managed')">
+              <div class="inline-error" id="am-error" role="alert" hidden></div>
+              <div class="selection-chip" id="am-selection" hidden>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2.5 2"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></svg>
+                <span class="selection-chip-label" id="am-selection-label"></span>
+                <code class="selection-chip-id" id="am-selection-id"></code>
+                <button type="button" class="selection-chip-clear" onclick="clearSelection('am')" aria-label="Clear selection" title="Clear selection">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                </button>
+              </div>
               <div class="edit-chat-input-row">
-                <textarea id="am-input" class="edit-chat-textarea" rows="2"
+                <textarea id="am-input" class="edit-chat-textarea" rows="2" aria-label="Message to the agent"
                   placeholder="e.g. Create a welcome email with a header, hero image, and CTA button" disabled></textarea>
-                <button type="submit" class="btn btn-primary edit-send-btn" id="am-send-btn" disabled>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <button type="submit" class="btn btn-primary edit-send-btn" id="am-send-btn" aria-label="Send message" title="Send message" disabled>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                     <path d="M2 8l12-6-6 12V9L2 8z" fill="currentColor"/>
                   </svg>
                 </button>
               </div>
-              <p class="edit-chat-hint" id="am-hint">Create a session to begin chatting</p>
+              <p class="edit-chat-hint" id="am-hint" aria-live="polite">Create a session to begin chatting</p>
             </form>
           </div>
 
@@ -244,7 +438,7 @@
           <div class="edit-preview-panel demo-editor-panel">
             <div class="edit-panel-header">
               <h3 class="edit-panel-title">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0" aria-hidden="true">
                   <rect x="1" y="2" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
                   <path d="M6 15h4M8 13v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
@@ -252,23 +446,25 @@
                 <span class="edit-preview-badge" style="margin-left:.15rem;">co-editing</span>
               </h3>
               <div class="demo-header-actions">
-                <button type="button" class="demo-icon-btn demo-chat-reopen" onclick="toggleChat('am')" title="Show AI chat">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <button type="button" class="demo-icon-btn demo-chat-reopen" id="am-chat-reopen" onclick="toggleChat('am')"
+                        title="Show chat" aria-expanded="true" aria-controls="am-chat-panel">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                     <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
                           stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                   </svg>
-                  Chat
+                  Show chat
                 </button>
               </div>
             </div>
             <div class="demo-editor-container" id="am-editor-container">
               <div class="demo-editor-placeholder">
-                <svg width="40" height="40" viewBox="0 0 32 32" fill="none">
+                <svg width="40" height="40" viewBox="0 0 32 32" fill="none" aria-hidden="true">
                   <rect x="3" y="5" width="26" height="20" rx="3" stroke="currentColor" stroke-width="2"/>
                   <path d="M3 11h26M7 8.5h.01M10 8.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
                 <p>The editor joins a shared session via co-editing.</p>
-                <button class="btn btn-primary" id="am-create-btn" onclick="createApiSession()">
+                <div class="inline-error" id="am-editor-error" role="alert" hidden></div>
+                <button type="button" class="btn btn-primary" id="am-create-btn" onclick="createApiSession()">
                   Create session + join editor
                 </button>
               </div>
@@ -277,7 +473,10 @@
 
         </div>
       </div>
+      {% endif %}
+    </div><!-- /.demo-stage -->
 
+    {% if not simple_builder %}
     <!-- ═══════════════════════════════════════════════════════════════════════
          WHICH ONE IS FOR YOU? — decision helper (CTA target)
          ═══════════════════════════════════════════════════════════════════════ -->
@@ -290,21 +489,21 @@
       <div class="choose-grid">
         <a href="#api-managed" class="choose-card choose-card-coedit">
           <span class="choose-badge">If you have co-editing</span>
-          <h3>API-Managed Session + Co-editing</h3>
+          <h3>API-managed session + co-editing</h3>
           <p>
             Your backend creates a persistent session and the editor joins it. The AI agent and the
             visual editor work on the same template at once, kept in sync automatically.
           </p>
-          <span class="choose-link">See API-Managed setup &rarr;</span>
+          <span class="choose-link">See API-managed setup &rarr;</span>
         </a>
         <a href="#editor-managed" class="choose-card">
           <span class="choose-badge">If you don't</span>
-          <h3>Editor-Managed Session</h3>
+          <h3>Editor-managed session</h3>
           <p>
             The simplest approach on paid plans — the editor owns the session and a fresh one starts
             with each chat interaction. No co-editing required.
           </p>
-          <span class="choose-link">See Editor-Managed setup &rarr;</span>
+          <span class="choose-link">See editor-managed setup &rarr;</span>
         </a>
       </div>
     </section>
@@ -313,7 +512,7 @@
          SECTION 1: Editor-Managed Session
          ═══════════════════════════════════════════════════════════════════════ -->
     <section class="guide-section" id="editor-managed">
-      <h2 class="guide-heading">1. Editor-Managed Session</h2>
+      <h2 class="guide-heading">1. Editor-managed session</h2>
       <p class="guide-meta">Available on paid plans &middot; Simplest approach &middot; New session per chat interaction</p>
       <p class="guide-text">
         The editor owns the session. Call <code>bee.startMcpSession()</code> from the frontend — it returns a
@@ -356,7 +555,7 @@ await fetch('/api/chat', {
          SECTION 2: API-Managed Session (+ Co-editing)
          ═══════════════════════════════════════════════════════════════════════ -->
     <section class="guide-section" id="api-managed">
-      <h2 class="guide-heading">2. API-Managed Session + Co-editing</h2>
+      <h2 class="guide-heading">2. API-managed session + co-editing</h2>
       <p class="guide-meta">Higher plans with co-editing enabled &middot; Persistent session &middot; Editor + MCP stay aligned</p>
       <p class="guide-text">
         Your backend creates the session via the API, then the editor joins it through co-editing.
@@ -365,7 +564,7 @@ await fetch('/api/chat', {
       </p>
 
       <div class="code-block">
-        <div class="code-label">Step 1 — Create session server-side</div>
+        <div class="code-label">Step 1 — Create the session server-side</div>
         <pre><code>import httpx
 
 resp = httpx.post(
@@ -422,15 +621,14 @@ final_template = resp.json()</code></pre>
     <section class="guide-section">
       <h2 class="guide-heading">3. Resources</h2>
       <ul class="guide-links-list">
-        <li><a href="https://docs.beefree.io/beefree-sdk/mcp-server/getting-started" target="_blank" rel="noopener">MCP Server — Getting Started</a></li>
-        <li><a href="https://docs.beefree.io/beefree-sdk/other-customizations/collaborative-editing/co-editing-integration-guide" target="_blank" rel="noopener">Co-editing Integration Guide</a></li>
-        <li><a href="https://docs.beefree.io/beefree-sdk/getting-started/readme/installation" target="_blank" rel="noopener">Beefree SDK — Installation &amp; Fundamentals</a></li>
-        <li><a href="https://github.com/BeefreeSDK/beefree-sdk-mcp-v2-example-demo" target="_blank" rel="noopener">Sample Project (this repo)</a></li>
+        <li><a href="https://docs.beefree.io/beefree-sdk/mcp-server/getting-started" target="_blank" rel="noopener">MCP server — getting started</a></li>
+        <li><a href="https://docs.beefree.io/beefree-sdk/other-customizations/collaborative-editing/co-editing-integration-guide" target="_blank" rel="noopener">Co-editing integration guide</a></li>
+        <li><a href="https://docs.beefree.io/beefree-sdk/getting-started/readme/installation" target="_blank" rel="noopener">Beefree SDK — installation &amp; fundamentals</a></li>
+        <li><a href="https://github.com/BeefreeSDK/beefree-sdk-mcp-v2-example-demo" target="_blank" rel="noopener">Sample project (this repo)</a></li>
       </ul>
     </section>
 
-      {% endif %}
-    </div><!-- /.demo-stage -->
+    {% endif %}
 
   </main>
 
@@ -443,19 +641,46 @@ final_template = resp.json()</code></pre>
 
   <script>
   // ── Tab switching (must be available before BeePlugin loads) ──────────────
-  function switchTab(tab) {
+  function switchTab(tab, focus) {
     document.querySelectorAll('.demo-tab').forEach(function (btn) {
-      btn.classList.toggle('demo-tab-active', btn.dataset.tab === tab);
+      var active = btn.dataset.tab === tab;
+      btn.classList.toggle('demo-tab-active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      btn.tabIndex = active ? 0 : -1;
+      if (active && focus) btn.focus();
     });
-    document.getElementById('panel-editor-managed').style.display = tab === 'editor-managed' ? '' : 'none';
-    document.getElementById('panel-api-managed').style.display = tab === 'api-managed' ? '' : 'none';
+    document.getElementById('panel-editor-managed').hidden = tab !== 'editor-managed';
+    document.getElementById('panel-api-managed').hidden = tab !== 'api-managed';
   }
+
+  // Arrow-key navigation between tabs (WAI-ARIA tabs pattern)
+  document.addEventListener('keydown', function (e) {
+    var tab = e.target.closest && e.target.closest('.demo-tab');
+    if (!tab || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home' && e.key !== 'End')) return;
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.demo-tab'));
+    var i = tabs.indexOf(tab);
+    if (e.key === 'ArrowRight') i = (i + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') i = (i - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') i = 0;
+    else i = tabs.length - 1;
+    e.preventDefault();
+    switchTab(tabs[i].dataset.tab, true);
+  });
 
   // ── Collapse / reopen the AI chat side panel (gives the builder full width) ─
   function toggleChat(prefix) {
     var panelId = prefix === 'em' ? 'panel-editor-managed' : 'panel-api-managed';
     var ws = document.querySelector('#' + panelId + ' .demo-workspace');
-    if (ws) ws.classList.toggle('chat-collapsed');
+    if (!ws) return;
+    var collapsed = ws.classList.toggle('chat-collapsed');
+    var collapseBtn = document.getElementById(prefix + '-chat-collapse');
+    var reopenBtn = document.getElementById(prefix + '-chat-reopen');
+    [collapseBtn, reopenBtn].forEach(function (b) {
+      if (b) b.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    });
+    // Keep keyboard focus on the control that is still visible
+    var next = collapsed ? reopenBtn : collapseBtn;
+    if (next) next.focus({ preventScroll: true });
   }
   </script>
 
@@ -464,6 +689,8 @@ final_template = resp.json()</code></pre>
 
   <script>
   (function () {
+    var SIMPLE = {{ 'true' if simple_builder else 'false' }};
+
     // ── State ──────────────────────────────────────────────────────────────
     var beeEditor = null;       // Editor-Managed bee instance
     var beeApiEditor = null;    // API-Managed bee instance
@@ -472,65 +699,218 @@ final_template = resp.json()</code></pre>
     var amSessionId = null;     // edit_sessions key for API-Managed
     var amTemplateId = null;    // MCP templateId for API-Managed
     var currentStreams = { em: null, am: null };
+    var ready = { em: false, am: false };   // chat connected to a session
+    var busy = { em: false, am: false };    // agent is working on a turn
+    var lastMessage = { em: '', am: '' };   // for "Try again"
 
-    // ── Tab switching is defined above (global scope) ──────────────────────
+    // Plain-language labels for the marketer-facing builder; technical ones for the guide
+    var LABELS = SIMPLE
+      ? { ready: 'Ready', working: 'Working…', failed: 'Ready' }   // the error bubble explains what failed
+      : { ready: 'Connected', working: 'Thinking…', failed: 'Edit failed' };
 
-    // ── Helper: enable / disable a chat panel ──────────────────────────────
-    function enableChat(prefix, hintHtml) {
-      var input = document.getElementById(prefix + '-input');
-      var sendBtn = document.getElementById(prefix + '-send-btn');
-      var badge = document.getElementById(prefix + '-status-badge');
-      var hint = document.getElementById(prefix + '-hint');
-      input.disabled = false;
-      sendBtn.disabled = false;
-      badge.textContent = 'Connected';
-      badge.className = 'edit-status-badge is-active';
-      if (hint && hintHtml) hint.innerHTML = hintHtml;
-      input.focus();
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function $(id) { return document.getElementById(id); }
+
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
     }
 
-    function appendAgentNote(prefix, html) {
-      var messages = document.getElementById(prefix + '-messages');
+    // The server HTML-escapes agent-error payloads; decode them safely to plain text.
+    function decodeEntities(str) {
+      var ta = document.createElement('textarea');
+      ta.innerHTML = str;
+      return ta.value;
+    }
+
+    // Show an inline error (role="alert") with an optional retry action.
+    function showError(id, message, retryLabel, retryFn) {
+      var box = $(id);
+      if (!box) return;
+      box.replaceChildren();
+      var p = document.createElement('p');
+      p.textContent = message;
+      box.appendChild(p);
+      if (retryFn) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn btn-primary';
+        b.textContent = retryLabel || 'Try again';
+        b.addEventListener('click', function () { hideError(id); retryFn(); });
+        box.appendChild(b);
+      }
+      box.hidden = false;
+    }
+
+    function hideError(id) {
+      var box = $(id);
+      if (box) { box.hidden = true; box.replaceChildren(); }
+    }
+
+    function setBadge(prefix, text, state) {
+      var badge = $(prefix + '-status-badge');
+      if (!badge) return;
+      badge.textContent = text;
+      badge.className = 'edit-status-badge is-' + state;
+    }
+
+    // Is the message list scrolled to (near) the bottom? If the user scrolled up
+    // to read history we leave them there instead of yanking them down.
+    function isPinned(list) {
+      return list.scrollHeight - list.scrollTop - list.clientHeight < 60;
+    }
+
+    function scrollToEnd(list) { list.scrollTop = list.scrollHeight; }
+
+    // Append a node to the chat log and keep it pinned to the newest message.
+    function appendToLog(prefix, node, force) {
+      var list = $(prefix + '-messages');
+      var pinned = force || isPinned(list);
+      list.appendChild(node);
+      if (pinned) scrollToEnd(list);
+    }
+
+    function agentBubble(text, extraClass) {
       var div = document.createElement('div');
-      div.className = 'chat-bubble agent-bubble';
-      div.innerHTML = '<div class="chat-bubble-content"><p>' + html + '</p></div>';
-      messages.appendChild(div);
-      messages.scrollTop = messages.scrollHeight;
+      div.className = 'chat-bubble agent-bubble' + (extraClass ? ' ' + extraClass : '');
+      var inner = document.createElement('div');
+      inner.className = 'chat-bubble-content';
+      var p = document.createElement('p');
+      p.textContent = text;
+      inner.appendChild(p);
+      div.appendChild(inner);
+      return div;
+    }
+
+    function updateSendState(prefix) {
+      var input = $(prefix + '-input');
+      var sendBtn = $(prefix + '-send-btn');
+      sendBtn.disabled = !ready[prefix] || busy[prefix] || !input.value.trim();
+    }
+
+    // ── Composer: Enter sends, Shift+Enter adds a new line ─────────────────
+    ['em', 'am'].forEach(function (prefix) {
+      var input = $(prefix + '-input');
+      if (!input) return;
+      input.addEventListener('input', function () { updateSendState(prefix); });
+      input.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
+        e.preventDefault();
+        if (!$(prefix + '-send-btn').disabled) input.form.requestSubmit();
+      });
+    });
+
+    function composerHint(prefix) {
+      var hint = $(prefix + '-hint');
+      if (!hint) return;
+      hint.innerHTML = '<kbd>Enter</kbd> to send &middot; <kbd>Shift</kbd>+<kbd>Enter</kbd> for a new line';
+    }
+
+    // ── Helper: enable a chat panel ────────────────────────────────────────
+    function enableChat(prefix, hintHtml) {
+      var input = $(prefix + '-input');
+      ready[prefix] = true;
+      input.disabled = false;
+      updateSendState(prefix);
+      setBadge(prefix, LABELS.ready, 'active');
+      composerHint(prefix);
+      if (hintHtml) $(prefix + '-hint').innerHTML = hintHtml + ' &middot; ' + $(prefix + '-hint').innerHTML;
+      // Never scroll the page just to focus the composer
+      input.focus({ preventScroll: true });
+    }
+
+    // Starter ideas: clicking one fills the composer (it does not send).
+    function appendSuggestions(prefix, ideas) {
+      var wrap = document.createElement('div');
+      wrap.className = 'chat-suggestions';
+      wrap.setAttribute('role', 'group');
+      wrap.setAttribute('aria-label', 'Ideas to get started');
+      ideas.forEach(function (idea) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chat-suggestion';
+        b.textContent = idea;
+        b.addEventListener('click', function () {
+          var input = $(prefix + '-input');
+          input.value = idea;
+          updateSendState(prefix);
+          input.focus({ preventScroll: true });
+        });
+        wrap.appendChild(b);
+      });
+      appendToLog(prefix, wrap, true);
+    }
+
+    function appendAgentNote(prefix, text) {
+      appendToLog(prefix, agentBubble(text), true);
     }
 
     // ── Editor-Managed: Initialize editor ──────────────────────────────────
+    /* On the guide, starting a demo brings the whole workspace into view so the
+       chat box and the editor are both on screen. */
+    function revealWorkspace(panelId) {
+      if (SIMPLE) return;
+      var ws = document.querySelector('#' + panelId + ' .demo-workspace');
+      if (!ws) return;
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      ws.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
+    }
+
     window.initEditorManaged = async function () {
-      var btn = document.getElementById('em-init-btn');
+      revealWorkspace('panel-editor-managed');
+      var btn = $('em-init-btn');
+      var defaultLabel = SIMPLE ? 'Try again' : 'Initialize editor';
+      hideError('em-editor-error');
       btn.disabled = true;
       btn.textContent = 'Loading…';
+      if (SIMPLE) btn.hidden = true;
+
+      function fail(message) {
+        showError('em-editor-error', message);
+        btn.disabled = false;
+        btn.textContent = defaultLabel;
+        btn.hidden = false;
+        if (SIMPLE) {
+          setBadge('em', 'Not connected', 'offline');
+          $('em-hint').textContent = 'The chat opens as soon as the editor is ready.';
+        }
+      }
 
       try {
         var resp = await fetch('/integration-auth');
-        var data = await resp.json();
+        var data = await resp.json().catch(function () { return {}; });
         if (!resp.ok || data.error) throw new Error(data.error || 'Editor authentication failed');
+        if (typeof BeePlugin === 'undefined') throw new Error('The Beefree SDK script did not load');
 
-        var container = document.getElementById('em-editor-container');
-        container.innerHTML = '<div id="em-bee-editor" style="height:760px;"></div>';
+        var container = $('em-editor-container');
+        // Height comes from the container (CSS), not a fixed pixel value
+        container.innerHTML = '<div id="em-bee-editor" class="demo-bee-editor"></div>';
 
         var beeConfig = {
           uid: 'integration-demo-user',
           container: 'em-bee-editor',
+          onSelectElement: function (el) { setSelection('em', el); },
           username: 'AI Demo User',
           userHandle: 'ai-demo',
           userColor: '#7747FF',
           onLoad: function () {
-            var startBtn = document.getElementById('em-start-btn');
-            startBtn.style.display = '';
-            var startArrow = document.getElementById('em-start-arrow');
-            if (startArrow) startArrow.style.display = '';
-            var badge = document.getElementById('em-status-badge');
-            badge.textContent = 'Editor ready';
-            {% if simple_builder %}
-            window.startMcpSession();
-            {% endif %}
+            if (SIMPLE) {
+              setBadge('em', 'Connecting…', 'offline');
+              window.startMcpSession();
+            } else {
+              $('em-start-btn').style.display = '';
+              var startArrow = $('em-start-arrow');
+              if (startArrow) startArrow.style.display = '';
+              setBadge('em', 'Editor ready', 'offline');
+            }
           },
           onError: function (err) {
-            alert('Editor error: ' + JSON.stringify(err));
+            var detail = (err && (err.message || err.code)) ? (err.message || err.code) : JSON.stringify(err);
+            showError('em-error', SIMPLE
+              ? 'The editor ran into a problem. Reload the page to try again.'
+              : 'Editor error: ' + detail,
+              'Reload page', function () { location.reload(); });
           }
         };
 
@@ -547,18 +927,20 @@ final_template = resp.json()</code></pre>
           bee.start(template);
         });
       } catch (e) {
-        alert('Failed to initialize editor: ' + e.message);
-        btn.disabled = false;
-        btn.textContent = 'Initialize editor';
+        fail(SIMPLE
+          ? 'We couldn’t load the editor. Check your connection and try again.'
+          : 'Failed to initialize editor: ' + e.message);
       }
     };
 
     // ── Editor-Managed: Start MCP session ──────────────────────────────────
     window.startMcpSession = async function () {
       if (!beeEditor) return;
-      var btn = document.getElementById('em-start-btn');
+      var btn = $('em-start-btn');
+      var defaultLabel = SIMPLE ? 'Connect the agent' : 'Start MCP session';
+      hideError('em-error');
       btn.disabled = true;
-      btn.textContent = 'Starting…';
+      btn.textContent = SIMPLE ? 'Connecting…' : 'Starting…';
 
       try {
         var result = await beeEditor.startMcpSession();
@@ -567,160 +949,249 @@ final_template = resp.json()</code></pre>
         // Bind the backend chat session to the editor's own templateId so the
         // agent edits the SAME template the editor is showing (changes reflect live).
         var resp = await fetch('/integration-start?template_id=' + encodeURIComponent(emTemplateId), { method: 'POST' });
-        var data = await resp.json();
+        var data = await resp.json().catch(function () { return {}; });
         if (!resp.ok || !data.session_id) throw new Error(data.error || 'Could not connect the agent');
         emSessionId = data.session_id;
 
         btn.style.display = 'none';
-        var startArrow = document.getElementById('em-start-arrow');
+        var startArrow = $('em-start-arrow');
         if (startArrow) startArrow.style.display = 'none';
-        enableChat('em', {% if simple_builder %}''{% else %}'MCP session active &middot; the editor updates live as the agent works'{% endif %});
-        {% if simple_builder %}
-        document.getElementById('em-hint').textContent = '';
-        document.getElementById('em-messages').replaceChildren();
-        {% endif %}
-        appendAgentNote('em', 'MCP session active. What would you like to change?');
+        if (SIMPLE) {
+          $('em-messages').replaceChildren();
+          enableChat('em');
+          appendAgentNote('em', 'Describe the email you want, or ask for a change to the one in the editor.');
+          appendSuggestions('em', [
+            'A welcome email for new subscribers with a hero image and a button',
+            'A spring sale announcement with three featured products',
+            'A monthly newsletter with a short intro and two articles'
+          ]);
+        } else {
+          enableChat('em', 'MCP session active');
+          appendAgentNote('em', 'MCP session active. What would you like to change?');
+        }
       } catch (e) {
-        alert('Failed to start MCP session: ' + e.message);
         btn.disabled = false;
-        btn.textContent = 'Start MCP session';
+        btn.textContent = defaultLabel;
+        btn.style.display = '';
+        if (SIMPLE) {
+          setBadge('em', 'Not connected', 'offline');
+          showError('em-error', 'We couldn’t connect the agent to the editor.', 'Try again', window.startMcpSession);
+        } else {
+          showError('em-error', 'Failed to start MCP session: ' + e.message);
+        }
       }
     };
 
     // ── API-Managed: Create session + join ─────────────────────────────────
     window.createApiSession = async function () {
-      var btn = document.getElementById('am-create-btn');
+      revealWorkspace('panel-api-managed');
+      var btn = $('am-create-btn');
+      hideError('am-editor-error');
+      hideError('am-error');
       btn.disabled = true;
       btn.textContent = 'Creating session…';
+
+      function fail(message) {
+        showError('am-editor-error', message);
+        btn.disabled = false;
+        btn.textContent = 'Create session + join editor';
+        setBadge('am', 'Offline', 'offline');
+      }
 
       try {
         // 1. Create template session on backend
         var resp = await fetch('/integration-start', { method: 'POST' });
-        var data = await resp.json();
+        var data = await resp.json().catch(function () { return {}; });
+        if (!resp.ok || !data.session_id || !data.template_id) {
+          throw new Error(data.error || 'Could not create the MCP session (HTTP ' + resp.status + ')');
+        }
         amTemplateId = data.template_id;
         amSessionId = data.session_id;
 
-        document.getElementById('am-status-badge').textContent = 'Loading editor…';
+        setBadge('am', 'Loading editor…', 'offline');
 
         // 2. Initialize editor and join via co-editing
         var authResp = await fetch('/integration-auth');
-        var authData = await authResp.json();
-        if (authData.error) { alert(authData.error); btn.disabled = false; btn.textContent = 'Create session + join editor'; return; }
+        var authData = await authResp.json().catch(function () { return {}; });
+        if (!authResp.ok || authData.error) throw new Error(authData.error || 'Editor authentication failed');
+        if (typeof BeePlugin === 'undefined') throw new Error('The Beefree SDK script did not load');
 
-        var container = document.getElementById('am-editor-container');
-        container.innerHTML = '<div id="am-bee-editor" style="height:760px;"></div>';
+        var container = $('am-editor-container');
+        container.innerHTML = '<div id="am-bee-editor" class="demo-bee-editor"></div>';
 
         BeePlugin.create(authData, {
           uid: 'integration-demo-user',
           container: 'am-bee-editor',
+          onSelectElement: function (el) { setSelection('am', el); },
           username: 'AI Demo User',
           userHandle: 'ai-demo',
           userColor: '#7747FF',
           onLoad: function () {
-            enableChat('am', 'Co-editing active &middot; agent and editor stay in sync');
+            enableChat('am', 'Co-editing active');
             appendAgentNote('am', 'Co-editing session active. What would you like to build?');
           },
           onError: function (err) {
-            alert('Editor error: ' + JSON.stringify(err));
+            var detail = (err && (err.message || err.code)) ? (err.message || err.code) : JSON.stringify(err);
+            showError('am-error', 'Editor error: ' + detail, 'Reload page', function () { location.reload(); });
           }
         }, function (bee) {
           beeApiEditor = bee;
           bee.join(amTemplateId);
         });
       } catch (e) {
-        alert('Failed to create session: ' + e.message);
-        btn.disabled = false;
-        btn.textContent = 'Create session + join editor';
+        fail('Failed to create session: ' + e.message);
       }
     };
 
     // ── Chat: send message to agent ────────────────────────────────────────
-    window.sendDemoMessage = function (e, mode) {
-      e.preventDefault();
+    /* ── Editor selection ──
+       The Beefree editor calls onSelectElement({type: 'row'|'module', uuid})
+       when the user selects something. Show it above the composer and send it
+       with the next message, so "make this bigger" applies to that element. */
+    var selection = { em: null, am: null };
+    var SELECTION_NAMES = { row: 'Row', module: 'Block' };
+
+    function setSelection(prefix, el) {
+      if (!el || !el.uuid || !SELECTION_NAMES[el.type]) { clearSelection(prefix); return; }
+      selection[prefix] = { type: el.type, uuid: String(el.uuid) };
+      $(prefix + '-selection-label').textContent = 'Selected ' + SELECTION_NAMES[el.type].toLowerCase();
+      $(prefix + '-selection-id').textContent = selection[prefix].uuid.slice(0, 8);
+      $(prefix + '-selection-id').title = selection[prefix].uuid;
+      $(prefix + '-selection').hidden = false;
+    }
+
+    window.clearSelection = function (prefix) {
+      selection[prefix] = null;
+      $(prefix + '-selection').hidden = true;
+    };
+
+    window.sendDemoMessage = function (e, mode, retryText) {
+      if (e) e.preventDefault();
       var prefix = mode === 'editor-managed' ? 'em' : 'am';
-      var input = document.getElementById(prefix + '-input');
-      var messages = document.getElementById(prefix + '-messages');
-      var sendBtn = document.getElementById(prefix + '-send-btn');
-      var badge = document.getElementById(prefix + '-status-badge');
+      var input = $(prefix + '-input');
+      var messages = $(prefix + '-messages');
+      var sendBtn = $(prefix + '-send-btn');
       var sessionId = mode === 'editor-managed' ? emSessionId : amSessionId;
 
-      var msg = input.value.trim();
-      if (!msg || !sessionId || sendBtn.disabled) return;
+      var msg = (retryText || input.value).trim();
+      if (!msg || !sessionId || busy[prefix] || !ready[prefix]) return;
+      lastMessage[prefix] = msg;
+      hideError(prefix + '-error');
+      messages.querySelectorAll('.chat-suggestions').forEach(function (el) { el.remove(); });
 
-      // User bubble
+      // User bubble — the user just acted, so always jump to the newest message
       var userDiv = document.createElement('div');
       userDiv.className = 'chat-bubble user-bubble';
-      userDiv.innerHTML = '<div class="chat-bubble-content"><p>' + escapeHtml(msg) + '</p></div>';
-      messages.appendChild(userDiv);
-      input.value = '';
-      messages.scrollTop = messages.scrollHeight;
+      var sel = selection[prefix];
+      userDiv.innerHTML = '<div class="chat-bubble-content"><p>' + escapeHtml(msg) + '</p>' +
+        (sel ? '<p class="chat-selection-tag">About the selected ' + SELECTION_NAMES[sel.type].toLowerCase() +
+               ' ' + escapeHtml(sel.uuid.slice(0, 8)) + '</p>' : '') + '</div>';
+      appendToLog(prefix, userDiv, true);
+      if (!retryText) input.value = '';
 
-      // Disable input + reflect "thinking" state
-      input.disabled = true;
-      sendBtn.disabled = true;
-      badge.textContent = 'Thinking…';
-      badge.className = 'edit-status-badge is-generating';
+      // Reflect the "working" state. Keep the textarea editable (so the user can
+      // draft the next message) but block sending until the turn finishes.
+      busy[prefix] = true;
+      updateSendState(prefix);
+      setBadge(prefix, LABELS.working, 'generating');
+      var hint = $(prefix + '-hint');
+      hint.textContent = SIMPLE ? 'The agent is working on your email…' : 'Agent is working…';
 
       // Agent loading bubble
       var agentDiv = document.createElement('div');
       agentDiv.className = 'chat-bubble agent-bubble agent-loading';
       var agentInner = document.createElement('div');
       agentInner.className = 'chat-bubble-content';
-      agentInner.innerHTML = '<span class="typing-dots"><span></span><span></span><span></span></span>';
+      agentInner.innerHTML = '<span class="agent-working"><span class="typing-dots" aria-hidden="true"><span></span><span></span><span></span></span> Agent is working…</span>';
       agentDiv.appendChild(agentInner);
-      messages.appendChild(agentDiv);
-      messages.scrollTop = messages.scrollHeight;
+      appendToLog(prefix, agentDiv, true);
 
-      function restore() {
-        input.disabled = false;
-        sendBtn.disabled = false;
-        badge.textContent = 'Connected';
-        badge.className = 'edit-status-badge is-active';
+      function showFailure(message, detail) {
+        agentDiv.classList.remove('agent-loading');
+        agentInner.replaceChildren();
+        var p = document.createElement('p');
+        p.className = 'chat-error';
+        p.textContent = message;
+        agentInner.appendChild(p);
+        if (detail) {
+          var d = document.createElement('details');
+          d.className = 'chat-error-details';
+          var sum = document.createElement('summary');
+          sum.textContent = 'Details';
+          var pre = document.createElement('p');
+          pre.textContent = detail;
+          d.appendChild(sum);
+          d.appendChild(pre);
+          agentInner.appendChild(d);
+        }
+        var retry = document.createElement('button');
+        retry.type = 'button';
+        retry.className = 'btn-outline chat-retry-btn';
+        retry.textContent = 'Try again';
+        retry.addEventListener('click', function () {
+          retry.disabled = true;
+          window.sendDemoMessage(null, mode, lastMessage[prefix]);
+        });
+        agentInner.appendChild(retry);
+        var list = $(prefix + '-messages');
+        if (isPinned(list)) scrollToEnd(list);
+      }
+
+      function restore(failed) {
+        busy[prefix] = false;
+        updateSendState(prefix);
+        if (failed && !SIMPLE) setBadge(prefix, LABELS.failed, 'offline');
+        else setBadge(prefix, LABELS.ready, 'active');
+        composerHint(prefix);
+        // Re-focus the composer without moving the page
+        input.focus({ preventScroll: true });
       }
 
       // Open the SSE stream for this turn
       function openStream() {
         if (currentStreams[prefix]) currentStreams[prefix].close();
         var url = '/edit-stream?session_id=' + encodeURIComponent(sessionId) + '&message=' + encodeURIComponent(msg);
+        if (sel) url += '&selection_type=' + encodeURIComponent(sel.type) + '&selection_id=' + encodeURIComponent(sel.uuid);
         var es = new EventSource(url);
         currentStreams[prefix] = es;
         var failed = false;
 
         es.addEventListener('agent-error', function (ev) {
           failed = true;
-          agentDiv.classList.remove('agent-loading');
-          agentInner.innerHTML = '<p class="chat-error">' + ev.data + '</p>';
+          var detail = decodeEntities(ev.data || '');
+          showFailure(SIMPLE ? 'Sorry, the agent couldn’t finish that change.' : 'The agent reported an error.', detail);
         });
 
         es.addEventListener('agent-message', function (ev) {
+          var list = $(prefix + '-messages');
+          var pinned = isPinned(list);
           agentDiv.classList.remove('agent-loading');
           agentInner.innerHTML = ev.data;
-          messages.scrollTop = messages.scrollHeight;
-        });
-
-        es.addEventListener('tokens', function (ev) {
-          try {
-            var t = JSON.parse(ev.data);
-            if (window.beeTokensAdd) beeTokensAdd(t);
-          } catch (e) {}
+          if (pinned) scrollToEnd(list);
         });
 
         es.addEventListener('close', function () {
           es.close();
           currentStreams[prefix] = null;
-          restore();
-          if (failed) { badge.textContent = 'Edit failed'; badge.className = 'edit-status-badge is-offline'; }
-          input.focus();
+          if (agentDiv.classList.contains('agent-loading')) {
+            agentDiv.classList.remove('agent-loading');
+            agentInner.replaceChildren();
+            var p = document.createElement('p');
+            p.textContent = 'Done.';
+            agentInner.appendChild(p);
+          }
+          restore(failed);
         });
 
         es.onerror = function () {
           es.close();
           currentStreams[prefix] = null;
           if (agentDiv.classList.contains('agent-loading')) {
-            agentDiv.classList.remove('agent-loading');
-            agentInner.innerHTML = '<p class="chat-error">Connection error — please try again.</p>';
+            showFailure(SIMPLE ? 'We lost the connection to the agent.' : 'Connection error.');
+            restore(true);
+          } else {
+            restore(failed);
           }
-          restore();
         };
       }
 
@@ -736,21 +1207,24 @@ final_template = resp.json()</code></pre>
           if (!response.ok) throw new Error('Could not refresh editor session');
           openStream();
         }).catch(function () {
-          agentDiv.classList.remove('agent-loading');
-          agentInner.innerHTML = '<p class="chat-error">Could not refresh the editor session — please try again.</p>';
-          restore();
+          showFailure(SIMPLE ? 'We couldn’t reach the editor.' : 'Could not refresh the editor session.');
+          restore(true);
         });
       } else {
         openStream();
       }
     };
 
-    // ── Helpers ────────────────────────────────────────────────────────────
-    function escapeHtml(str) {
-      var div = document.createElement('div');
-      div.appendChild(document.createTextNode(str));
-      return div.innerHTML;
-    }
+    // Measure the sticky header so the workspace fills exactly the space below it.
+    (function () {
+      var header = document.querySelector('.site-header');
+      function sync() {
+        if (header) document.documentElement.style.setProperty('--builder-header-h', header.offsetHeight + 'px');
+      }
+      sync();
+      if (header && window.ResizeObserver) new ResizeObserver(sync).observe(header);
+      window.addEventListener('resize', sync);
+    })();
     {% if simple_builder %}
     window.initEditorManaged();
     {% endif %}

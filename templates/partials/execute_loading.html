@@ -1,13 +1,17 @@
-<!-- Replaced when the seeded email sessions are ready. -->
+<!-- Returned by POST /execute. The /execute-stream "sequence" event replaces the
+     queued cards once the email sessions are ready. -->
+<link rel="stylesheet" href="/static/results.css">
 
 <div hx-ext="sse"
      sse-connect="/execute-stream?plan_json={{ plan_json | urlencode }}"
      sse-close="close">
 
-  <!-- Replaced wholesale by the "sequence" SSE event when agents are ready -->
+  <!-- Replaced wholesale by the "sequence" SSE event when the emails are ready -->
   <div id="exec-content" sse-swap="sequence" hx-swap="innerHTML">
     {% include "partials/sequence.html" %}
   </div>
 
 </div>
-
+{% set stream_content_id = "exec-content" %}
+{% set stream_error_message = "We couldn't start building the emails because the live connection dropped. Nothing was restarted. Reload the page to try again." %}
+{% include "partials/_stream_guard.html" %}

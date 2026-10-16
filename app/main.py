@@ -1,6 +1,7 @@
 import asyncio
 import html as html_lib
 import json
+import re
 import logging
 import secrets
 import uuid
@@ -35,6 +36,7 @@ from .config import Settings, get_settings
 from .guards import sequence_guard, validate_sequence
 from .plans import build_preset_plan
 from .layouts import build_preset_layout
+from .samples import build_sample_template
 
 
 def validate_download(template_id: str, template: dict) -> None:
@@ -317,6 +319,12 @@ async def builder_page(request: Request):
     return templates.TemplateResponse("builder.html", {"request": request})
 
 
+@app.get("/sample-template")
+async def sample_template():
+    """A ready-made Beefree template for trying the template-based demos."""
+    return JSONResponse(build_sample_template())
+
+
 @app.get("/integration-auth")
 async def integration_auth():
     """Return a fresh Beefree SDK auth token for the embedded editor."""
@@ -488,18 +496,41 @@ async def download_html(template_id: str):
     )
 
 
+MAX_ZIP_EMAILS = 12
+
+
+def zip_entries(ids: str, steps: str | None) -> list[tuple[int, str]]:
+    """Pair each template id with its email number for zip file names.
+
+    ``steps`` keeps the original numbering when only some emails are
+    downloaded (emails 1 and 3 stay "email-01" and "email-03").
+    """
+    template_ids = [tid.strip() for tid in ids.split(",") if tid.strip()]
+    if not template_ids or len(template_ids) > MAX_ZIP_EMAILS:
+        raise HTTPException(status_code=400, detail=f"Choose between 1 and {MAX_ZIP_EMAILS} emails to download.")
+    numbers = list(range(1, len(template_ids) + 1))
+    if steps:
+        try:
+            given = [int(n) for n in steps.split(",")]
+        except ValueError:
+            given = []
+        if len(given) == len(template_ids) and all(n > 0 for n in given):
+            numbers = given
+    return list(zip(numbers, template_ids))
+
+
 @app.get("/download-all")
-async def download_all(ids: str):
+async def download_all(ids: str, steps: str | None = None):
     """Return a ZIP file containing all template JSONs for a sequence."""
     import io
     import zipfile
 
     settings = get_settings()
-    template_ids = [tid.strip() for tid in ids.split(",") if tid.strip()]
+    entries = zip_entries(ids, steps)
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for i, tid in enumerate(template_ids, 1):
+        for i, tid in entries:
             data = await get_template(tid, settings)
             template = data.get("template", data)
             validate_download(tid, template)
@@ -514,7 +545,7 @@ async def download_all(ids: str):
 
 
 @app.get("/download-all-html")
-async def download_all_html(ids: str):
+async def download_all_html(ids: str, steps: str | None = None):
     """Return a ZIP file containing all rendered HTML emails for a sequence."""
     import io
     import zipfile
@@ -522,11 +553,11 @@ async def download_all_html(ids: str):
     from .beefree import render_html as _render_html
 
     settings = get_settings()
-    template_ids = [tid.strip() for tid in ids.split(",") if tid.strip()]
+    entries = zip_entries(ids, steps)
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for i, tid in enumerate(template_ids, 1):
+        for i, tid in entries:
             data = await get_template(tid, settings)
             template = data.get("template", data)
             validate_download(tid, template)
@@ -585,7 +616,7 @@ async def translate_submit(
         parsed = json.loads(template_json)
     except json.JSONDecodeError as exc:
         return HTMLResponse(
-            f"<p class='plan-error'>Invalid JSON: {exc}</p>", status_code=400
+            f"<p class='inline-error' role='alert'>The template JSON is not valid: {html_lib.escape(str(exc))}</p>", status_code=400
         )
     lang_list = [la.strip() for la in languages.split(",") if la.strip()]
     session_id = uuid.uuid4().hex[:12]
@@ -626,7 +657,7 @@ async def translate_stream_route(
             log.error("Translate stream error: %s", exc)
             yield {
                 "event": "ready",
-                "data": f"<p class='plan-error'>Translation failed: {exc}</p>",
+                "data": f"<p class='inline-error' role='alert'>We couldn't start the translations: {html_lib.escape(str(exc))}</p>",
             }
         finally:
             yield {"event": "close", "data": ""}
@@ -666,7 +697,7 @@ async def palette_submit(
         parsed = json.loads(template_json)
     except json.JSONDecodeError as exc:
         return HTMLResponse(
-            f"<p class='plan-error'>Invalid JSON: {exc}</p>", status_code=400
+            f"<p class='inline-error' role='alert'>The template JSON is not valid: {html_lib.escape(str(exc))}</p>", status_code=400
         )
     id_set = {pid.strip() for pid in palette_ids.split(",") if pid.strip()}
     selected = [p for p in PALETTES if p["id"] in id_set]
@@ -708,7 +739,7 @@ async def palette_stream_route(
             log.error("Palette stream error: %s", exc)
             yield {
                 "event": "ready",
-                "data": f"<p class='plan-error'>Palette application failed: {exc}</p>",
+                "data": f"<p class='inline-error' role='alert'>We couldn't start the color versions: {html_lib.escape(str(exc))}</p>",
             }
         finally:
             yield {"event": "close", "data": ""}
@@ -836,7 +867,7 @@ async def execute_stream(
             log.error("Execute stream error: %s", exc)
             yield {
                 "event": "sequence",
-                "data": f"<p class='plan-error'>Execution failed: {exc}</p>",
+                "data": f"<p class='inline-error' role='alert'>We couldn't build the emails: {html_lib.escape(str(exc))}</p>",
             }
         finally:
             yield {"event": "close", "data": ""}
@@ -859,7 +890,7 @@ async def edit_start(request: Request, template_json: str = Form(...)):
         parsed = json.loads(template_json)
     except json.JSONDecodeError as exc:
         return HTMLResponse(
-            f"<p class='plan-error'>Invalid JSON: {exc}</p>", status_code=400
+            f"<p class='inline-error' role='alert'>The template JSON is not valid: {html_lib.escape(str(exc))}</p>", status_code=400
         )
 
     template = parsed.get("template", parsed)
@@ -868,7 +899,7 @@ async def edit_start(request: Request, template_json: str = Form(...)):
         rendered = await render_html(template, settings)
     except Exception as exc:
         return HTMLResponse(
-            f"<p class='plan-error'>Failed to load template: {exc}</p>", status_code=500
+            f"<p class='inline-error' role='alert'>We couldn't load the template: {html_lib.escape(str(exc))}</p>", status_code=500
         )
 
     escaped = html_lib.escape(rendered, quote=True)
@@ -892,9 +923,31 @@ async def edit_start(request: Request, template_json: str = Form(...)):
     )
 
 
+SELECTION_ID = re.compile(r"^[A-Za-z0-9-]{1,64}$")
+
+
+def with_selection(message: str, selection_type: str | None, selection_id: str | None) -> str:
+    """Tell the agent which editor element the user has selected, if any.
+
+    The Beefree editor reports selections through its onSelectElement callback
+    ({type: "row" | "module", uuid}); the chat sends them along with the message.
+    """
+    if selection_type not in ("row", "module") or not selection_id or not SELECTION_ID.match(selection_id):
+        return message
+    kind = "row" if selection_type == "row" else "content block (module)"
+    return (
+        f"{message}\n\n"
+        f"[Editor selection] The user currently has a {kind} selected in the editor "
+        f"(uuid: {selection_id}). Unless the message says otherwise, words like \"this\", "
+        f"\"it\" or \"here\" refer to that element: find it in the template by its uuid "
+        f"and apply the change to it, leaving the rest of the email unchanged."
+    )
+
+
 @app.get("/edit-stream")
 async def edit_stream_route(
     request: Request, session_id: str, message: str,
+    selection_type: str | None = None, selection_id: str | None = None,
     settings: Settings = Depends(get_run_settings),
 ):
     """SSE: run one edit-agent turn, stream previews + the agent's reply."""
@@ -912,7 +965,7 @@ async def edit_stream_route(
     async def generator():
         async for event in stream_edit_executor(
             template_id=template_id,
-            message=message,
+            message=with_selection(message, selection_type, selection_id),
             settings=settings,
             message_history=history,
             out_messages=new_messages,

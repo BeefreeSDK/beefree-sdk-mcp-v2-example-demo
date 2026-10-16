@@ -1,138 +1,11 @@
 <!-- Translation result view — returned via SSE "ready" event -->
 
-<style>
-  .trans-header { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; flex-wrap:wrap; }
-  .trans-title  { font-size:1.15rem; font-weight:700; color:#26045D; }
+<link rel="stylesheet" href="/static/results.css">
 
-  .trans-row { display:flex; gap:1rem; align-items:flex-start; }
-  .trans-row--single { max-width: 450px; margin: 0 auto; }
-
-  .trans-col {
-    flex: 1;
-    min-width: 0;
-    border: 2px solid #EAE6F7;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #fff;
-    box-shadow: 0 1px 3px rgba(38,4,93,.06), 0 6px 20px rgba(38,4,93,.08);
-    transition: border-color .3s, box-shadow .3s;
-  }
-
-  .trans-col.is-translating {
-    border-color: #7747FF;
-    box-shadow:
-      0 0 0 3px rgba(119,71,255,.15),
-      0 1px 3px rgba(38,4,93,.06),
-      0 6px 20px rgba(38,4,93,.08);
-  }
-
-  .trans-col.is-done {
-    border-color: #82EDA8;
-  }
-
-  .trans-col.is-error {
-    border-color: #F87171;
-    box-shadow: 0 0 0 3px rgba(248,113,113,.15), 0 1px 3px rgba(38,4,93,.06);
-  }
-
-  .trans-status.error {
-    background: rgba(248,113,113,.15);
-    color: #B91C1C;
-  }
-
-  .agent-error-panel:not(:empty) {
-    padding: .75rem 1rem;
-    background: #FEF2F2;
-    color: #B91C1C;
-    font-size: .78rem;
-    line-height: 1.5;
-    border-top: 1px solid #FECACA;
-    word-break: break-word;
-  }
-
-  .trans-col-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: .75rem;
-    padding: .7rem 1rem;
-    border-bottom: 1px solid #EAE6F7;
-    background: #FAFAF9;
-    min-height: 56px;
-  }
-
-  .trans-col-info { display:flex; flex-direction:column; gap:.15rem; min-width:0; }
-
-  .trans-col-label {
-    font-size: .62rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    color: #7747FF;
-  }
-
-  .trans-col-lang {
-    font-size: .85rem;
-    font-weight: 600;
-    color: #26045D;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .trans-status {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    font-size: .7rem;
-    font-weight: 700;
-    padding: .28rem .65rem;
-    border-radius: 99px;
-    white-space: nowrap;
-    transition: background .3s, color .3s;
-  }
-
-  .trans-status.translating {
-    background: rgba(119,71,255,.1);
-    color: #7747FF;
-  }
-
-  .trans-status.done {
-    background: rgba(130,237,168,.25);
-    color: #1a7a40;
-  }
-
-  .status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    animation: blink-dot 1s ease-in-out infinite;
-  }
-
-  @keyframes blink-dot {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: .25; }
-  }
-
-  .trans-iframe-wrap { width:700px; transform-origin:top left; }
-  .trans-iframe-wrap iframe { width:700px; border:none; display:block; }
-
-
-  .trans-placeholder {
-    padding: 4rem 1rem;
-    text-align: center;
-    color: #6E5F8A;
-    font-style: italic;
-    font-size: .875rem;
-  }
-</style>
-
-<section>
+<section class="translate-results">
   <div class="trans-header">
     <h2 class="trans-title">Translations</h2>
-    <span class="plan-badge running">{{ languages_with_ids | length }} agents in parallel</span>
+    <span class="plan-badge running" id="trans-status-badge" role="status">{{ languages_with_ids | length }} translation{{ 's' if languages_with_ids | length != 1 else '' }} in progress</span>
   </div>
 
   <div class="trans-row{% if languages_with_ids | length == 1 %} trans-row--single{% endif %}" id="trans-row">
@@ -147,37 +20,38 @@
       <div class="trans-col-header">
         <div class="trans-col-info">
           <span class="trans-col-label">Language</span>
-          <span class="trans-col-lang" title="{{ language }}">{{ language }}</span>
+          <span class="trans-col-lang">{{ language }}</span>
         </div>
-        <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;">
+        <div class="col-header-actions">
           <span class="trans-status translating">
-            <span class="status-dot"></span>Translating&hellip;
+            <span class="status-dot" aria-hidden="true"></span>Translating&hellip;
           </span>
-          <div class="col-dl-bar" style="display:none;gap:.3rem;align-items:center;">
-            <a href="/download-template/{{ template_id }}"
-               download="email-{{ template_id[:8] }}.json"
-               class="btn-outline"
-               style="font-size:.72rem;padding:.22rem .55rem;display:inline-flex;align-items:center;gap:.3rem;">
-              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-                <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>JSON
-            </a>
+          <div class="col-dl-bar" hidden>
             <a href="/download-html/{{ template_id }}"
                download="email-{{ template_id[:8] }}.html"
-               class="btn-outline"
-               style="font-size:.72rem;padding:.22rem .55rem;display:inline-flex;align-items:center;gap:.3rem;">
-              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+               class="btn-download"
+               aria-label="Download {{ language }} version as HTML">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>HTML
+            </a>
+            <a href="/download-template/{{ template_id }}"
+               download="email-{{ template_id[:8] }}.json"
+               class="btn-download"
+               aria-label="Download {{ language }} version as JSON">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>JSON
             </a>
           </div>
         </div>
       </div>
 
       <div class="trans-iframe-wrap" sse-swap="preview" hx-swap="innerHTML">
-        <div class="trans-placeholder">Waiting for agent&hellip;</div>
+        <div class="trans-placeholder">Waiting for the first preview&hellip;</div>
       </div>
       <div class="agent-error-panel" sse-swap="agent-error" hx-swap="innerHTML"></div>
+      <div class="sequence-warning" sse-swap="validation-warning" hx-swap="innerHTML" role="status"></div>
     </div>
     {% endfor %}
   </div>
@@ -185,34 +59,100 @@
 
 <script>
 (function () {
+  var results = document.currentScript.previousElementSibling;
+  var columns = Array.from(results.querySelectorAll('.trans-col'));
+  var RUNNING = 'is-translating';
 
-  function scaleWraps() {
-    var row = document.getElementById('trans-row');
-    if (!row) return;
-    row.querySelectorAll('.trans-col').forEach(function (col) {
-      var w = col.offsetWidth;
-      var scale = w / 700;
-      var wrap = col.querySelector('.trans-iframe-wrap');
-      if (wrap) {
-        wrap.style.transform = 'scale(' + scale + ')';
-        wrap.style.height = (800 * scale) + 'px';
-      }
-    });
+  function ownColumn(el) {
+    var col = el && el.closest && el.closest('.trans-col');
+    return col && results.contains(col) ? col : null;
   }
-  scaleWraps();
-  window.addEventListener('resize', scaleWraps);
-  document.body.addEventListener('htmx:afterSwap', function () { setTimeout(scaleWraps, 100); });
-  document.body.addEventListener('htmx:sseMessage', function (e) {
-    var col = e.target && e.target.closest('.trans-col');
-    if (!col) return;
-    if (e.target.getAttribute('sse-swap') === 'agent-error') {
-      col.classList.remove('is-translating');
-      col.classList.add('is-error');
-      var pill = col.querySelector('.trans-status');
-      if (pill) { pill.className = 'trans-status error'; pill.textContent = '\u2715 Failed'; }
+
+  /* ── Scale each 700px preview to its column's actual width ── */
+  function scaleWrap(col) {
+    var wrap = col.querySelector('.trans-iframe-wrap');
+    if (!wrap) return;
+    if (!wrap.querySelector('iframe')) {
+      wrap.style.transform = '';
+      wrap.style.height = '';
       return;
     }
-    setTimeout(scaleWraps, 50);
+    var scale = col.clientWidth / 700;
+    wrap.style.transform = 'scale(' + scale + ')';
+    wrap.style.height = (800 * scale) + 'px';
+  }
+  if (window.ResizeObserver) {
+    var resizer = new ResizeObserver(function (entries) {
+      entries.forEach(function (entry) { scaleWrap(entry.target); });
+    });
+    columns.forEach(function (col) { resizer.observe(col); });
+  } else {
+    window.addEventListener('resize', function () { columns.forEach(scaleWrap); });
+  }
+
+  /* ── Status transitions (outcome event: completed | needs_review | failed) ── */
+  var STATES = {
+    completed:    { col: 'is-done',   pill: 'done',   text: 'Done' },
+    needs_review: { col: 'is-review', pill: 'review', text: 'Needs review' },
+    failed:       { col: 'is-error',  pill: 'error',  text: 'Failed' }
+  };
+
+  function setPill(col, outcome, text) {
+    var state = STATES[outcome];
+    col.classList.remove(RUNNING, 'is-done', 'is-review', 'is-error');
+    col.classList.add(state.col);
+    var pill = col.querySelector('.trans-status');
+    pill.className = 'trans-status ' + state.pill;
+    pill.textContent = text || state.text;
+  }
+
+  function settle(col, outcome, text) {
+    col.dataset.outcome = outcome;
+    setPill(col, outcome, text);
+    col.querySelector('.col-dl-bar').hidden = outcome === 'failed';
+    var warning = col.querySelector('.sequence-warning');
+    if (outcome === 'completed') warning.textContent = '';
+    else if (outcome === 'needs_review' && !warning.textContent.trim()) {
+      warning.textContent = 'This translation finished with a warning. You can still download it.';
+    }
+    updateSummary();
+  }
+
+  // Never reconnect: a reconnect would start a second, paid run for the same column.
+  function stopStream(col, source) {
+    col.removeAttribute('sse-connect');
+    if (source) source.close();
+  }
+
+  function markStopped(col, message) {
+    settle(col, 'failed', 'Stopped');
+    col.querySelector('.agent-error-panel').textContent = message;
+  }
+
+  function updateSummary() {
+    var settled = columns.filter(function (col) { return col.dataset.outcome; });
+    var count = function (o) { return settled.filter(function (c) { return c.dataset.outcome === o; }).length; };
+    var done = count('completed'), reviews = count('needs_review'), failed = count('failed');
+    var running = columns.length - settled.length;
+    var parts = [done + ' done'];
+    if (reviews) parts.push(reviews + (reviews === 1 ? ' needs review' : ' need review'));
+    if (failed) parts.push(failed + ' failed');
+    if (running) parts.push(running + ' in progress');
+    var badge = results.querySelector('#trans-status-badge');
+    badge.textContent = parts.join(', ');
+    badge.className = 'plan-badge' + (running ? ' running' : failed ? '' : ' done');
+  }
+
+  document.body.addEventListener('htmx:sseMessage', function (e) {
+    var col = ownColumn(e.target);
+    if (!col) return;
+    var kind = e.target.getAttribute('sse-swap');
+    if (kind === 'validation-warning') return;
+    if (kind === 'agent-error') {
+      if (!col.dataset.outcome) setPill(col, 'failed');
+      return;
+    }
+    scaleWrap(col);
     var wrap = col.querySelector('.trans-iframe-wrap');
     if (!wrap) return;
     wrap.classList.remove('preview-refreshing');
@@ -224,24 +164,30 @@
   });
 
   document.body.addEventListener('htmx:sseOpen', function (e) {
-    var col = e.target.closest('.trans-col');
-    if (col) col.classList.add('is-translating');
+    var col = ownColumn(e.target);
+    if (!col || col.dataset.outcome) return;
+    col.classList.add(RUNNING);
+    e.detail.source.addEventListener('outcome', function (event) {
+      var outcome;
+      try { outcome = JSON.parse(event.data).status; } catch (_) { return; }
+      if (STATES[outcome]) settle(col, outcome);
+    });
+  });
+
+  document.body.addEventListener('htmx:sseError', function (e) {
+    var col = ownColumn(e.target);
+    if (!col) return;
+    stopStream(col, e.detail && e.detail.source);
+    if (col.dataset.outcome) return;
+    markStopped(col, 'The live connection dropped before this translation finished. It was not restarted, so it may be incomplete.');
   });
 
   document.body.addEventListener('htmx:sseClose', function (e) {
-    var col = e.target.closest('.trans-col');
+    var col = ownColumn(e.target);
     if (!col) return;
-    if (col.classList.contains('is-error')) return;
-    col.classList.remove('is-translating');
-    col.classList.add('is-done');
-    var pill = col.querySelector('.trans-status');
-    if (pill) {
-      pill.className = 'trans-status done';
-      pill.textContent = '✓ Done';
-    }
-    var dlBar = col.querySelector('.col-dl-bar');
-    if (dlBar) dlBar.style.display = 'flex';
+    stopStream(col, null);
+    if (e.detail.type !== 'message' || col.dataset.outcome) return;
+    markStopped(col, 'This translation stopped before it finished.');
   });
-
 })();
 </script>

@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/static/style.css" />
   <script src="/static/model-selection.js"></script>
   <script src="/static/tokens.js"></script>
+  <script src="/static/ui.js"></script>
 </head>
 <body>
 
@@ -41,7 +42,7 @@
               <clipPath id="clip0_7680_11003"><rect width="163.105" height="32" fill="white"/></clipPath>
             </defs>
           </svg>
-          <span class="brand-tag">Code Mode</span>
+          <h1 class="brand-tag">Code Mode</h1>
         </div>
         <p class="header-sub">One TypeScript script replaces many tool calls — 67-97% fewer tokens per generation.</p>
       </div>
@@ -49,7 +50,7 @@
         <div class="token-badge">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 4.5H15l-4 3 1.5 4.5L8 10.5 3.5 13 5 8.5 1 5.5h5z" fill="currentColor"/></svg>
           <span id="token-total">0 tokens</span>
-          <button class="token-reset-btn" onclick="beeTokensReset()" title="Reset token counter">↺</button>
+          <button class="token-reset-btn" onclick="beeTokensReset()" title="Reset token counter" aria-label="Reset token counter">↺</button>
         </div>
         <div class="token-breakdown" id="token-breakdown"></div>
       </div>
@@ -63,8 +64,7 @@
          ═══════════════════════════════════════════════════════════════════════ -->
 
     <div class="guide-section" style="margin-bottom:1.5rem;">
-      <h1 class="guide-title">Code Mode</h1>
-      <p style="margin-bottom:0;">One script, one round trip, 67-97% fewer tokens. Describe an email and watch the agent build it in a single shot.</p>
+      <p style="margin-bottom:0;">The agent writes the whole email as one script and runs it in a single round trip, which uses 67–97% fewer tokens. Describe an email and watch it being built.</p>
 
       <details class="guide-details" style="margin-top:1.25rem;margin-bottom:0;">
         <summary class="guide-details-summary">How it works &amp; benchmarks</summary>
@@ -140,47 +140,47 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
 
       <div class="card-body">
         <div>
-        <form id="codemode-form" onsubmit="startCodemodeDemo(event)">
+        <form id="codemode-form" class="campaign-form" novalidate onsubmit="startCodemodeDemo(event)">
 
           <!-- ── Preset cards ── -->
           <div class="field full">
-            <label>Start from a preset <span class="label-count" id="cm-preset-label"></span></label>
-            <div class="seq-prompt-grid">
+            <p class="field-label" id="cm-preset-heading">Start from a preset <span class="label-count" id="cm-preset-label"></span></p>
+            <div class="seq-prompt-grid" role="group" aria-labelledby="cm-preset-heading">
 
-              <button type="button" class="seq-prompt-card" onclick="selectCodemodePreset(this)"
+              <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectCodemodePreset(this)"
                 data-prompt="Goal: Product launch&#10;Audience: Music lovers and audiophiles, 25–40, who already follow the brand&#10;Brand voice: Modern, premium, confident&#10;Product: Aura Pro wireless headphones — adaptive noise cancelling, 40-hour battery&#10;Primary CTA: &quot;Pre-order now&quot; → https://example.com/aura-pro&#10;Brand colors: #0A0A0A background, #FFFFFF text, #8B5CF6 accent&#10;Include: full-width hero image placeholder, 3-column features grid (noise cancelling, battery, comfort), spec highlights, large CTA button, footer with unsubscribe/address&#10;Notes: sleek dark theme; bold typography; mobile-first spacing with 44px+ buttons.">
-                <div class="seq-prompt-header">
+                <span class="seq-prompt-header">
                   <span class="seq-prompt-tag">Product Launch · Audio</span>
                   <span class="seq-prompt-check">
                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </span>
-                </div>
-                <h3 class="seq-prompt-title">Wireless Headphones Launch</h3>
-                <p class="seq-prompt-desc">Dark-theme product launch email for a premium audio brand.</p>
+                </span>
+                <span class="seq-prompt-title">Wireless Headphones Launch</span>
+                <span class="seq-prompt-desc">Dark-theme product launch email for a premium audio brand.</span>
               </button>
 
-              <button type="button" class="seq-prompt-card" onclick="selectCodemodePreset(this)"
+              <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectCodemodePreset(this)"
                 data-prompt="Goal: Monthly newsletter&#10;Audience: Existing subscribers of a design &amp; productivity blog&#10;Brand voice: Friendly, curious, helpful&#10;Content: Top 3 articles of the month, a featured tool, and a community highlight&#10;Primary CTA: &quot;Read the full issue&quot; → https://example.com/issue&#10;Brand colors: #1E3A8A primary, #0F172A text, #F1F5F9 background&#10;Include: header with logo placeholder, intro note, 3 article cards with image placeholders and short summaries, a &quot;tool of the month&quot; callout, social links, footer with unsubscribe/address&#10;Notes: clean editorial layout; generous whitespace; scannable sections.">
-                <div class="seq-prompt-header">
+                <span class="seq-prompt-header">
                   <span class="seq-prompt-tag">Newsletter · Media</span>
                   <span class="seq-prompt-check">
                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </span>
-                </div>
-                <h3 class="seq-prompt-title">Monthly Design Digest</h3>
-                <p class="seq-prompt-desc">Editorial newsletter rounding up the month's best content.</p>
+                </span>
+                <span class="seq-prompt-title">Monthly Design Digest</span>
+                <span class="seq-prompt-desc">Editorial newsletter rounding up the month's best content.</span>
               </button>
 
-              <button type="button" class="seq-prompt-card" onclick="selectCodemodePreset(this)"
+              <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectCodemodePreset(this)"
                 data-prompt="Goal: Webinar invitation&#10;Audience: Marketing professionals interested in AI and automation&#10;Brand voice: Professional, energetic, value-driven&#10;Event: Live webinar — &quot;Scaling Email with AI Agents&quot;, Thursday at 11am ET&#10;Primary CTA: &quot;Save my seat&quot; → https://example.com/webinar&#10;Brand colors: #059669 primary, #064E3B text, #ECFDF5 background&#10;Include: hero with event title, date/time, and speaker headshot placeholder, 3 &quot;what you'll learn&quot; bullets, speaker bio block, agenda overview, prominent registration CTA, footer with unsubscribe/address&#10;Notes: clear hierarchy; emphasize date/time and CTA; mobile-first spacing.">
-                <div class="seq-prompt-header">
+                <span class="seq-prompt-header">
                   <span class="seq-prompt-tag">Event · Webinar</span>
                   <span class="seq-prompt-check">
                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </span>
-                </div>
-                <h3 class="seq-prompt-title">AI Webinar Invitation</h3>
-                <p class="seq-prompt-desc">Registration email for a live marketing webinar.</p>
+                </span>
+                <span class="seq-prompt-title">AI Webinar Invitation</span>
+                <span class="seq-prompt-desc">Registration email for a live marketing webinar.</span>
               </button>
 
             </div>
@@ -199,6 +199,8 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
             ></textarea>
           </div>
 
+          <p class="inline-error" id="cm-form-error" role="alert" hidden style="grid-column:1/-1;margin:0"></p>
+
           <div class="field full actions">
             <button type="submit" class="btn btn-primary" id="codemode-submit">
               Generate with Code Mode
@@ -215,12 +217,12 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
         <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
         <path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
       </svg>
-      Output quality varies across AI providers and models. This is a showcase of the Beefree Headless MCP Code Mode integration — not a benchmark. System prompts, model choice, and workflow design can all be tuned to match your specific use case.
+      Output quality varies across AI providers and models. This is a showcase of the Beefree SDK MCP Code Mode integration, not a benchmark. System prompts, model choice, and workflow design can all be tuned to match your specific use case.
     </p>
 
     <div class="codemode-panels" id="codemode-panels" style="display:none;">
       <div class="codemode-code-panel">
-        <h3 class="panel-title">Agent-Generated TypeScript</h3>
+        <h2 class="panel-title">Script written by the agent</h2>
         <pre id="codemode-code" class="codemode-pre"><code>// The agent's script will appear here...</code></pre>
       </div>
       <div class="codemode-preview-panel" id="codemode-preview-panel">
@@ -242,32 +244,21 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
 
   <footer class="site-footer">
     <div class="container">
-      Powered by <strong>Beefree SDK MCP Code Mode</strong> ·
+      Powered by <strong>Beefree SDK MCP</strong> ·
       <strong>PydanticAI</strong> · <strong>FastAPI</strong>
     </div>
   </footer>
 
   <script>
-    /* ── Example prompts: inject hover tooltips + handle selection ── */
-    document.querySelectorAll('.seq-prompt-card[data-prompt]').forEach(function (card) {
-      var hint = document.createElement('span');
-      hint.className = 'prompt-hint';
-      hint.textContent = 'Hover to read full prompt';
-      card.appendChild(hint);
-
-      var tip = document.createElement('div');
-      tip.className = 'prompt-tooltip';
-      tip.innerHTML = '<p class="prompt-tooltip-label">Full prompt</p><p class="prompt-tooltip-text"></p>';
-      tip.querySelector('.prompt-tooltip-text').textContent = card.dataset.prompt;
-      card.appendChild(tip);
-    });
-
+    /* ── Example prompts: selecting one puts its full text in the brief box ── */
     var cmActivePreset = null;
 
     function selectCodemodePreset(el) {
       document.querySelectorAll('.seq-prompt-card').forEach(function (c) {
         c.classList.remove('seq-prompt-card-selected');
+        c.setAttribute('aria-pressed', 'false');
       });
+      document.getElementById('cm-form-error').hidden = true;
       var ta = document.getElementById('codemode-brief');
       if (cmActivePreset === el) {
         cmActivePreset = null;
@@ -276,6 +267,7 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
         return;
       }
       el.classList.add('seq-prompt-card-selected');
+      el.setAttribute('aria-pressed', 'true');
       cmActivePreset = el;
       ta.value = el.dataset.prompt;
       document.getElementById('cm-preset-label').textContent = 'selected';
@@ -283,7 +275,9 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
 
     function cmOnPromptInput() {
       /* typing your own brief deselects any preset */
+      document.getElementById('cm-form-error').hidden = true;
       if (cmActivePreset) {
+        cmActivePreset.setAttribute('aria-pressed', 'false');
         cmActivePreset.classList.remove('seq-prompt-card-selected');
         cmActivePreset = null;
         document.getElementById('cm-preset-label').textContent = '';
@@ -313,7 +307,12 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
     async function startCodemodeDemo(e) {
       e.preventDefault();
       const brief = document.getElementById('codemode-brief').value.trim();
-      if (!brief) return;
+      if (!brief) {
+        const err = document.getElementById('cm-form-error');
+        err.textContent = 'Pick a preset or write a brief first.';
+        err.hidden = false;
+        return;
+      }
 
       const btn = document.getElementById('codemode-submit');
       const output = document.getElementById('codemode-output');
@@ -356,7 +355,7 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
         + '<div class="esk-cols"><div class="esk-col-block"></div><div class="esk-col-block"></div><div class="esk-col-block"></div></div>'
         + '<div class="esk-block esk-cta"></div>'
         + '<div class="esk-block esk-footer"></div>'
-        + '<div class="esk-label"><span class="phase-spinner" style="width:12px;height:12px;border-width:1.5px"></span>Preview will appear as the script executes&hellip;</div>'
+        + '<div class="esk-label"><span class="phase-spinner" style="width:12px;height:12px;border-width:1.5px"></span>The preview appears when the script runs&hellip;</div>'
         + '</div>';
 
       const es = new EventSource('/codemode-stream?brief=' + encodeURIComponent(brief));
@@ -414,7 +413,6 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
       });
 
       es.addEventListener('tokens', (e) => {
-        try { beeTokensAdd(JSON.parse(e.data)); } catch(_) {}
       });
 
       es.addEventListener('close', () => {
@@ -438,13 +436,13 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
         if (tid && actions) {
           const icon = '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> ';
           const aj = document.createElement('a');
-          aj.className = 'btn-outline cm-download';
+          aj.className = 'btn-download cm-download';
           aj.href = '/download-template/' + tid;
           aj.download = 'email-' + tid.slice(0, 8) + '.json';
           aj.innerHTML = icon + 'JSON';
           actions.appendChild(aj);
           const ah = document.createElement('a');
-          ah.className = 'btn-outline cm-download';
+          ah.className = 'btn-download cm-download';
           ah.href = '/download-html/' + tid;
           ah.download = 'email-' + tid.slice(0, 8) + '.html';
           ah.innerHTML = icon + 'HTML';

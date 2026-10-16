@@ -1,189 +1,35 @@
-<!-- Live execution view — returned by POST /execute, swapped into #execution -->
+<!-- Live build view: rendered queued by POST /execute, then replaced by the
+     "sequence" SSE event from /execute-stream with one live column per email. -->
 
-<style>
-  .seq-header { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; flex-wrap:wrap; }
-  .seq-title  { font-size:1.15rem; font-weight:700; color:#26045D; }
-
-  .seq-row { display:flex; gap:1rem; align-items:flex-start; }
-
-  /* ── Column card ── */
-  .seq-col {
-    flex: 1;
-    min-width: 0;
-    border: 2px solid #EAE6F7;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #fff;
-    box-shadow: 0 1px 3px rgba(38,4,93,.06), 0 6px 20px rgba(38,4,93,.08);
-    transition: border-color .3s, box-shadow .3s;
-  }
-
-  /* Active: purple glow */
-  .seq-col.is-generating {
-    border-color: #7747FF;
-    box-shadow:
-      0 0 0 3px rgba(119,71,255,.15),
-      0 1px 3px rgba(38,4,93,.06),
-      0 6px 20px rgba(38,4,93,.08);
-  }
-
-  /* Done: green accent */
-  .seq-col.is-done {
-    border-color: #82EDA8;
-  }
-
-  .seq-col.is-review { border-color: #d7a536; }
-  .seq-status.review { background: #fff4ce; color: #775914; }
-  .sequence-warning:not(:empty) {
-    padding: .75rem 1rem;
-    background: #fff8df;
-    color: #775914;
-    font-size: .78rem;
-    border-top: 1px solid #ead9a4;
-  }
-
-  /* Error: red accent */
-  .seq-col.is-error {
-    border-color: #F87171;
-    box-shadow: 0 0 0 3px rgba(248,113,113,.15), 0 1px 3px rgba(38,4,93,.06);
-  }
-
-  .seq-status.error {
-    background: rgba(248,113,113,.15);
-    color: #B91C1C;
-  }
-
-  .agent-error-panel:not(:empty) {
-    padding: .75rem 1rem;
-    background: #FEF2F2;
-    color: #B91C1C;
-    font-size: .78rem;
-    line-height: 1.5;
-    border-top: 1px solid #FECACA;
-    word-break: break-word;
-  }
-
-  /* ── Column header ── */
-  .seq-col-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: .75rem;
-    padding: .7rem 1rem;
-    border-bottom: 1px solid #EAE6F7;
-    background: #FAFAF9;
-    min-height: 56px;
-  }
-
-  .seq-col-info { display:flex; flex-direction:column; gap:.15rem; min-width:0; }
-
-  .seq-col-step {
-    font-size: .62rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    color: #7747FF;
-  }
-
-  .seq-col-title {
-    font-size: .85rem;
-    font-weight: 600;
-    color: #26045D;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: white-space .15s;
-  }
-
-  .seq-col:hover .seq-col-title {
-    white-space: normal;
-    overflow: visible;
-  }
-
-  /* ── Status pill ── */
-  .seq-status {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    font-size: .7rem;
-    font-weight: 700;
-    padding: .28rem .65rem;
-    border-radius: 99px;
-    white-space: nowrap;
-    transition: background .3s, color .3s;
-  }
-
-  .seq-status.generating {
-    background: rgba(119,71,255,.1);
-    color: #7747FF;
-  }
-
-  .seq-status.done {
-    background: rgba(130,237,168,.25);
-    color: #1a7a40;
-  }
-
-  .status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    animation: blink-dot 1s ease-in-out infinite;
-  }
-
-  @keyframes blink-dot {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: .25; }
-  }
-
-  /* ── Preview area ── */
-  .seq-iframe-wrap { width:700px; transform-origin:top left; }
-  .seq-iframe-wrap iframe { width:700px; border:none; display:block; }
-
-
-  .seq-placeholder {
-    padding: 4rem 1rem;
-    text-align: center;
-    color: #6E5F8A;
-    font-style: italic;
-    font-size: .875rem;
-  }
-</style>
+<link rel="stylesheet" href="/static/results.css">
 
 <section class="card sequence-results">
   <div class="seq-header">
     <h2 class="seq-title">{{ plan.sequence_title }}</h2>
-    <span class="plan-badge running" id="seq-status-badge">{{ emails_with_ids | length }} {% if pending_sessions %}emails queued{% else %}agents in parallel{% endif %}</span>
-    <a id="seq-download-btn"
-       class="btn-outline"
-       style="display:none;"
-       href="#">
-      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Download JSON
-    </a>
-    <a id="seq-download-html-btn"
-       class="btn-outline"
-       style="display:none;"
-       href="#">
-      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Download HTML
-    </a>
+    <span class="plan-badge running" id="seq-status-badge" role="status">{{ emails_with_ids | length }} {% if pending_sessions %}emails queued{% else %}emails in progress{% endif %}</span>
   </div>
 
-  <p class="demo-disclaimer" style="margin-bottom:1rem;">
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:.1rem">
-      <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
-      <path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
-    </svg>
-    Output quality varies across AI providers and models. This is a showcase of the Beefree Headless MCP integration — not a benchmark. System prompts, model choice, and workflow design can all be tuned to match your specific use case.
-  </p>
+  <div class="seq-download-bar" id="seq-download-bar" hidden>
+    <span class="seq-download-label" id="seq-download-label"></span>
+    <a id="seq-download-html-btn" class="btn-download" href="#" hidden>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      HTML
+    </a>
+    <a id="seq-download-btn" class="btn-download" href="#" hidden>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      JSON
+    </a>
+    <p class="seq-download-note" id="seq-download-note"></p>
+  </div>
 
-  <div class="seq-row" id="seq-row">
+<div class="seq-row" id="seq-row">
     {% for email, template_id in emails_with_ids %}
     <div
       class="seq-col"
+      data-step="{{ loop.index }}"
+      data-title="{{ email.title }}"
       {% if not pending_sessions %}
+      data-template-id="{{ template_id }}"
       hx-ext="sse"
       sse-connect="/stream/{{ template_id }}?prompt={{ email.agent_prompt | urlencode }}&amp;model={{ llm_model | urlencode }}"
       sse-close="close"
@@ -193,16 +39,16 @@
       <div class="seq-col-header">
         <div class="seq-col-info">
           <span class="seq-col-step">Email {{ loop.index }}</span>
-          <span class="seq-col-title" title="{{ email.title }}">{{ email.title }}</span>
+          <span class="seq-col-title">{{ email.title }}</span>
         </div>
         <span class="seq-status generating">
-          <span class="status-dot"></span>{% if pending_sessions %}Queued{% else %}Generating&hellip;{% endif %}
+          <span class="status-dot" aria-hidden="true"></span>{% if pending_sessions %}Queued{% else %}Building&hellip;{% endif %}
         </span>
       </div>
 
       <!-- Live preview area (updated by SSE) -->
       <div class="seq-iframe-wrap" sse-swap="preview" hx-swap="innerHTML">
-        <div class="seq-placeholder">Waiting for agent&hellip;</div>
+        <div class="seq-placeholder">{% if pending_sessions %}Getting ready&hellip;{% else %}Waiting for the first preview&hellip;{% endif %}</div>
       </div>
       <div class="agent-error-panel" sse-swap="agent-error" hx-swap="innerHTML"></div>
       <div class="sequence-warning" sse-swap="validation-warning" hx-swap="innerHTML" role="status"></div>
@@ -216,36 +62,45 @@
 (function () {
   var results = document.currentScript.previousElementSibling;
   var sequenceRow = results.querySelector('#seq-row');
+  var columns = Array.from(sequenceRow.querySelectorAll('.seq-col'));
 
-  /* ── Scale iframe wraps to fit column width ── */
-  function scaleWraps() {
-    var row = sequenceRow;
-    if (!row || !row.isConnected) return;
-    row.querySelectorAll('.seq-col').forEach(function (col) {
-      var w = col.offsetWidth;
-      var scale = w / 700;
-      var wrap = col.querySelector('.seq-iframe-wrap');
-      if (wrap) {
-        wrap.style.transform = 'scale(' + scale + ')';
-        wrap.style.height = (800 * scale) + 'px';
-      }
-    });
+  function ownColumn(el) {
+    var col = el && el.closest && el.closest('.seq-col');
+    return col && results.contains(col) ? col : null;
   }
-  scaleWraps();
-  window.addEventListener('resize', scaleWraps);
-  document.body.addEventListener('htmx:afterSwap', function () { setTimeout(scaleWraps, 100); });
-  document.body.addEventListener('htmx:sseMessage', function (e) {
-    var col = e.target && e.target.closest('.seq-col');
-    if (!col || !results.contains(col)) return;
-    if (e.target.getAttribute('sse-swap') === 'validation-warning') return;
-    if (e.target.getAttribute('sse-swap') === 'agent-error') {
-      col.classList.remove('is-generating');
-      col.classList.add('is-error');
-      var pill = col.querySelector('.seq-status');
-      if (pill) { pill.className = 'seq-status error'; pill.textContent = '\u2715 Failed'; }
+
+  /* ── Scale each 700px preview to its column's actual width ── */
+  function scaleWrap(col) {
+    var wrap = col.querySelector('.seq-iframe-wrap');
+    if (!wrap) return;
+    if (!wrap.querySelector('iframe')) {
+      wrap.style.transform = '';
+      wrap.style.height = '';
       return;
     }
-    setTimeout(scaleWraps, 50);
+    var scale = col.clientWidth / 700;
+    wrap.style.transform = 'scale(' + scale + ')';
+    wrap.style.height = (800 * scale) + 'px';
+  }
+  if (window.ResizeObserver) {
+    var resizer = new ResizeObserver(function (entries) {
+      entries.forEach(function (entry) { scaleWrap(entry.target); });
+    });
+    columns.forEach(function (col) { resizer.observe(col); });
+  } else {
+    window.addEventListener('resize', function () { columns.forEach(scaleWrap); });
+  }
+
+  document.body.addEventListener('htmx:sseMessage', function (e) {
+    var col = ownColumn(e.target);
+    if (!col) return;
+    var kind = e.target.getAttribute('sse-swap');
+    if (kind === 'validation-warning') return;
+    if (kind === 'agent-error') {
+      if (!col.dataset.outcome) setPill(col, 'error', 'Failed');
+      return;
+    }
+    scaleWrap(col);
     var wrap = col.querySelector('.seq-iframe-wrap');
     if (!wrap) return;
     wrap.classList.remove('preview-refreshing');
@@ -257,99 +112,129 @@
   });
 
   /* ── Status transitions ── */
+  var STATES = {
+    completed:    { col: 'is-done',   pill: 'done',   text: 'Done' },
+    needs_review: { col: 'is-review', pill: 'review', text: 'Needs review' },
+    failed:       { col: 'is-error',  pill: 'error',  text: 'Failed' }
+  };
 
-  // Mark column as actively generating when SSE connection opens
+  function setPill(col, pillClass, text) {
+    col.classList.remove('is-generating', 'is-error', 'is-done', 'is-review');
+    col.classList.add(pillClass === 'done' ? 'is-done' : pillClass === 'review' ? 'is-review' : 'is-error');
+    var pill = col.querySelector('.seq-status');
+    pill.className = 'seq-status ' + pillClass;
+    pill.textContent = text;
+  }
+
+  function settle(col, outcome, pillText) {
+    var state = STATES[outcome];
+    col.dataset.outcome = outcome;
+    setPill(col, state.pill, pillText || state.text);
+    var warning = col.querySelector('.sequence-warning');
+    if (outcome === 'completed') {
+      warning.textContent = '';
+    } else if (outcome === 'needs_review' && !warning.textContent.trim()) {
+      warning.textContent = 'This email finished with a layout warning. You can still download it.';
+    }
+    updateSummary();
+  }
+
+  // Never let the browser or the sse extension reconnect: a reconnect would
+  // start a second, paid generation for the same email.
+  function stopStream(col, source) {
+    col.removeAttribute('sse-connect');
+    if (source) source.close();
+  }
+
+  function markStopped(col, message) {
+    settle(col, 'failed', 'Stopped');
+    col.querySelector('.agent-error-panel').textContent = message;
+  }
+
   document.body.addEventListener('htmx:sseOpen', function (e) {
-    var col = e.target.closest('.seq-col');
-    if (!col || !results.contains(col)) return;
+    var col = ownColumn(e.target);
+    if (!col || col.dataset.outcome) return;
     col.classList.add('is-generating');
     e.detail.source.addEventListener('outcome', function (event) {
       var outcome;
       try { outcome = JSON.parse(event.data).status; } catch (_) { return; }
-      if (['completed', 'failed', 'needs_review'].indexOf(outcome) < 0) return;
-      col.dataset.outcome = outcome;
-      col.classList.remove('is-generating', 'is-error', 'is-done', 'is-review');
-      var pill = col.querySelector('.seq-status');
-      if (outcome === 'completed') {
-        col.classList.add('is-done');
-        pill.className = 'seq-status done';
-        pill.textContent = 'Done';
-        col.querySelector('.sequence-warning').textContent = '';
-      } else if (outcome === 'needs_review') {
-        col.classList.add('is-review');
-        pill.className = 'seq-status review';
-        pill.textContent = 'Needs review';
-        var warning = col.querySelector('.sequence-warning');
-        if (!warning.textContent.trim()) {
-          warning.textContent = 'Generation finished with a layout warning. You can still download the result.';
-        }
-      } else {
-        col.classList.add('is-error');
-        pill.className = 'seq-status error';
-        pill.textContent = 'Failed';
-      }
-      updateSummary();
+      if (!STATES[outcome]) return;
+      settle(col, outcome);
     });
   });
 
   document.body.addEventListener('htmx:sseError', function (e) {
-    var col = e.target.closest('.seq-col');
-    if (!col || !results.contains(col) || col.dataset.outcome) return;
-    col.removeAttribute('sse-connect');
-    e.detail.source.close();
-    markConnectionLost(col);
+    var col = ownColumn(e.target);
+    if (!col) return;
+    stopStream(col, e.detail && e.detail.source);
+    if (col.dataset.outcome) return;
+    markStopped(col, 'The live connection dropped before this email finished. It was not restarted, so it may be incomplete.');
   });
-
-  function markConnectionLost(col) {
-    col.dataset.outcome = 'failed';
-    col.classList.remove('is-generating');
-    col.classList.add('is-error');
-    var pill = col.querySelector('.seq-status');
-    pill.className = 'seq-status error';
-    pill.textContent = 'Connection lost';
-    col.querySelector('.agent-error-panel').textContent =
-      'Live connection lost. Remote work may still be running; generation was not restarted.';
-    updateSummary();
-  }
-
-  // Collect template IDs from SSE connect URLs for later download
-  var _seqTemplateIds = [];
-  sequenceRow.querySelectorAll('.seq-col[sse-connect]').forEach(function (col) {
-    var url = col.getAttribute('sse-connect');
-    var m = url.match(/\/stream\/([^?]+)/);
-    if (m) _seqTemplateIds.push(m[1]);
-  });
-
-  function updateSummary() {
-    var columns = sequenceRow.querySelectorAll('.seq-col');
-    var _seqTotal = columns.length;
-    var settled = Array.from(columns).filter(function (col) { return col.dataset.outcome; });
-    var done = settled.filter(function (col) { return col.dataset.outcome === 'completed'; }).length;
-    var reviews = settled.filter(function (col) { return col.dataset.outcome === 'needs_review'; }).length;
-    var failures = settled.length - done - reviews;
-    var badge = results.querySelector('#seq-status-badge');
-    if (badge) {
-      badge.textContent = done + ' done' + (reviews ? ', ' + reviews + ' need review' : '') +
-        (failures ? ', ' + failures + ' failed' : '') +
-        (settled.length < _seqTotal ? ', ' + (_seqTotal - settled.length) + ' running' : '');
-      badge.className = 'plan-badge' + (done === _seqTotal ? ' done' : '');
-    }
-    if (settled.length === _seqTotal && failures === 0) {
-      var ids = _seqTemplateIds.join(',');
-      [['seq-download-btn', '/download-all'], ['seq-download-html-btn', '/download-all-html']].forEach(function (item) {
-        var button = results.querySelector('#' + item[0]);
-        if (button && ids) { button.href = item[1] + '?ids=' + ids; button.style.display = ''; }
-      });
-    }
-  }
 
   document.body.addEventListener('htmx:sseClose', function (e) {
-    var col = e.target.closest('.seq-col');
-    if (!col || !results.contains(col)) return;
-    if (e.detail.type !== 'message') return;
-    if (!col.dataset.outcome) markConnectionLost(col);
+    var col = ownColumn(e.target);
+    if (!col) return;
+    stopStream(col, null);
+    if (e.detail.type !== 'message' || col.dataset.outcome) return;
+    markStopped(col, 'This email stopped before it finished.');
   });
 
+  function listSteps(cols) {
+    var steps = cols.map(function (col) { return col.dataset.step; });
+    if (steps.length === 1) return 'Email ' + steps[0];
+    return 'Emails ' + steps.slice(0, -1).join(', ') + ' and ' + steps[steps.length - 1];
+  }
+
+  function updateSummary() {
+    var total = columns.length;
+    var settled = columns.filter(function (col) { return col.dataset.outcome; });
+    var done = settled.filter(function (col) { return col.dataset.outcome === 'completed'; });
+    var reviews = settled.filter(function (col) { return col.dataset.outcome === 'needs_review'; });
+    var failed = settled.filter(function (col) { return col.dataset.outcome === 'failed'; });
+    var running = total - settled.length;
+
+    var parts = [done.length + ' done'];
+    if (reviews.length) parts.push(reviews.length + (reviews.length === 1 ? ' needs review' : ' need review'));
+    if (failed.length) parts.push(failed.length + ' failed');
+    if (running) parts.push(running + ' in progress');
+    var badge = results.querySelector('#seq-status-badge');
+    badge.textContent = parts.join(', ');
+    badge.className = 'plan-badge' + (running ? ' running' : failed.length ? '' : ' done');
+
+    if (running) return;
+
+    // Everything has settled: offer whatever finished, and say what didn't.
+    var usable = columns.filter(function (col) { return col.dataset.outcome !== 'failed'; });
+    var ids = usable.map(function (col) { return col.dataset.templateId; }).join(',');
+    var steps = usable.map(function (col) { return columns.indexOf(col) + 1; }).join(',');
+    var bar = results.querySelector('#seq-download-bar');
+    var label = results.querySelector('#seq-download-label');
+    var note = results.querySelector('#seq-download-note');
+    var html = results.querySelector('#seq-download-html-btn');
+    var json = results.querySelector('#seq-download-btn');
+
+    if (usable.length) {
+      label.textContent = usable.length === total
+        ? 'Download all ' + total + ' emails'
+        : 'Download ' + usable.length + ' of ' + total + ' emails';
+      html.href = '/download-all-html?ids=' + ids + '&steps=' + steps;
+      json.href = '/download-all?ids=' + ids + '&steps=' + steps;
+      html.hidden = false;
+      json.hidden = false;
+    } else {
+      label.textContent = 'Nothing to download';
+      html.hidden = true;
+      json.hidden = true;
+    }
+    if (failed.length === total) {
+      note.textContent = 'None of the emails finished.';
+    } else if (failed.length) {
+      note.textContent = listSteps(failed) + (failed.length === 1 ? " didn't finish, so it isn't" : " didn't finish, so they aren't") + ' included.';
+    } else {
+      note.textContent = '';
+    }
+    bar.hidden = false;
+  }
 })();
 </script>
 {% endif %}

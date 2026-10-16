@@ -1,138 +1,11 @@
 <!-- Palette result view — returned via SSE "ready" event -->
 
-<style>
-  .pal-header { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; flex-wrap:wrap; }
-  .pal-title  { font-size:1.15rem; font-weight:700; color:#26045D; }
+<link rel="stylesheet" href="/static/results.css">
 
-  .pal-row { display:flex; gap:1rem; align-items:flex-start; }
-  .pal-row--single { max-width: 450px; margin: 0 auto; }
-
-  .pal-col {
-    flex: 1;
-    min-width: 0;
-    border: 2px solid #EAE6F7;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #fff;
-    box-shadow: 0 1px 3px rgba(38,4,93,.06), 0 6px 20px rgba(38,4,93,.08);
-    transition: border-color .3s, box-shadow .3s;
-  }
-
-  .pal-col.is-styling {
-    border-color: #7747FF;
-    box-shadow:
-      0 0 0 3px rgba(119,71,255,.15),
-      0 1px 3px rgba(38,4,93,.06),
-      0 6px 20px rgba(38,4,93,.08);
-  }
-
-  .pal-col.is-done { border-color: #82EDA8; }
-
-  .pal-col.is-error {
-    border-color: #F87171;
-    box-shadow: 0 0 0 3px rgba(248,113,113,.15), 0 1px 3px rgba(38,4,93,.06);
-  }
-
-  .pal-status.error {
-    background: rgba(248,113,113,.15);
-    color: #B91C1C;
-  }
-
-  .agent-error-panel:not(:empty) {
-    padding: .75rem 1rem;
-    background: #FEF2F2;
-    color: #B91C1C;
-    font-size: .78rem;
-    line-height: 1.5;
-    border-top: 1px solid #FECACA;
-    word-break: break-word;
-  }
-
-  .pal-col-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: .75rem;
-    padding: .7rem 1rem;
-    border-bottom: 1px solid #EAE6F7;
-    background: #FAFAF9;
-    min-height: 56px;
-  }
-
-  .pal-col-info { display:flex; flex-direction:column; gap:.3rem; min-width:0; }
-
-  .pal-col-name {
-    font-size: .85rem;
-    font-weight: 600;
-    color: #26045D;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .pal-col-swatches { display:flex; gap:3px; }
-
-  .pal-col-swatch {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 1px solid rgba(0,0,0,.12);
-    flex-shrink: 0;
-  }
-
-  .pal-status {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    font-size: .7rem;
-    font-weight: 700;
-    padding: .28rem .65rem;
-    border-radius: 99px;
-    white-space: nowrap;
-    transition: background .3s, color .3s;
-  }
-
-  .pal-status.styling {
-    background: rgba(119,71,255,.1);
-    color: #7747FF;
-  }
-
-  .pal-status.done {
-    background: rgba(130,237,168,.25);
-    color: #1a7a40;
-  }
-
-  .status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    animation: blink-dot 1s ease-in-out infinite;
-  }
-
-  @keyframes blink-dot {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: .25; }
-  }
-
-  .pal-iframe-wrap { width:700px; transform-origin:top left; }
-  .pal-iframe-wrap iframe { width:700px; border:none; display:block; }
-
-
-  .pal-placeholder {
-    padding: 4rem 1rem;
-    text-align: center;
-    color: #6E5F8A;
-    font-style: italic;
-    font-size: .875rem;
-  }
-</style>
-
-<section>
+<section class="palette-results">
   <div class="pal-header">
-    <h2 class="pal-title">Palette Variations</h2>
-    <span class="plan-badge running">{{ palettes_with_ids | length }} agents in parallel</span>
+    <h2 class="pal-title">Palette variations</h2>
+    <span class="plan-badge running" id="pal-status-badge" role="status">{{ palettes_with_ids | length }} palette{{ 's' if palettes_with_ids | length != 1 else '' }} in progress</span>
   </div>
 
   <div class="pal-row{% if palettes_with_ids | length == 1 %} pal-row--single{% endif %}" id="pal-row">
@@ -147,41 +20,42 @@
       <div class="pal-col-header">
         <div class="pal-col-info">
           <span class="pal-col-name">{{ palette.name }}</span>
-          <div class="pal-col-swatches">
+          <div class="pal-col-swatches" aria-hidden="true">
             {% for color in palette.swatches %}
             <span class="pal-col-swatch" style="background:{{ color }}"></span>
             {% endfor %}
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;">
+        <div class="col-header-actions">
           <span class="pal-status styling">
-            <span class="status-dot"></span>Styling&hellip;
+            <span class="status-dot" aria-hidden="true"></span>Styling&hellip;
           </span>
-          <div class="col-dl-bar" style="display:none;gap:.3rem;align-items:center;">
-            <a href="/download-template/{{ template_id }}"
-               download="email-{{ template_id[:8] }}.json"
-               class="btn-outline"
-               style="font-size:.72rem;padding:.22rem .55rem;display:inline-flex;align-items:center;gap:.3rem;">
-              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-                <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>JSON
-            </a>
+          <div class="col-dl-bar" hidden>
             <a href="/download-html/{{ template_id }}"
                download="email-{{ template_id[:8] }}.html"
-               class="btn-outline"
-               style="font-size:.72rem;padding:.22rem .55rem;display:inline-flex;align-items:center;gap:.3rem;">
-              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+               class="btn-download"
+               aria-label="Download {{ palette.name }} as HTML">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>HTML
+            </a>
+            <a href="/download-template/{{ template_id }}"
+               download="email-{{ template_id[:8] }}.json"
+               class="btn-download"
+               aria-label="Download {{ palette.name }} as JSON">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M7 1v8m0 0L4 6m3 3 3-3M1 11h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>JSON
             </a>
           </div>
         </div>
       </div>
 
       <div class="pal-iframe-wrap" sse-swap="preview" hx-swap="innerHTML">
-        <div class="pal-placeholder">Waiting for agent&hellip;</div>
+        <div class="pal-placeholder">Waiting for the first preview&hellip;</div>
       </div>
       <div class="agent-error-panel" sse-swap="agent-error" hx-swap="innerHTML"></div>
+      <div class="sequence-warning" sse-swap="validation-warning" hx-swap="innerHTML" role="status"></div>
     </div>
     {% endfor %}
   </div>
@@ -189,34 +63,100 @@
 
 <script>
 (function () {
+  var results = document.currentScript.previousElementSibling;
+  var columns = Array.from(results.querySelectorAll('.pal-col'));
+  var RUNNING = 'is-styling';
 
-  function scaleWraps() {
-    var row = document.getElementById('pal-row');
-    if (!row) return;
-    row.querySelectorAll('.pal-col').forEach(function (col) {
-      var w = col.offsetWidth;
-      var scale = w / 700;
-      var wrap = col.querySelector('.pal-iframe-wrap');
-      if (wrap) {
-        wrap.style.transform = 'scale(' + scale + ')';
-        wrap.style.height = (800 * scale) + 'px';
-      }
-    });
+  function ownColumn(el) {
+    var col = el && el.closest && el.closest('.pal-col');
+    return col && results.contains(col) ? col : null;
   }
-  scaleWraps();
-  window.addEventListener('resize', scaleWraps);
-  document.body.addEventListener('htmx:afterSwap', function () { setTimeout(scaleWraps, 100); });
-  document.body.addEventListener('htmx:sseMessage', function (e) {
-    var col = e.target && e.target.closest('.pal-col');
-    if (!col) return;
-    if (e.target.getAttribute('sse-swap') === 'agent-error') {
-      col.classList.remove('is-styling');
-      col.classList.add('is-error');
-      var pill = col.querySelector('.pal-status');
-      if (pill) { pill.className = 'pal-status error'; pill.textContent = '\u2715 Failed'; }
+
+  /* ── Scale each 700px preview to its column's actual width ── */
+  function scaleWrap(col) {
+    var wrap = col.querySelector('.pal-iframe-wrap');
+    if (!wrap) return;
+    if (!wrap.querySelector('iframe')) {
+      wrap.style.transform = '';
+      wrap.style.height = '';
       return;
     }
-    setTimeout(scaleWraps, 50);
+    var scale = col.clientWidth / 700;
+    wrap.style.transform = 'scale(' + scale + ')';
+    wrap.style.height = (800 * scale) + 'px';
+  }
+  if (window.ResizeObserver) {
+    var resizer = new ResizeObserver(function (entries) {
+      entries.forEach(function (entry) { scaleWrap(entry.target); });
+    });
+    columns.forEach(function (col) { resizer.observe(col); });
+  } else {
+    window.addEventListener('resize', function () { columns.forEach(scaleWrap); });
+  }
+
+  /* ── Status transitions (outcome event: completed | needs_review | failed) ── */
+  var STATES = {
+    completed:    { col: 'is-done',   pill: 'done',   text: 'Done' },
+    needs_review: { col: 'is-review', pill: 'review', text: 'Needs review' },
+    failed:       { col: 'is-error',  pill: 'error',  text: 'Failed' }
+  };
+
+  function setPill(col, outcome, text) {
+    var state = STATES[outcome];
+    col.classList.remove(RUNNING, 'is-done', 'is-review', 'is-error');
+    col.classList.add(state.col);
+    var pill = col.querySelector('.pal-status');
+    pill.className = 'pal-status ' + state.pill;
+    pill.textContent = text || state.text;
+  }
+
+  function settle(col, outcome, text) {
+    col.dataset.outcome = outcome;
+    setPill(col, outcome, text);
+    col.querySelector('.col-dl-bar').hidden = outcome === 'failed';
+    var warning = col.querySelector('.sequence-warning');
+    if (outcome === 'completed') warning.textContent = '';
+    else if (outcome === 'needs_review' && !warning.textContent.trim()) {
+      warning.textContent = 'This version finished with a warning. You can still download it.';
+    }
+    updateSummary();
+  }
+
+  // Never reconnect: a reconnect would start a second, paid run for the same column.
+  function stopStream(col, source) {
+    col.removeAttribute('sse-connect');
+    if (source) source.close();
+  }
+
+  function markStopped(col, message) {
+    settle(col, 'failed', 'Stopped');
+    col.querySelector('.agent-error-panel').textContent = message;
+  }
+
+  function updateSummary() {
+    var settled = columns.filter(function (col) { return col.dataset.outcome; });
+    var count = function (o) { return settled.filter(function (c) { return c.dataset.outcome === o; }).length; };
+    var done = count('completed'), reviews = count('needs_review'), failed = count('failed');
+    var running = columns.length - settled.length;
+    var parts = [done + ' done'];
+    if (reviews) parts.push(reviews + (reviews === 1 ? ' needs review' : ' need review'));
+    if (failed) parts.push(failed + ' failed');
+    if (running) parts.push(running + ' in progress');
+    var badge = results.querySelector('#pal-status-badge');
+    badge.textContent = parts.join(', ');
+    badge.className = 'plan-badge' + (running ? ' running' : failed ? '' : ' done');
+  }
+
+  document.body.addEventListener('htmx:sseMessage', function (e) {
+    var col = ownColumn(e.target);
+    if (!col) return;
+    var kind = e.target.getAttribute('sse-swap');
+    if (kind === 'validation-warning') return;
+    if (kind === 'agent-error') {
+      if (!col.dataset.outcome) setPill(col, 'failed');
+      return;
+    }
+    scaleWrap(col);
     var wrap = col.querySelector('.pal-iframe-wrap');
     if (!wrap) return;
     wrap.classList.remove('preview-refreshing');
@@ -228,24 +168,30 @@
   });
 
   document.body.addEventListener('htmx:sseOpen', function (e) {
-    var col = e.target.closest('.pal-col');
-    if (col) col.classList.add('is-styling');
+    var col = ownColumn(e.target);
+    if (!col || col.dataset.outcome) return;
+    col.classList.add(RUNNING);
+    e.detail.source.addEventListener('outcome', function (event) {
+      var outcome;
+      try { outcome = JSON.parse(event.data).status; } catch (_) { return; }
+      if (STATES[outcome]) settle(col, outcome);
+    });
+  });
+
+  document.body.addEventListener('htmx:sseError', function (e) {
+    var col = ownColumn(e.target);
+    if (!col) return;
+    stopStream(col, e.detail && e.detail.source);
+    if (col.dataset.outcome) return;
+    markStopped(col, 'The live connection dropped before this version finished. It was not restarted, so it may be incomplete.');
   });
 
   document.body.addEventListener('htmx:sseClose', function (e) {
-    var col = e.target.closest('.pal-col');
+    var col = ownColumn(e.target);
     if (!col) return;
-    if (col.classList.contains('is-error')) return;
-    col.classList.remove('is-styling');
-    col.classList.add('is-done');
-    var pill = col.querySelector('.pal-status');
-    if (pill) {
-      pill.className = 'pal-status done';
-      pill.textContent = '✓ Done';
-    }
-    var dlBar = col.querySelector('.col-dl-bar');
-    if (dlBar) dlBar.style.display = 'flex';
+    stopStream(col, null);
+    if (e.detail.type !== 'message' || col.dataset.outcome) return;
+    markStopped(col, 'This version stopped before it finished.');
   });
-
 })();
 </script>

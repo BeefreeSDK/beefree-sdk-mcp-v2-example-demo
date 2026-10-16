@@ -168,6 +168,7 @@
   overflow-wrap: anywhere;
 }
 .se-error[hidden] { display: none; }
+.se-error .btn { margin-top: .6rem; }
 
 .se-frame[hidden] { display: none; }
 .se-frame {
@@ -446,8 +447,15 @@
     if (state === 'error') {
       statusText.textContent = currentFrame() ? 'Partial result' : 'Failed';
       if (!/[.!?]$/.test(message)) message += '.';
-      errorBox.textContent = 'The agent stopped before finishing: ' + message +
-        ' Reload the page to try again, or choose another model.';
+      errorBox.textContent = 'The email could not be finished: ' + message +
+        ' You can try again, or pick another model in the header first.';
+      var retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'btn btn-primary';
+      retry.textContent = 'Try again';
+      retry.addEventListener('click', function () { if (window.unlockForm) window.unlockForm(); });
+      errorBox.appendChild(document.createElement('br'));
+      errorBox.appendChild(retry);
       errorBox.hidden = false;
       addLog('Generation failed', 'error');
       if (!currentFrame()) {
@@ -528,7 +536,7 @@
   });
   es.addEventListener('close', function () {
     es.close();
-    if (outcome === 'failed') finish('error', 'see the server log for details.');
+    if (outcome === 'failed') finish('error', 'the model returned an error.');
     else finish('done');
   });
   es.onerror = function () {

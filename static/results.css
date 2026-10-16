@@ -1,0 +1,369 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Shared results views: Email sequence (.seq-*), Color palettes (.pal-*) and
+   Bulk translations (.trans-*). Linked from templates/index.html and from the
+   results partials themselves (so it also loads when htmx swaps them in).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Results header ── */
+.seq-header,
+.pal-header,
+.trans-header {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.seq-title,
+.pal-title,
+.trans-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #26045D;
+}
+
+/* ── Column grid: wraps instead of squeezing columns on narrow screens ── */
+.seq-row,
+.pal-row,
+.trans-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.pal-row--single,
+.trans-row--single {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 450px;
+  margin: 0 auto;
+}
+
+/* ── Column card ── */
+.seq-col,
+.pal-col,
+.trans-col {
+  min-width: 0;
+  border: 2px solid #EAE6F7;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(38,4,93,.06), 0 6px 20px rgba(38,4,93,.08);
+  transition: border-color .3s, box-shadow .3s;
+}
+
+/* Running: purple glow */
+.seq-col.is-generating,
+.pal-col.is-styling,
+.trans-col.is-translating {
+  border-color: #7747FF;
+  box-shadow:
+    0 0 0 3px rgba(119,71,255,.15),
+    0 1px 3px rgba(38,4,93,.06),
+    0 6px 20px rgba(38,4,93,.08);
+}
+
+/* Done: green accent */
+.seq-col.is-done,
+.pal-col.is-done,
+.trans-col.is-done { border-color: #82EDA8; }
+
+/* Needs review: amber accent */
+.seq-col.is-review,
+.pal-col.is-review,
+.trans-col.is-review { border-color: #d7a536; }
+
+/* Failed: red accent */
+.seq-col.is-error,
+.pal-col.is-error,
+.trans-col.is-error {
+  border-color: #F87171;
+  box-shadow: 0 0 0 3px rgba(248,113,113,.15), 0 1px 3px rgba(38,4,93,.06);
+}
+
+/* ── Column header ── */
+.seq-col-header,
+.pal-col-header,
+.trans-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .5rem .75rem;
+  padding: .7rem 1rem;
+  border-bottom: 1px solid #EAE6F7;
+  background: #FAFAF9;
+  min-height: 56px;
+}
+
+.seq-col-info,
+.pal-col-info,
+.trans-col-info {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  min-width: 0;
+  flex: 1 1 8rem;
+}
+
+/* Small kicker above the column name ("Email 1", "Language") */
+.seq-col-step,
+.trans-col-label {
+  font-size: .72rem;
+  font-weight: 600;
+  color: #7747FF;
+}
+
+/* Column name: wraps instead of hiding text behind hover */
+.seq-col-title,
+.pal-col-name,
+.trans-col-lang {
+  font-size: .85rem;
+  font-weight: 600;
+  color: #26045D;
+  overflow-wrap: anywhere;
+}
+
+.pal-col-swatches { display: flex; gap: 3px; }
+.pal-col-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,.12);
+  flex-shrink: 0;
+}
+
+.col-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+/* Per-column download links */
+.col-dl-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  align-items: center;
+}
+.col-dl-bar[hidden] { display: none; }
+
+/* ── Status pill ── */
+.seq-status,
+.pal-status,
+.trans-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: .28rem .65rem;
+  border-radius: 99px;
+  white-space: nowrap;
+  transition: background .3s, color .3s;
+}
+
+.seq-status.generating,
+.pal-status.styling,
+.trans-status.translating {
+  background: rgba(119,71,255,.1);
+  color: #7747FF;
+}
+
+.seq-status.done,
+.pal-status.done,
+.trans-status.done {
+  background: rgba(130,237,168,.25);
+  color: #1a7a40;
+}
+
+.seq-status.review,
+.pal-status.review,
+.trans-status.review {
+  background: #fff4ce;
+  color: #775914;
+}
+
+.seq-status.error,
+.pal-status.error,
+.trans-status.error {
+  background: rgba(248,113,113,.15);
+  color: #B91C1C;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: blink-dot 1s ease-in-out infinite;
+}
+
+@keyframes blink-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .25; }
+}
+
+/* ── Live preview: a 700px email scaled down to the column width by JS ── */
+.seq-iframe-wrap,
+.pal-iframe-wrap,
+.trans-iframe-wrap {
+  width: 700px;
+  transform-origin: top left;
+}
+.seq-iframe-wrap iframe,
+.pal-iframe-wrap iframe,
+.trans-iframe-wrap iframe {
+  width: 700px;
+  border: none;
+  display: block;
+}
+
+/* Until the first preview arrives the placeholder fills the real column width */
+.seq-iframe-wrap:has(> .seq-placeholder),
+.pal-iframe-wrap:has(> .pal-placeholder),
+.trans-iframe-wrap:has(> .trans-placeholder) {
+  width: auto;
+}
+
+.seq-placeholder,
+.pal-placeholder,
+.trans-placeholder {
+  padding: 4rem 1rem;
+  text-align: center;
+  color: #6E5F8A;
+  font-style: italic;
+  font-size: .875rem;
+}
+
+/* ── Messages under a column ── */
+.agent-error-panel:not(:empty) {
+  padding: .75rem 1rem;
+  background: #FEF2F2;
+  color: #B91C1C;
+  font-size: .78rem;
+  line-height: 1.5;
+  border-top: 1px solid #FECACA;
+  word-break: break-word;
+}
+
+.sequence-warning:not(:empty) {
+  padding: .75rem 1rem;
+  background: #fff8df;
+  color: #775914;
+  font-size: .78rem;
+  border-top: 1px solid #ead9a4;
+}
+
+/* ── Sequence: download bar under the header ── */
+.seq-download-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem .75rem;
+  margin-bottom: 1rem;
+}
+.seq-download-bar[hidden] { display: none; }
+.seq-download-label {
+  font-size: .85rem;
+  font-weight: 600;
+  color: #26045D;
+}
+.seq-download-note {
+  flex-basis: 100%;
+  font-size: .8rem;
+  color: #6E5F8A;
+}
+.seq-download-note:empty { display: none; }
+
+/* ── Loading row shown while sessions are prepared ── */
+.results-loading {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: 1.5rem 0;
+  color: var(--text-muted, #6E5F8A);
+  font-size: .9rem;
+}
+
+/* ── Plan card (Email sequence) ── */
+.plan-card .preview-step {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: .75rem;
+}
+.plan-card .preview-subject .label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #26045D;
+}
+.plan-sections {
+  font-size: .8rem;
+  color: #6E5F8A;
+  line-height: 1.45;
+  margin-bottom: .6rem;
+}
+.plan-prompt summary {
+  display: inline-block;
+  cursor: pointer;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #7747FF;
+  list-style: none;
+  border-radius: 4px;
+}
+.plan-prompt summary::-webkit-details-marker { display: none; }
+.plan-prompt summary::before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: .4rem;
+  border-left: 5px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  vertical-align: middle;
+  transition: transform .15s;
+}
+.plan-prompt[open] summary::before { transform: rotate(90deg); }
+.plan-prompt summary:hover { text-decoration: underline; }
+.plan-prompt-text {
+  margin-top: .5rem;
+  max-height: 16rem;
+  overflow: auto;
+  padding: .75rem;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #EAE6F7;
+  font-size: .75rem;
+  line-height: 1.55;
+  color: #26045D;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.plan-note {
+  font-size: .8rem;
+  color: #6E5F8A;
+  margin: 1rem 0;
+}
+.execute-form {
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: center;
+}
+.execute-form .inline-error { flex-basis: 100%; text-align: right; }
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .status-dot { animation: none; }
+  .seq-col, .pal-col, .trans-col,
+  .seq-status, .pal-status, .trans-status { transition: none; }
+  .plan-badge.running { animation: none; }
+  .preview-refreshing { animation: none; }
+  .plan-prompt summary::before { transition: none; }
+}
