@@ -32,6 +32,12 @@ These only need `BEE_API_KEY`.
 - **Email sequence** (`/sequence`): pick a campaign preset, review a predefined plan, then build every email at the same time.
   - Each of the 3 presets (streaming onboarding, SaaS trial nurture, Black Friday fashion) has 3 predefined variations, selected randomly.
   - Planning and the shared layout need no LLM calls.
+- **On-brand email** (`/brand`): set [Brand Rules](https://docs.beefree.io/beefree-sdk/ai-and-mcp/brand-rules-for-ai), then generate an email inside them.
+  - Three ways to get the rules: a preset (Harbor Bank, Bloom & Co., Voltage, in `app/brand.py`), a four-step guided setup (colors, type, buttons, guardrails), or pasting your own `brandRules` JSON.
+  - A live preview, a plain-language summary and the JSON update as the rules change.
+  - Beefree validates the rules before they are used (`POST /brand-rules`); its error list is shown as is.
+  - The generation uses the Single email result view. The template session carries the rules, and the toolbar counts presets used, values corrected and calls refused. Each correction and refusal appears in the Activity log.
+  - Brand Rules require a Superpowers or Enterprise plan.
 
 **Change an existing template.** Each of these has a **Use a sample template** button (served by `/sample-template`), so they can be tried without bringing your own Beefree JSON.
 - **Edit an email** (`/edit`): chat with an agent to refine a template.
@@ -228,6 +234,7 @@ Chat sessions, pending runs and sequence layout checks are kept in memory
 │   ├── pricing.py       # Per-model token prices for the cost readout
 │   ├── recolor.py       # Color plan for palette changes (plus the safety net)
 │   ├── samples.py       # Sample template for the template-based demos
+│   ├── brand.py         # Brand rule presets and Code Mode result → brand event parsing
 │   ├── sessions.py      # In-memory stores that expire after an hour of inactivity
 │   ├── plans.py         # Predefined campaign plans
 │   ├── layouts.py       # Predefined campaign layouts
@@ -242,10 +249,12 @@ Chat sessions, pending runs and sequence layout checks are kept in memory
 │   ├── translate.html   # Bulk translations
 │   ├── palette.html     # Color palettes
 │   ├── edit.html        # Edit an email
+│   ├── brand.html       # On-brand email
 │   └── partials/        # htmx partials: loading states and results views
 ├── static/
 │   ├── style.css        # Site styles
 │   ├── results.css      # Shared styles for the sequence, palette and translation results
+│   ├── brand.css        # On-brand email page
 │   ├── ui.js            # Shared UI: inline server errors, collapse state, sample loader
 │   ├── model-selection.js  # Provider/model picker
 │   ├── tokens.js        # Header token counter (sessionStorage)
@@ -286,6 +295,14 @@ These checks detect
 invalid mutations but do not roll them back;
 the session may retain partial work. Brand Rules require account support; session
 creation fails rather than silently dropping requested guards.
+
+On-brand sessions (`/brand`) pass the whole `brandRules` object when the
+template is created. Beefree then adds a "Session constraints" section to the
+`beefree_execute` description, so the agent sees the preset names and limits.
+Calls that skip a required preset, add a forbidden block or exceed a limit are
+refused with a message the agent recovers from (these runs get 6 tool retries
+instead of 3). Preset values that replace the agent's own are reported in each
+result's `presetApplication`, which `app/brand.py` turns into `brand` events.
 
 Long-running streams emit status events and poll previews while scripts execute.
 Agents are instructed to split work into meaningful phases. Streams distinguish
@@ -346,6 +363,7 @@ Browser → FastAPI (app/main.py)
 | `app/pricing.py` | Per-model token prices (update when providers change prices) |
 | `app/recolor.py` | Color plan for palette runs, plus the safety net that applies missed changes |
 | `app/samples.py` | Sample template served at `/sample-template` |
+| `app/brand.py` | Brand rule presets, a local shape check, and the parser that turns `presetApplication` results and refusals into `brand` SSE events |
 | `app/sessions.py` | `ExpiringStore`: in-memory stores that forget entries after an hour of inactivity |
 | `templates/` | Jinja2 HTML templates for the web UI |
 | `static/` | CSS and JS assets (including `tokens.js` for live token tracking) |

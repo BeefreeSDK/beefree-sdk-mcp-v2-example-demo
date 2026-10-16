@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beefree SDK MCP — On-brand email</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="/static/vendor/htmx.min.js"></script>
+  <script src="/static/vendor/sse.js"></script>
+  <script src="/static/model-selection.js"></script>
+  <script src="/static/tokens.js"></script>
+  <script src="/static/ui.js"></script>
+  <link rel="stylesheet" href="/static/brand.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <div class="header-left">
+        <div class="header-brand">
+          <a href="/headless" class="back-link" aria-label="Back to headless modes">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M11 14L6 9l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <a href="/" class="logo-link" aria-label="Beefree SDK MCP home">
+            <svg aria-hidden="true" width="144" height="28" viewBox="0 0 164 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g clip-path="url(#clip0_7680_11003)">
+                <path d="M33.4775 19.0436L33.4756 27.3739C33.4756 27.6679 33.3183 27.9382 33.0647 28.0857L26.4655 31.8891C25.915 32.2066 25.2278 31.8075 25.2318 31.1724L25.279 23.7721C25.2809 23.4762 25.1227 23.2009 24.8651 23.0545L17.4539 18.8156C17.1964 18.6681 17.0381 18.3938 17.0401 18.098L17.0932 9.74209C17.0951 9.44619 16.9379 9.17291 16.6813 9.02545L10.1106 5.2427C9.56208 4.92715 9.56208 4.1358 10.1106 3.81926L16.5486 0.110236C16.7992 -0.0342713 17.1089 -0.0362374 17.3615 0.105321L24.872 4.30685C25.1315 4.45234 25.2927 4.7266 25.2927 5.02348L25.2908 13.3469C25.2908 13.6399 25.4471 13.9102 25.6997 14.0576L33.0676 18.3339C33.3212 18.4813 33.4766 18.7517 33.4766 19.0446L33.4775 19.0436Z" fill="#7747FF"/>
+                <path d="M0.409929 19.2656L6.95797 23.0533C7.21357 23.2008 7.36987 23.475 7.3679 23.7699L7.3217 31.1723C7.31777 31.8073 8.00197 32.2064 8.5505 31.8889L15.1241 28.0855C15.3777 27.939 15.534 27.6677 15.534 27.3738V19.0523C15.536 18.7554 15.3758 18.4812 15.1172 18.3357L7.63431 14.1292C7.38265 13.9877 7.07496 13.9897 6.82428 14.1342L0.409929 17.8422C-0.136643 18.1587 -0.136643 18.9491 0.409929 19.2656Z" fill="#7747FF"/>
+                <path d="M42.2422 6.17285H45.0665V14.4383C45.8568 13.9123 47.1486 13.3638 48.6801 13.3638C52.3184 13.3638 54.2088 16.4211 54.2088 19.6464C54.2088 23.8745 50.9775 26.1198 47.412 26.1198C45.8568 26.1198 43.8219 25.6892 42.2422 24.6147V6.17285ZM45.0665 23.205C45.5688 23.5393 46.4545 23.7782 47.3638 23.7782C49.8047 23.7782 51.2174 22.106 51.2174 19.7172C51.2174 17.6155 50.1164 15.728 48.0579 15.728C46.8851 15.728 45.617 16.3493 45.0665 16.8988V23.205Z" fill="currentColor"/>
+                <path d="M67.7788 24.5184C67.1329 25.0915 65.2416 26.1188 62.6807 26.1188C58.6837 26.1188 56.0039 23.6346 56.0039 19.8125C56.0039 15.9905 58.5411 13.3628 62.3219 13.3628C66.1027 13.3628 68.2094 16.2775 68.2094 19.6218V20.7926H58.9235C59.0916 22.3449 60.5033 23.7791 63.1595 23.7791C65.0263 23.7791 66.2472 23.0143 66.8931 22.513L67.7788 24.5193V24.5184ZM65.2661 18.5228C65.1944 16.946 64.1415 15.5845 62.2747 15.5845C60.6232 15.5845 59.1634 16.6353 58.9481 18.5228H65.2661Z" fill="currentColor"/>
+                <path d="M81.7319 24.5184C81.0861 25.0915 79.1947 26.1188 76.6339 26.1188C72.6368 26.1188 69.957 23.6346 69.957 19.8125C69.957 15.9905 72.4943 13.3628 76.275 13.3628C80.0558 13.3628 82.1625 16.2775 82.1625 19.6218V20.7926H72.8767C73.0438 22.3449 74.4564 23.7791 77.1126 23.7791C78.9794 23.7791 80.2003 23.0143 80.8462 22.513L81.7319 24.5193V24.5184ZM79.2193 18.5228C79.1475 16.946 78.0947 15.5845 76.2279 15.5845C74.5764 15.5845 73.1165 16.6353 72.9012 18.5228H79.2193Z" fill="currentColor"/>
+                <path d="M85.5105 25.76V16.0141H83.4766V13.7207H85.5105V11.3555C85.5105 9.94579 85.8457 8.58428 86.6115 7.67693C87.4972 6.64965 88.9334 6.24365 90.2487 6.24365C91.9956 6.24365 93.2637 6.96029 93.4554 7.10381L92.3544 9.27732C92.091 9.08661 91.3488 8.63245 90.3923 8.63245C88.9806 8.63245 88.3102 9.63613 88.3102 11.3083V13.7207H91.3498V16.0141H88.3102V25.76H85.5105Z" fill="currentColor"/>
+                <path d="M93.3633 25.7599V13.697H96.1876V15.5599C96.451 14.9868 97.4085 13.3618 98.8201 13.3618C99.873 13.3618 100.52 13.6961 100.974 13.9595L99.9447 16.5872C99.6095 16.3483 99.0836 16.0141 98.3414 16.0141C96.9769 16.0141 96.1876 17.5427 96.1876 19.0477V25.7599H93.3633Z" fill="currentColor"/>
+                <path d="M113.345 24.5184C112.699 25.0915 110.808 26.1188 108.247 26.1188C104.25 26.1188 101.57 23.6346 101.57 19.8125C101.57 15.9905 104.108 13.3628 107.888 13.3628C111.669 13.3628 113.776 16.2775 113.776 19.6218V20.7926H104.49C104.658 22.3449 106.07 23.7791 108.726 23.7791C110.593 23.7791 111.814 23.0143 112.459 22.513L113.345 24.5193V24.5184ZM110.833 18.5228C110.761 16.946 109.708 15.5845 107.841 15.5845C106.19 15.5845 104.73 16.6353 104.515 18.5228H110.833Z" fill="currentColor"/>
+                <path d="M127.298 24.5184C126.652 25.0915 124.761 26.1188 122.2 26.1188C118.203 26.1188 115.523 23.6346 115.523 19.8125C115.523 15.9905 118.061 13.3628 121.841 13.3628C125.622 13.3628 127.729 16.2775 127.729 19.6218V20.7926H118.443C118.61 22.3449 120.023 23.7791 122.679 23.7791C124.546 23.7791 125.767 23.0143 126.413 22.513L127.298 24.5193V24.5184ZM124.786 18.5228C124.714 16.946 123.661 15.5845 121.794 15.5845C120.143 15.5845 118.683 16.6353 118.468 18.5228H124.786Z" fill="currentColor"/>
+                <path d="M133.224 23.5628C133.703 24.1201 134.676 24.9321 136.319 24.9321C137.755 24.9321 138.824 24.072 138.824 22.7183C138.824 19.2944 133.24 20.0906 133.24 16.5075C133.24 14.5168 134.915 13.4502 136.685 13.4502C138.217 13.4502 139.286 14.2622 139.653 14.6603L139.015 15.4723C138.505 14.9631 137.771 14.4853 136.702 14.4853C135.554 14.4853 134.437 15.1066 134.437 16.3964C134.437 19.2787 140.053 18.4185 140.053 22.7026C140.053 24.3433 138.665 25.983 136.224 25.983C134.549 25.983 133.049 25.0757 132.555 24.3905L133.225 23.5628H133.224Z" fill="currentColor"/>
+                <path d="M142.383 25.7596V13.7036H145.159C148.732 13.7036 151.684 15.7896 151.684 19.7395C151.684 23.4819 149.02 25.7596 145.191 25.7596H142.384H142.383ZM144.983 24.7245C148.157 24.7245 150.471 23.1477 150.471 19.6923C150.471 16.2369 148.046 14.7397 145.078 14.7397H143.531V24.7255H144.983V24.7245Z" fill="currentColor"/>
+                <path d="M161.304 25.7596L155.29 20.3765V25.7596H154.141V13.7036H155.29V19.1025L160.65 13.7036H162.198L156.231 19.6913L163.107 25.7587H161.304V25.7596Z" fill="currentColor"/>
+              </g>
+              <defs>
+                <clipPath id="clip0_7680_11003"><rect width="163.105" height="32" fill="white"/></clipPath>
+              </defs>
+            </svg>
+          </a>
+          <h1 class="brand-tag">On-brand email</h1>
+        </div>
+        <p class="header-sub">
+          Set brand rules, then watch the agent design an email that follows them.
+        </p>
+      </div>
+      <div class="header-tokens">
+        <div class="token-badge">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 4.5H15l-4 3 1.5 4.5L8 10.5 3.5 13 5 8.5 1 5.5h5z" fill="currentColor"/></svg>
+          <span id="token-total">0 tokens</span>
+          <button class="token-reset-btn" onclick="beeTokensReset()" title="Reset token counter" aria-label="Reset token counter">↺</button>
+        </div>
+        <div class="token-breakdown" id="token-breakdown"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ── Step 1: brand rules ── -->
+    <section class="card form-card br-card" id="rules-section" aria-labelledby="rules-title">
+      <div class="card-header-row">
+        <h2 class="card-title" id="rules-title">1. Choose your brand rules</h2>
+        <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Shown in the collapsed card once the rules are accepted -->
+      <div class="br-summary" id="rules-summary" hidden>
+        <div class="br-summary-swatches" id="rules-summary-swatches" aria-hidden="true"></div>
+        <div>
+          <p class="br-summary-name" id="rules-summary-name"></p>
+          <p class="br-summary-facts" id="rules-summary-facts"></p>
+        </div>
+        <button type="button" class="btn-link" id="rules-change">Change rules</button>
+      </div>
+
+      <div class="card-body">
+        <div>
+          <p class="br-intro">
+            Brand rules travel with the email session. Beefree enforces them on every change the agent makes:
+            approved styles replace the agent's own choices, blocked elements are refused, and size limits are capped.
+          </p>
+
+          <div class="br-layout">
+            <div class="br-main">
+              <div class="br-tabs" role="tablist" aria-label="How to set the brand rules">
+                <button type="button" role="tab" id="tab-preset" aria-controls="panel-preset" aria-selected="true">Use a preset</button>
+                <button type="button" role="tab" id="tab-guided" aria-controls="panel-guided" aria-selected="false" tabindex="-1">Create step by step</button>
+                <button type="button" role="tab" id="tab-paste" aria-controls="panel-paste" aria-selected="false" tabindex="-1">Paste your own JSON</button>
+              </div>
+
+              <!-- Presets -->
+              <div class="br-panel" role="tabpanel" id="panel-preset" aria-labelledby="tab-preset">
+                <div class="br-presets" role="group" aria-label="Brand presets">
+                  {% for p in presets %}
+                  <button type="button" class="br-preset" data-preset="{{ p.id }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">
+                    <span class="br-preset-swatches" aria-hidden="true">
+                      {% for c in p.swatches %}<span style="background:{{ c }}"></span>{% endfor %}
+                    </span>
+                    <span class="br-preset-name">{{ p.name }}</span>
+                    <span class="br-preset-tagline">{{ p.tagline }}</span>
+                  </button>
+                  {% endfor %}
+                </div>
+                <dl class="br-kinds">
+                  <div>
+                    <dt>Approved styles</dt>
+                    <dd>Named styles for blocks, sections and email defaults. The agent must pick one, and its values replace the agent's own.</dd>
+                  </div>
+                  <div>
+                    <dt>Permissions</dt>
+                    <dd>Block types the agent can't add, change or delete. Those calls are refused with a clear message.</dd>
+                  </div>
+                  <div>
+                    <dt>Limits</dt>
+                    <dd>Caps on sections, columns per section and blocks, so the email keeps the brand's proportions.</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <!-- Guided setup -->
+              <div class="br-panel" role="tabpanel" id="panel-guided" aria-labelledby="tab-guided" hidden>
+                <ol class="br-steps" aria-label="Steps">
+                  <li><button type="button" data-step="0" aria-current="step"><span>1</span> Colors</button></li>
+                  <li><button type="button" data-step="1"><span>2</span> Type</button></li>
+                  <li><button type="button" data-step="2"><span>3</span> Buttons</button></li>
+                  <li><button type="button" data-step="3"><span>4</span> Guardrails</button></li>
+                </ol>
+
+                <form class="br-wizard" id="wizard" onsubmit="return false">
+                  <fieldset class="br-step" data-step="0">
+                    <legend>What does the brand look like?</legend>
+                    <div class="field">
+                      <label for="w-name">Brand name</label>
+                      <input type="text" id="w-name" name="name" value="Lumen Studio" maxlength="40" autocomplete="off" />
+                    </div>
+                    <div class="br-colors">
+                      <div class="br-color"><label for="w-primary">Primary</label><span class="br-color-input"><input type="color" id="w-primary" name="primary" value="#1F4E5F" /><input type="text" data-for="w-primary" value="#1F4E5F" aria-label="Primary hex value" maxlength="7" /></span><small>Buttons and headlines</small></div>
+                      <div class="br-color"><label for="w-accent">Accent</label><span class="br-color-input"><input type="color" id="w-accent" name="accent" value="#E9A23B" /><input type="text" data-for="w-accent" value="#E9A23B" aria-label="Accent hex value" maxlength="7" /></span><small>Links and highlights</small></div>
+                      <div class="br-color"><label for="w-text">Text</label><span class="br-color-input"><input type="color" id="w-text" name="text" value="#2B2B2B" /><input type="text" data-for="w-text" value="#2B2B2B" aria-label="Text hex value" maxlength="7" /></span><small>Body copy</small></div>
+                      <div class="br-color"><label for="w-page">Page background</label><span class="br-color-input"><input type="color" id="w-page" name="page" value="#F5F1EA" /><input type="text" data-for="w-page" value="#F5F1EA" aria-label="Page background hex value" maxlength="7" /></span><small>Behind the email</small></div>
+                      <div class="br-color"><label for="w-content">Content background</label><span class="br-color-input"><input type="color" id="w-content" name="content" value="#FFFFFF" /><input type="text" data-for="w-content" value="#FFFFFF" aria-label="Content background hex value" maxlength="7" /></span><small>Behind the text</small></div>
+                    </div>
+                  </fieldset>
+
+                  <fieldset class="br-step" data-step="1" hidden>
+                    <legend>How should text read?</legend>
+                    <div class="br-row">
+                      <div class="field">
+                        <label for="w-heading-font">Headline font</label>
+                        <select id="w-heading-font" name="headingFont"></select>
+                      </div>
+                      <div class="field">
+                        <label for="w-body-font">Body font</label>
+                        <select id="w-body-font" name="bodyFont"></select>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <span class="field-label" id="w-size-label">Body text size</span>
+                      <div class="br-choice" role="radiogroup" aria-labelledby="w-size-label">
+                        <label><input type="radio" name="size" value="14px" /> Compact</label>
+                        <label><input type="radio" name="size" value="16px" checked /> Standard</label>
+                        <label><input type="radio" name="size" value="18px" /> Large</label>
+                      </div>
+                    </div>
+                    <p class="br-note">Only email-safe fonts are listed, so the result looks the same in every inbox.</p>
+                  </fieldset>
+
+                  <fieldset class="br-step" data-step="2" hidden>
+                    <legend>What do buttons look like?</legend>
+                    <div class="field">
+                      <span class="field-label" id="w-shape-label">Corners</span>
+                      <div class="br-choice" role="radiogroup" aria-labelledby="w-shape-label">
+                        <label><input type="radio" name="shape" value="0px" /> Square</label>
+                        <label><input type="radio" name="shape" value="6px" checked /> Rounded</label>
+                        <label><input type="radio" name="shape" value="30px" /> Pill</label>
+                      </div>
+                    </div>
+                    <label class="br-check"><input type="checkbox" name="secondary" checked /> Add an outlined secondary button for actions like "Learn more"</label>
+                    <label class="br-check"><input type="checkbox" name="highlight" checked /> Allow a tinted section to make an offer or quote stand out</label>
+                  </fieldset>
+
+                  <fieldset class="br-step" data-step="3" hidden>
+                    <legend>What can the agent not do?</legend>
+                    <div class="field">
+                      <span class="field-label" id="w-noadd-label">Never add these elements</span>
+                      <div class="br-blocks" role="group" aria-labelledby="w-noadd-label">
+                        {% for b in block_types %}
+                        <label><input type="checkbox" name="noAdd" value="{{ b }}" {{ 'checked' if b in ('video', 'menu') }} /> {{ b | capitalize }}</label>
+                        {% endfor %}
+                      </div>
+                    </div>
+                    <div class="br-row br-row-3">
+                      <div class="field">
+                        <label for="w-rows">Most sections</label>
+                        <input type="number" id="w-rows" name="maxRows" min="3" max="20" value="9" />
+                      </div>
+                      <div class="field">
+                        <label for="w-cols">Most columns per section</label>
+                        <input type="number" id="w-cols" name="maxColumns" min="1" max="4" value="3" />
+                      </div>
+                      <div class="field">
+                        <label for="w-buttons">Most buttons</label>
+                        <input type="number" id="w-buttons" name="maxButtons" min="1" max="6" value="3" />
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  <div class="br-wizard-nav">
+                    <button type="button" class="btn btn-outline" id="w-back">Back</button>
+                    <button type="button" class="btn btn-outline" id="w-next">Next: Type</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Paste JSON -->
+              <div class="br-panel" role="tabpanel" id="panel-paste" aria-labelledby="tab-paste" hidden>
+                <div class="field">
+                  <label for="paste-json">Brand rules JSON</label>
+                  <textarea id="paste-json" rows="14" spellcheck="false"
+                    placeholder='{ "presets": { … }, "permissions": { … }, "limits": { … } }'></textarea>
+                </div>
+                <p class="br-paste-status" id="paste-status" aria-live="polite">
+                  Paste the <code>brandRules</code> object your app sends to Beefree, with or without the outer <code>brandRules</code> key.
+                </p>
+              </div>
+            </div>
+
+            <aside class="br-preview" aria-labelledby="br-preview-title">
+              <p class="field-label" id="br-preview-title">Preview of the rules</p>
+              <div class="br-sample" id="br-sample" aria-hidden="true"></div>
+              <ul class="br-chips" id="br-chips"></ul>
+              <details class="br-json">
+                <summary>View JSON</summary>
+                <pre id="br-json"></pre>
+                <button type="button" class="btn-link" id="edit-json">Edit as JSON</button>
+              </details>
+            </aside>
+          </div>
+
+          <div class="br-errors" id="rules-errors" role="alert" hidden></div>
+
+          <div class="field actions">
+            <button type="button" class="btn btn-primary" id="rules-submit">
+              Use these rules
+              <span class="spinner" id="rules-spinner" hidden></span>
+            </button>
+            <span class="action-hint" id="rules-hint">Beefree checks the rules before they are used.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Step 2: brief ── -->
+    <section class="card form-card is-waiting" id="form-section" aria-labelledby="brief-title">
+      <div class="card-header-row">
+        <h2 class="card-title" id="brief-title">2. Write your brief</h2>
+        <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="brief-summary" id="brief-summary" hidden>
+        <p class="brief-summary-label" id="brief-summary-label"></p>
+        <p class="brief-summary-text" id="brief-summary-text"></p>
+        <button type="button" class="brief-summary-more" id="brief-summary-more" aria-expanded="false">Show full brief</button>
+      </div>
+
+      <div class="card-body">
+        <div>
+        <p class="br-waiting" id="brief-waiting">Choose brand rules first. The brief describes the content; the rules decide how it looks.</p>
+        <form
+          hx-post="/brand-generate"
+          hx-disabled-elt="find button[type=submit]"
+          hx-target="#workspace"
+          hx-swap="innerHTML"
+          hx-indicator="#spinner"
+          class="campaign-form"
+          id="brief-form"
+          inert
+          onsubmit="return !!document.getElementById('brief').value.trim() && !!document.getElementById('brand-id').value"
+        >
+          <input type="hidden" id="brief" name="brief" value="" />
+          <input type="hidden" id="brand-id" name="brand_id" value="" />
+
+          <div class="field full">
+            <p class="field-label" id="preset-heading">Start from an idea <span class="label-count" id="preset-label"></span></p>
+            <div class="seq-prompt-grid" role="group" aria-labelledby="preset-heading">
+              <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectPreset(this)"
+                data-prompt="Goal: Announce our new mobile app&#10;Audience: Existing customers of {brand}&#10;Primary CTA: &quot;Download the app&quot; → https://example.com/app&#10;Include: a header with the brand name, a hero headline with a short intro, three key features with one line each, a highlighted section with a short customer quote, the main button, a secondary &quot;See what's new&quot; link, and a footer with address and unsubscribe link&#10;Notes: keep the copy short and confident. Leave colors, fonts and button styles to the brand rules.">
+                <span class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Launch</span>
+                  <span class="seq-prompt-check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                </span>
+                <span class="seq-prompt-title">New app announcement</span>
+                <span class="seq-prompt-desc">Hero, three features, a quote and a clear download button.</span>
+              </button>
+              <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectPreset(this)"
+                data-prompt="Goal: Monthly newsletter&#10;Audience: Subscribers of {brand}&#10;Primary CTA: &quot;Read the full story&quot; → https://example.com/story&#10;Include: a header with the brand name, a short welcome note, one featured story with an image placeholder, two shorter stories side by side with &quot;Read more&quot; links, a highlighted tip of the month, and a footer with address and unsubscribe link&#10;Notes: friendly and helpful tone; scannable sections. Leave colors, fonts and button styles to the brand rules.">
+                <span class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Newsletter</span>
+                  <span class="seq-prompt-check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                </span>
+                <span class="seq-prompt-title">Monthly newsletter</span>
+                <span class="seq-prompt-desc">A featured story, two short ones and a tip of the month.</span>
+              </button>
+              <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectPreset(this)"
+                data-prompt="Goal: Invite customers to a live online event&#10;Audience: Customers and prospects of {brand}&#10;Event: &quot;What's next for 2027&quot;, a 45-minute live session on Thursday, November 12 at 5pm CET&#10;Primary CTA: &quot;Save my seat&quot; → https://example.com/event&#10;Include: a header with the brand name, a headline with the date and time, three things attendees will learn, a short host introduction with a portrait placeholder, the main button, an &quot;Add to calendar&quot; secondary link, and a footer with address and unsubscribe link&#10;Notes: make the date and button easy to find. Leave colors, fonts and button styles to the brand rules.">
+                <span class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Event</span>
+                  <span class="seq-prompt-check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                </span>
+                <span class="seq-prompt-title">Live event invitation</span>
+                <span class="seq-prompt-desc">Date, agenda, host and a save-my-seat button.</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="field full" style="margin-top:.25rem;">
+            <label for="custom-brief">Or write your own brief</label>
+            <textarea id="custom-brief" rows="7" style="resize:vertical;" oninput="onCustomInput(this)"
+              placeholder="Goal: …&#10;Audience: …&#10;Primary CTA: &quot;Button label&quot; → https://…&#10;Include: header, sections, footer…&#10;Colors and fonts come from the brand rules."></textarea>
+          </div>
+
+          <div class="field full actions">
+            <button type="submit" class="btn btn-primary" id="single-submit" disabled aria-describedby="single-hint">
+              Generate on-brand email
+              <span id="spinner" class="htmx-indicator spinner"></span>
+            </button>
+            <span class="action-hint" id="single-hint">Choose brand rules first.</span>
+          </div>
+        </form>
+        </div>
+      </div>
+    </section>
+
+    <p class="demo-disclaimer">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:.1rem">
+        <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+      </svg>
+      Output quality varies across AI providers and models. Brand rules are enforced by Beefree whatever the model; how well the agent plans around them depends on the model. Brand Rules require a Superpowers or Enterprise plan.
+    </p>
+
+    <div id="workspace"></div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      Powered by <strong>Beefree SDK MCP</strong> ·
+      <strong>PydanticAI</strong> · <strong>FastAPI</strong>
+    </div>
+  </footer>
+
+  <script>
+  (function () {
+    var PRESETS = {{ presets_json | safe }};
+    var FONTS = [
+      ['Arial', "Arial, 'Helvetica Neue', Helvetica, sans-serif"],
+      ['Helvetica', "'Helvetica Neue', Helvetica, Arial, sans-serif"],
+      ['Georgia', "Georgia, 'Times New Roman', serif"],
+      ['Trebuchet MS', "'Trebuchet MS', 'Lucida Grande', Tahoma, sans-serif"],
+      ['Verdana', "Verdana, Geneva, sans-serif"],
+      ['Tahoma', "Tahoma, Verdana, Segoe, sans-serif"],
+      ['Times New Roman', "'Times New Roman', Times, serif"],
+      ['Courier New', "'Courier New', Courier, monospace"]
+    ];
+    var $ = function (id) { return document.getElementById(id); };
+
+    var source = 'preset';          // which tab supplies the rules
+    var presetId = PRESETS[0].id;
+    var pasted = null;              // parsed JSON from the paste tab, or null
+    var brandName = PRESETS[0].name;
+
+    /* ── Colors ── */
+    function hex(c) { return /^#[0-9a-f]{6}$/i.test(c || '') ? c.toUpperCase() : null; }
+    function lum(c) {
+      var v = [1, 3, 5].map(function (i) {
+        var x = parseInt(c.substr(i, 2), 16) / 255;
+        return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+    }
+    function mix(a, b, t) {
+      var out = '#';
+      for (var i = 1; i < 7; i += 2) {
+        var x = Math.round(parseInt(a.substr(i, 2), 16) * t + parseInt(b.substr(i, 2), 16) * (1 - t));
+        out += ('0' + x.toString(16)).slice(-2);
+      }
+      return out.toUpperCase();
+    }
+    function onColor(bg) { return lum(bg) > 0.4 ? '#1A1A1A' : '#FFFFFF'; }
+
+    /* ── Guided setup → brandRules ── */
+    var wizard = $('wizard');
+    FONTS.forEach(function (f) {
+      ['w-heading-font', 'w-body-font'].forEach(function (id) {
+        var o = document.createElement('option');
+        o.value = f[1];
+        o.textContent = f[0];
+        $(id).appendChild(o);
+      });
+    });
+    $('w-heading-font').value = FONTS[2][1];
+    $('w-body-font').value = FONTS[0][1];
+
+    function wizardRules() {
+      var f = wizard.elements;
+      var c = {
+        primary: hex(f.primary.value) || '#1F4E5F', accent: hex(f.accent.value) || '#E9A23B',
+        text: hex(f.text.value) || '#2B2B2B', page: hex(f.page.value) || '#F5F1EA',
+        content: hex(f.content.value) || '#FFFFFF'
+      };
+      var body = f.bodyFont.value, heading = f.headingFont.value;
+      var radius = wizard.querySelector('[name=shape]:checked').value;
+      var size = wizard.querySelector('[name=size]:checked').value;
+      var muted = mix(c.text, c.content, 0.6);
+      var button = function (bg, fg, outline, description) {
+        var p = { backgroundColor: bg, color: fg, borderRadius: radius, fontFamily: body,
+                  fontWeight: '700', fontSize: '16px', padding: '12px 28px' };
+        if (outline) ['Top', 'Right', 'Bottom', 'Left'].forEach(function (s) { p['border' + s] = '2px solid ' + outline; });
+        return { description: description, properties: p };
+      };
+      var rows = {
+        standard: { description: 'Default section for header, body content and footer.',
+                    properties: { rowBackgroundColor: c.page, contentAreaBackgroundColor: c.content, contentAreaPadding: '24px' } }
+      };
+      if (f.highlight.checked) {
+        rows.highlight = { description: 'Tinted section to make one block of content stand out (an offer, a quote, key benefits). At most one or two per email.',
+                           properties: { rowBackgroundColor: c.page, contentAreaBackgroundColor: mix(c.accent, c.content, 0.16), contentAreaPadding: '32px' } };
+      }
+      var buttons = { primary: button(c.primary, onColor(c.primary), null, 'The main call to action. One per email.') };
+      if (f.secondary.checked) buttons.secondary = button(c.content, c.primary, c.primary, "Secondary actions such as 'Learn more'.");
+      var noAdd = Array.prototype.filter.call(f.noAdd, function (b) { return b.checked; }).map(function (b) { return b.value; });
+      var clamp = function (el, lo, hi) { var n = parseInt(el.value, 10); return Math.min(hi, Math.max(lo, isNaN(n) ? lo : n)); };
+      var rules = {
+        presets: {
+          settings: { base: { description: 'Email defaults. Use for setEmailDefaultStyles.',
+            properties: { backgroundColor: c.page, contentAreaBackgroundColor: c.content, contentAreaWidth: '600px', fontFamily: body, linkColor: c.accent } } },
+          rows: rows,
+          blocks: {
+            title: { headline: { description: 'Main headline and section headings.',
+              properties: { color: c.primary, fontFamily: heading, fontWeight: '700', lineHeight: '120%' } } },
+            paragraph: {
+              body: { description: 'Body copy.', properties: { color: c.text, fontFamily: body, fontSize: size, lineHeight: '160%', linkColor: c.accent } },
+              finePrint: { description: 'Footer, legal text and small notes.', properties: { color: muted, fontFamily: body, fontSize: '12px', lineHeight: '150%', linkColor: muted } }
+            },
+            button: buttons
+          }
+        },
+        limits: {
+          rows: { max: clamp(f.maxRows, 3, 20) },
+          columns: { maxPerRow: clamp(f.maxColumns, 1, 4) },
+          blocks: { maxPerType: { button: clamp(f.maxButtons, 1, 6) } }
+        }
+      };
+      if (noAdd.length) rules.permissions = { blocks: { noAdd: noAdd } };
+      return rules;
+    }
+
+    function currentRules() {
+      if (source === 'preset') return PRESETS.filter(function (p) { return p.id === presetId; })[0].rules;
+      if (source === 'guided') return wizardRules();
+      return pasted;
+    }
+    function currentName() {
+      if (source === 'preset') return PRESETS.filter(function (p) { return p.id === presetId; })[0].name;
+      if (source === 'guided') return wizard.elements.name.value.trim() || 'Your brand';
+      return 'Your brand';
+    }
+
+    /* ── Preview: a small sample drawn from whatever the rules define ── */
+    function first(group) {
+      if (!group || typeof group !== 'object') return null;
+      var keys = Object.keys(group);
+      return keys.length ? (group[keys[0]] || {}).properties || {} : null;
+    }
+    function all(group) {
+      if (!group || typeof group !== 'object') return [];
+      return Object.keys(group).map(function (k) { return (group[k] || {}).properties || {}; });
+    }
+    function el(tag, text, style) {
+      var e = document.createElement(tag);
+      if (text) e.textContent = text;
+      if (style) Object.keys(style).forEach(function (k) { if (style[k] != null && style[k] !== '') e.style[k] = style[k]; });
+      return e;
+    }
+    function renderSample(rules) {
+      var box = $('br-sample');
+      box.replaceChildren();
+      var p = (rules && rules.presets) || {};
+      var blocks = p.blocks || {};
+      var settings = first(p.settings) || {};
+      var rows = all(p.rows);
+      var title = first(blocks.title) || {};
+      var paras = all(blocks.paragraph);
+      var para = paras[0] || {};
+      var fine = paras[1] || para;
+      var buttons = all(blocks.button);
+      var content = settings.contentAreaBackgroundColor || (rows[0] || {}).contentAreaBackgroundColor || '#FFFFFF';
+
+      box.style.background = settings.backgroundColor || (rows[0] || {}).rowBackgroundColor || '#F1EEF8';
+      var card = el('div', '', { background: content, fontFamily: settings.fontFamily || para.fontFamily });
+      card.className = 'br-sample-card';
+      card.appendChild(el('p', currentName(), {
+        fontFamily: title.fontFamily, color: title.color, fontWeight: '700', letterSpacing: '.5px', fontSize: '12px'
+      })).className = 'br-sample-brand';
+      card.appendChild(el('p', 'Your next favorite thing is here', {
+        fontFamily: title.fontFamily, color: title.color, fontWeight: title.fontWeight,
+        letterSpacing: title.letterSpacing, lineHeight: title.lineHeight
+      })).className = 'br-sample-title';
+      card.appendChild(el('p', 'A short intro written in the body style, with a link in the brand color.', {
+        fontFamily: para.fontFamily, color: para.color, lineHeight: para.lineHeight
+      })).className = 'br-sample-text';
+      var actions = el('div');
+      actions.className = 'br-sample-actions';
+      (buttons.length ? buttons.slice(0, 2) : [{}]).forEach(function (b, i) {
+        var btn = el('span', i ? 'Learn more' : 'Shop now', {
+          background: b.backgroundColor || '#333', color: b.color || '#fff', borderRadius: b.borderRadius,
+          fontFamily: b.fontFamily, fontWeight: b.fontWeight,
+          borderTop: b.borderTop, borderRight: b.borderRight, borderBottom: b.borderBottom, borderLeft: b.borderLeft
+        });
+        actions.appendChild(btn);
+      });
+      card.appendChild(actions);
+      if (rows[1] && rows[1].contentAreaBackgroundColor) {
+        card.appendChild(el('p', 'Highlighted section', {
+          background: rows[1].contentAreaBackgroundColor, color: para.color, fontFamily: para.fontFamily
+        })).className = 'br-sample-highlight';
+      }
+      card.appendChild(el('p', 'Footer and fine print', {
+        color: fine.color, fontFamily: fine.fontFamily
+      })).className = 'br-sample-fine';
+      box.appendChild(card);
+    }
+
+    /* ── Plain-language facts about the rules ── */
+    var GROUP_NAMES = { title: 'Headlines', paragraph: 'Text', button: 'Buttons', list: 'Lists', image: 'Images',
+      social: 'Social', icon: 'Icons', spacer: 'Spacers', divider: 'Dividers', table: 'Tables', menu: 'Menus', video: 'Video' };
+    function facts(rules) {
+      var out = [];
+      if (!rules) return out;
+      var p = rules.presets || {};
+      var styled = Object.keys(p.blocks || {}).filter(function (k) { return GROUP_NAMES[k]; })
+        .map(function (k) { return GROUP_NAMES[k] + ' (' + Object.keys(p.blocks[k] || {}).length + ')'; });
+      if (styled.length) out.push('Approved styles: ' + styled.join(', '));
+      if (p.rows) out.push('Section styles: ' + Object.keys(p.rows).join(', '));
+      var perm = (rules.permissions || {}).blocks || {};
+      if ((perm.noAdd || []).length) out.push("Can't add: " + perm.noAdd.join(', '));
+      if ((perm.noUpdate || []).length) out.push("Can't change: " + perm.noUpdate.join(', '));
+      if ((perm.noDelete || []).length) out.push("Can't delete: " + perm.noDelete.join(', '));
+      var lim = rules.limits || {};
+      if (lim.rows && lim.rows.max != null) out.push('Up to ' + lim.rows.max + ' sections');
+      if (lim.columns && lim.columns.maxPerRow != null) out.push('Up to ' + lim.columns.maxPerRow + ' columns per section');
+      var per = (lim.blocks || {}).maxPerType || {};
+      Object.keys(per).forEach(function (k) { out.push('Up to ' + per[k] + ' ' + k + (per[k] === 1 ? '' : 's')); });
+      if ((lim.blocks || {}).max != null) out.push('Up to ' + lim.blocks.max + ' blocks');
+      return out;
+    }
+
+    function swatchesOf(rules) {
+      var seen = [];
+      JSON.stringify(rules || {}).replace(/#[0-9a-fA-F]{6}\b/g, function (c) {
+        c = c.toUpperCase();
+        if (seen.indexOf(c) < 0) seen.push(c);
+        return c;
+      });
+      return seen.slice(0, 5);
+    }
+
+    /* ── Refresh preview, facts and JSON whenever the rules change ── */
+    function refresh() {
+      var rules = currentRules();
+      renderSample(rules);
+      var chips = $('br-chips');
+      chips.replaceChildren();
+      facts(rules).forEach(function (f) { chips.appendChild(el('li', f)); });
+      $('br-json').textContent = rules ? JSON.stringify(rules, null, 2) : '';
+      $('rules-submit').disabled = !rules;
+      $('rules-hint').textContent = rules ? 'Beefree checks the rules before they are used.' : 'Paste valid JSON to continue.';
+      $('rules-errors').hidden = true;
+    }
+
+    /* ── Tabs ── */
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.br-tabs [role=tab]'));
+    function selectTab(tab, focus) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+        $(t.getAttribute('aria-controls')).hidden = !on;
+      });
+      if (focus) tab.focus();
+      source = tab.id.replace('tab-', '');
+      refresh();
+    }
+    tabs.forEach(function (t, i) {
+      t.addEventListener('click', function () { selectTab(t); });
+      t.addEventListener('keydown', function (e) {
+        var next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+        if (next == null) return;
+        e.preventDefault();
+        selectTab(tabs[(next + tabs.length) % tabs.length], true);
+      });
+    });
+
+    /* ── Presets ── */
+    document.querySelectorAll('.br-preset').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        presetId = btn.dataset.preset;
+        document.querySelectorAll('.br-preset').forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
+        refresh();
+      });
+    });
+
+    /* ── Wizard steps ── */
+    var step = 0;
+    var STEP_NAMES = ['Colors', 'Type', 'Buttons', 'Guardrails'];
+    function showStep(n) {
+      step = Math.max(0, Math.min(3, n));
+      wizard.querySelectorAll('.br-step').forEach(function (fs) { fs.hidden = Number(fs.dataset.step) !== step; });
+      document.querySelectorAll('.br-steps button').forEach(function (b) {
+        if (Number(b.dataset.step) === step) b.setAttribute('aria-current', 'step');
+        else b.removeAttribute('aria-current');
+        b.classList.toggle('is-done', Number(b.dataset.step) < step);
+      });
+      $('w-back').hidden = step === 0;
+      $('w-next').hidden = step === 3;
+      $('w-next').textContent = step < 3 ? 'Next: ' + STEP_NAMES[step + 1] : '';
+    }
+    document.querySelectorAll('.br-steps button').forEach(function (b) {
+      b.addEventListener('click', function () { showStep(Number(b.dataset.step)); });
+    });
+    $('w-back').addEventListener('click', function () { showStep(step - 1); });
+    $('w-next').addEventListener('click', function () { showStep(step + 1); });
+    showStep(0);
+
+    // Color pickers and their hex fields stay in sync.
+    wizard.querySelectorAll('input[type=color]').forEach(function (picker) {
+      var text = wizard.querySelector('[data-for="' + picker.id + '"]');
+      picker.addEventListener('input', function () { text.value = picker.value.toUpperCase(); refresh(); });
+      text.addEventListener('input', function () {
+        var v = text.value.trim();
+        if (v && v[0] !== '#') v = '#' + v;
+        if (hex(v)) { picker.value = v.toLowerCase(); refresh(); }
+      });
+    });
+    wizard.addEventListener('input', function (e) { if (e.target.type !== 'color' && !e.target.dataset.for) refresh(); });
+    wizard.addEventListener('change', refresh);
+
+    /* ── Paste ── */
+    var pasteStatus = $('paste-status');
+    var pasteHelp = pasteStatus.innerHTML;
+    $('paste-json').addEventListener('input', function () {
+      var raw = this.value.trim();
+      pasted = null;
+      pasteStatus.classList.remove('is-error');
+      if (!raw) { pasteStatus.innerHTML = pasteHelp; refresh(); return; }
+      try {
+        var obj = JSON.parse(raw);
+        if (obj && typeof obj === 'object' && !Array.isArray(obj) && obj.brandRules) obj = obj.brandRules;
+        if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('expected an object');
+        pasted = obj;
+        pasteStatus.textContent = 'Valid JSON. Use these rules to have Beefree check the schema.';
+      } catch (err) {
+        pasteStatus.textContent = 'Not valid JSON yet: ' + err.message;
+        pasteStatus.classList.add('is-error');
+      }
+      refresh();
+    });
+    $('edit-json').addEventListener('click', function () {
+      var rules = currentRules();
+      $('paste-json').value = JSON.stringify(rules, null, 2);
+      selectTab($('tab-paste'), true);
+      $('paste-json').dispatchEvent(new Event('input'));
+      $('paste-json').focus();
+    });
+
+    /* ── Accept: Beefree validates, then the brief unlocks ── */
+    var rulesSection = $('rules-section');
+    var briefSection = $('form-section');
+    $('rules-submit').addEventListener('click', async function () {
+      var rules = currentRules();
+      if (!rules) return;
+      var btn = this;
+      var errors = $('rules-errors');
+      btn.disabled = true;
+      $('rules-spinner').hidden = false;
+      $('rules-hint').textContent = 'Checking with Beefree...';
+      errors.hidden = true;
+      try {
+        var resp = await fetch('/brand-rules', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rules: rules })
+        });
+        var data = await resp.json().catch(function () { return {}; });
+        if (!resp.ok || !data.brand_id) {
+          var list = data.errors || ['Beefree could not check these rules right now. Try again in a moment.'];
+          errors.replaceChildren(el('p', list.length > 1 ? 'Beefree found ' + list.length + ' problems in these rules:' : 'Beefree found a problem in these rules:'));
+          var ul = el('ul');
+          list.forEach(function (m) { ul.appendChild(el('li', m)); });
+          errors.appendChild(ul);
+          errors.hidden = false;
+          $('rules-hint').textContent = 'Fix the rules and try again.';
+          return;
+        }
+        brandName = currentName();
+        acceptRules(data.brand_id, rules);
+      } catch (_) {
+        errors.replaceChildren(el('p', 'The server could not be reached. Check your connection and try again.'));
+        errors.hidden = false;
+      } finally {
+        btn.disabled = false;
+        $('rules-spinner').hidden = true;
+      }
+    });
+
+    function acceptRules(id, rules) {
+      $('brand-id').value = id;
+      var sw = $('rules-summary-swatches');
+      sw.replaceChildren();
+      swatchesOf(rules).forEach(function (c) { sw.appendChild(el('span', '', { background: c })); });
+      $('rules-summary-name').textContent = brandName +
+        (source === 'preset' ? ' (preset)' : source === 'guided' ? ' (created step by step)' : ' (your JSON)');
+      $('rules-summary-facts').textContent = facts(rules).join(' · ');
+      $('rules-summary').hidden = false;
+      rulesSection.classList.add('is-collapsed', 'is-accepted');
+      briefSection.classList.remove('is-waiting');
+      $('brief-form').inert = false;
+      $('brief-waiting').hidden = true;
+      // Fill the brand name into an idea that's already picked.
+      if (activePreset) {
+        $('custom-brief').value = withBrand(activePreset.dataset.prompt);
+        $('brief').value = $('custom-brief').value;
+      }
+      updateSubmit();
+      briefSection.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    }
+
+    $('rules-change').addEventListener('click', function () {
+      $('brand-id').value = '';
+      $('rules-summary').hidden = true;
+      rulesSection.classList.remove('is-collapsed', 'is-accepted');
+      if (!briefSection.classList.contains('is-locked')) {
+        briefSection.classList.add('is-waiting');
+        $('brief-form').inert = true;
+        $('brief-waiting').hidden = false;
+      }
+      updateSubmit();
+      rulesSection.scrollIntoView({ block: 'start' });
+    });
+
+    /* ── Brief (same behavior as the Single email page) ── */
+    var activePreset = null;
+    function withBrand(text) { return text.replace(/\{brand\}/g, brandName); }
+
+    window.selectPreset = function (card) {
+      document.querySelectorAll('.seq-prompt-card').forEach(function (c) {
+        c.classList.remove('seq-prompt-card-selected');
+        c.setAttribute('aria-pressed', 'false');
+      });
+      var custom = $('custom-brief');
+      if (activePreset === card) {
+        activePreset = null;
+        custom.value = '';
+        $('brief').value = '';
+        $('preset-label').textContent = '';
+        updateSubmit();
+        return;
+      }
+      card.classList.add('seq-prompt-card-selected');
+      card.setAttribute('aria-pressed', 'true');
+      activePreset = card;
+      custom.value = withBrand(card.dataset.prompt);
+      $('brief').value = custom.value;
+      $('preset-label').textContent = 'selected';
+      updateSubmit();
+    };
+
+    window.onCustomInput = function (ta) {
+      if (activePreset && ta.value !== withBrand(activePreset.dataset.prompt)) {
+        activePreset.classList.remove('seq-prompt-card-selected');
+        activePreset.setAttribute('aria-pressed', 'false');
+        activePreset = null;
+        $('preset-label').textContent = '';
+      }
+      $('brief').value = ta.value;
+      updateSubmit();
+    };
+
+    function updateSubmit() {
+      var hasRules = !!$('brand-id').value;
+      var hasBrief = !!$('brief').value.trim();
+      $('single-submit').disabled = !(hasRules && hasBrief);
+      $('single-hint').textContent = !hasRules ? 'Choose brand rules first.'
+        : !hasBrief ? 'Pick an idea or write a brief to continue.' : '';
+    }
+
+    function lockForm() {
+      briefSection.classList.add('is-locked');
+      briefSection.querySelectorAll('.seq-prompt-card, #single-submit').forEach(function (b) { b.disabled = true; });
+      $('custom-brief').readOnly = true;
+      $('rules-change').hidden = true;
+      var preset = briefSection.querySelector('.seq-prompt-card-selected .seq-prompt-title');
+      $('brief-summary-label').textContent = preset ? 'Idea: ' + preset.textContent.trim() : 'Your brief';
+      $('brief-summary-text').textContent = $('brief').value.trim();
+      $('brief-summary').hidden = false;
+      briefSection.classList.add('is-collapsed');
+    }
+
+    window.unlockForm = function () {
+      briefSection.classList.remove('is-locked', 'is-collapsed');
+      briefSection.querySelectorAll('.seq-prompt-card').forEach(function (b) { b.disabled = false; });
+      $('custom-brief').readOnly = false;
+      $('rules-change').hidden = false;
+      $('brief-summary').hidden = true;
+      $('workspace').replaceChildren();
+      updateSubmit();
+      briefSection.scrollIntoView({ block: 'start' });
+      $('single-submit').focus({ preventScroll: true });
+    };
+
+    $('brief-summary-more').addEventListener('click', function () {
+      var summary = $('brief-summary');
+      var open = summary.classList.toggle('is-expanded');
+      this.setAttribute('aria-expanded', String(open));
+      this.textContent = open ? 'Show less' : 'Show full brief';
+    });
+
+    window.toggleCard = function (card) { if (card) card.classList.toggle('is-collapsed'); };
+
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      var tgt = e.detail && e.detail.target;
+      if (!tgt || tgt.id !== 'workspace') return;
+      var result = $('se-card');
+      if (!result) return;  // an error message, not the result view
+      lockForm();
+      setTimeout(function () {
+        var header = document.querySelector('.site-header');
+        var top = window.scrollY + result.getBoundingClientRect().top - (header ? header.offsetHeight : 0) - 16;
+        var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({ top: Math.max(0, top), behavior: reduce ? 'auto' : 'smooth' });
+      }, 350);
+    });
+
+    refresh();
+  })();
+  </script>
+
+</body>
+</html>

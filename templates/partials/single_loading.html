@@ -148,6 +148,25 @@
 .se-log time { color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .se-log small { display: block; color: var(--text-muted); font-size: .72rem; }
 .se-log li[data-kind="done"]  span { color: #1a7a40; font-weight: 600; }
+
+/* ── Brand rules: counter in the toolbar, corrections in the activity log ── */
+.se-brand {
+  display: inline-flex; align-items: center; gap: .45rem;
+  font-size: .76rem; color: var(--text-muted);
+  padding: .25rem .6rem; border-radius: 999px;
+  background: #F3EFFF; border: 1px solid var(--border);
+}
+.se-brand[hidden] { display: none; }
+.se-brand svg { color: var(--primary); flex: none; }
+.se-brand b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.se-log li[data-kind="brand"] > span { color: var(--primary-dk); }
+.se-log li[data-kind="brand-blocked"] > span { color: #9A3412; }
+.se-swatch {
+  display: inline-block; width: .7rem; height: .7rem; border-radius: 3px;
+  vertical-align: -1px; margin: 0 .15rem 0 .1rem;
+  box-shadow: inset 0 0 0 1px rgba(38,4,93,.2);
+}
+.se-log s { color: var(--text-muted); }
 .se-log li[data-kind="error"] span { color: #B91C1C; font-weight: 600; }
 
 /* ── Canvas: the email sits on a neutral backdrop, like in a mail client ── */
@@ -233,6 +252,13 @@
       <span class="se-status-dot" aria-hidden="true"></span>
       <span id="se-status-text" role="status">Building</span>
       <span class="se-elapsed" id="se-elapsed">0:00</span>
+    </span>
+    <span class="se-brand" id="se-brand" hidden title="What the brand rules did during this run">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5 2.5 3.8v3.9c0 3.2 2.3 6 5.5 6.8 3.2-.8 5.5-3.6 5.5-6.8V3.8L8 1.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m5.6 8 1.7 1.7 3.2-3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Brand rules:
+      <span><b id="se-brand-applied">0</b> presets used</span>
+      <span><b id="se-brand-fixed">0</b> values corrected</span>
+      <span><b id="se-brand-blocked">0</b> refused</span>
     </span>
     <span class="se-usage" id="se-usage" hidden>
       <span id="se-usage-tokens"></span>
@@ -556,7 +582,10 @@
   }
 
   /* ── Stream ── */
-  var es = new EventSource('/generate-stream?brief=' + encodeURIComponent(brief));
+  var brandId = {{ (brand_id or '') | tojson }};
+  var es = new EventSource('/generate-stream?brief=' + encodeURIComponent(brief) +
+    (brandId ? '&brand=' + encodeURIComponent(brandId) : ''));
+  if (brandId) document.getElementById('se-brand').hidden = false;
   pendingScript = addLog('Reading your brief and planning the layout');
   setNote(pendingScript, 'Writing the first step...');
 
@@ -581,6 +610,63 @@
     else usage.unpriced = true;
     renderUsage();
   });
+  /* ── Brand rules at work ── */
+  var brandCount = { applied: 0, fixed: 0, blocked: 0 };
+  var PROPERTY_NAMES = {
+    backgroundColor: 'background', color: 'text color', fontFamily: 'font',
+    fontSize: 'font size', fontWeight: 'weight', borderRadius: 'corners',
+    lineHeight: 'line height', letterSpacing: 'letter spacing', linkColor: 'link color',
+    rowBackgroundColor: 'section background', contentAreaBackgroundColor: 'content background',
+    contentAreaPadding: 'padding', padding: 'padding', contentAreaWidth: 'width'
+  };
+  function value(text) {
+    var frag = document.createDocumentFragment();
+    if (/^#[0-9a-f]{3,8}$/i.test(text)) {
+      var sw = document.createElement('span');
+      sw.className = 'se-swatch';
+      sw.style.background = text;
+      frag.appendChild(sw);
+    }
+    // First font of a stack, without quotes
+    frag.appendChild(document.createTextNode(text.replace(/,.*$/, '').replace(/['"]/g, '')));
+    return frag;
+  }
+  function brandLog(kind, build) {
+    var li = addLog('', kind);
+    var span = li.querySelector('span');
+    build(span);
+    span.title = span.textContent;
+    return li;
+  }
+  function bump(key) {
+    brandCount[key] += 1;
+    document.getElementById('se-brand-' + key).textContent = brandCount[key];
+  }
+  es.addEventListener('brand', function (e) {
+    var ev;
+    try { ev = JSON.parse(e.data); } catch (_) { return; }
+    if (ev.kind === 'applied') { bump('applied'); return; }
+    if (ev.kind === 'override') {
+      bump('fixed');
+      brandLog('brand', function (span) {
+        span.appendChild(document.createTextNode('Brand fix: ' + ev.target + ' ' +
+          (PROPERTY_NAMES[ev.property] || ev.property) + ' '));
+        span.appendChild(value(ev.applied));
+        span.appendChild(document.createTextNode(', not '));
+        var was = document.createElement('s');
+        was.appendChild(value(ev.requested));
+        span.appendChild(was);
+      });
+      return;
+    }
+    bump('blocked');
+    var msg = (ev.message || '').replace(/ in this session/, '').replace(/\.$/, '');
+    var m = msg.match(/^Adding (\w+) blocks requires a preset$/);
+    var text = m ? 'Sent back: ' + m[1] + ' blocks must use a brand style'
+      : 'Refused: ' + msg.charAt(0).toLowerCase() + msg.slice(1);
+    brandLog('brand-blocked', function (span) { span.textContent = text; });
+  });
+
   es.addEventListener('outcome', function (e) {
     try { outcome = JSON.parse(e.data).status; } catch (_) {}
   });

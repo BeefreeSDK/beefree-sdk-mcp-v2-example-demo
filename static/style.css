@@ -147,6 +147,9 @@ main.container { flex: 1; padding-top: 3rem; padding-bottom: 3rem; }
   font-weight: 600;
   position: relative;
 }
+/* The Beefree SDK logo goes back to the home page from every page. */
+.logo-link { display: inline-flex; color: inherit; border-radius: 4px; }
+.logo-link:hover { opacity: .85; }
 
 .brand-bee { font-size: 1.4rem; }
 .brand-name { color: #fff; }
@@ -2347,7 +2350,7 @@ h1.brand-tag { margin: 0; line-height: 1.5; }
 
 /* Narrow phones: the page name, model and token count matter more than the wordmark */
 @media (max-width: 480px) {
-  .header-brand svg[width="144"] { display: none; }
+  .header-brand .logo-link { display: none; }
   .brand-tag { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
   .token-badge svg { display: none; }
 }

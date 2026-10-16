@@ -31,7 +31,11 @@ from .agent import (
     stream_palette_executor,
     stream_edit_executor,
 )
-from .beefree import create_seeded_template, create_template, get_template
+from .beefree import (
+    BrandRulesRejected, create_seeded_template, create_template, get_template,
+    validate_brand_rules,
+)
+from .brand import BLOCK_TYPES, PRESETS, shape_errors
 from .config import Settings, get_settings
 from .guards import sequence_guard, validate_sequence
 from .plans import build_preset_plan
@@ -77,6 +81,9 @@ palette_sessions = ExpiringStore()
 
 # Temporary store for edit sessions (session_id → {template_id, messages})
 edit_sessions = ExpiringStore()
+
+# Brand rules checked by Beefree, ready for a generation (brand_id → brandRules)
+brand_sessions = ExpiringStore()
 
 # Templates corrected on our side after an agent run (template_id → template
 # JSON). Beefree has no update endpoint, so downloads serve these instead.
@@ -471,20 +478,85 @@ async def generate(request: Request, brief: str = Form(...)):
     )
 
 
+@app.get("/brand", response_class=HTMLResponse)
+async def brand_page(request: Request):
+    return templates.TemplateResponse(
+        "brand.html",
+        {
+            "request": request, "presets": PRESETS, "block_types": BLOCK_TYPES,
+            # Jinja's tojson sorts keys; keep preset order as written (it is the
+            # order Beefree lists them to the agent). Escape "</" for the <script>.
+            "presets_json": json.dumps(PRESETS).replace("</", "<\\/"),
+        },
+    )
+
+
+@app.post("/brand-rules")
+async def brand_rules(request: Request, settings: Settings = Depends(get_run_settings)):
+    """Check a brandRules object with Beefree and keep it for the next generation."""
+    try:
+        body = await request.json()
+    except ValueError:
+        return JSONResponse({"errors": ["The request was not valid JSON."]}, status_code=400)
+    rules = body.get("rules") if isinstance(body, dict) else None
+    errors = shape_errors(rules)
+    if errors:
+        return JSONResponse({"errors": errors}, status_code=422)
+    try:
+        await validate_brand_rules(settings, rules)
+    except BrandRulesRejected as exc:
+        return JSONResponse({"errors": exc.details[:20]}, status_code=422)
+    except Exception as exc:
+        log.error("Brand rules validation failed: %s", exc)
+        return JSONResponse(
+            {"errors": ["Beefree could not check these rules right now. Try again in a moment."]},
+            status_code=502,
+        )
+    brand_id = secrets.token_urlsafe(12)
+    brand_sessions[brand_id] = rules
+    return JSONResponse({"brand_id": brand_id})
+
+
+@app.post("/brand-generate", response_class=HTMLResponse)
+async def brand_generate(request: Request, brief: str = Form(...), brand_id: str = Form(...)):
+    """Same result view as Single email, with the brand rules attached to the session."""
+    if brand_id not in brand_sessions:
+        return HTMLResponse(
+            "<p class='inline-error' role='alert'>These brand rules are no longer available: "
+            "they were unused for over an hour, or the server restarted. "
+            "Choose them again to continue.</p>",
+            status_code=404,
+        )
+    return templates.TemplateResponse(
+        "partials/single_loading.html",
+        {"request": request, "brief": brief, "brand_id": brand_id},
+    )
+
+
 @app.get("/generate-stream")
 async def generate_stream(
-    request: Request, brief: str,
+    request: Request, brief: str, brand: str | None = None,
     settings: Settings = Depends(get_run_settings),
 ):
-    """SSE endpoint: creates a template, runs single email agent, streams previews."""
+    """SSE endpoint: creates a template, runs single email agent, streams previews.
+
+    With ``brand`` (an id from /brand-rules), the template session carries those
+    brand rules and the stream adds "brand" events each time they apply.
+    """
 
     async def generator():
         try:
-            template_id = await create_template(settings)
+            rules = None
+            if brand:
+                rules = brand_sessions.get(brand)
+                if rules is None:
+                    raise ValueError("these brand rules are no longer available. "
+                                     "Choose them again on the brand page")
+            template_id = await create_template(settings, brand_rules=rules)
             # Tell the frontend which template was created so it can offer a download
             yield {"event": "template-id", "data": template_id}
             async for event in stream_single_executor(
-                template_id, brief, settings, progressive=True,
+                template_id, brief, settings, progressive=True, brand=bool(rules),
             ):
                 if event["event"] != "close":
                     yield event

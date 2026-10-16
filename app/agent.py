@@ -19,6 +19,7 @@ _CACHE_SETTINGS: dict = {
     "anthropic_cache_messages":        True,  # cache conversation history between rounds
 }
 
+from .brand import events_from_error, events_from_result
 from .config import Settings
 from .guards import validate_sequence
 from .pricing import request_cost
@@ -314,6 +315,36 @@ Start every script with a single-line comment that tells the user, in plain
 language, what this step does, for example:
 // Adding the hero section with the headline and main button
 """
+
+BRAND_RULES_INSTRUCTIONS = """
+
+BRAND RULES: this session has brand rules. They are listed under "Session
+constraints" at the end of the beefree_execute description, and the server
+enforces them on every call:
+- Pass `preset` on every call the constraints name (email defaults, sections,
+  and each block type listed), choosing the preset whose description fits the
+  element: for example the primary button preset for the main call to action
+  and the secondary one for "Learn more" links.
+- Don't pass colors, fonts or other values a preset already sets. The preset
+  wins, so they only add noise.
+- Never add block types the constraints forbid, and plan the layout to stay
+  within the row, column and per-block limits from the first script.
+- When the brief asks for colors or fonts that conflict with the rules, follow
+  the rules and keep the brief's content, structure and tone.
+"""
+
+
+def _brand_events(request) -> list[dict]:
+    """Brand rule events (preset applied, value overridden, call refused) in the
+    tool results the agent is about to read."""
+    events = []
+    for part in request.parts:
+        kind = getattr(part, "part_kind", "")
+        if kind == "tool-return":
+            events.extend(events_from_result(part.content))
+        elif kind == "retry-prompt":
+            events.extend(events_from_error(part.content))
+    return events
 
 
 # --- Planner -----------------------------------------------------------------
@@ -865,6 +896,7 @@ async def stream_single_executor(
     settings: Settings,
     *,
     progressive: bool = False,
+    brand: bool = False,
 ) -> AsyncIterator[dict]:
     """Run one single-email agent and yield SSE events.
 
@@ -878,10 +910,14 @@ async def stream_single_executor(
     - "preview" events: rendered email HTML in an iframe (same as other executors)
     - "close" event: tells HTMX to stop reconnecting
     """
-    mcp = create_code_mode_mcp(template_id, settings)
+    # Brand rules refuse calls that skip a preset or break a limit; the agent
+    # recovers from the error message, so give it more room to retry.
+    mcp = create_code_mode_mcp(template_id, settings, max_retries=6 if brand else 3)
     system_prompt = SINGLE_EMAIL_AGENT_SYSTEM_PROMPT + CODE_MODE_INSTRUCTIONS
     if progressive:
         system_prompt += PROGRESSIVE_BUILD_INSTRUCTIONS
+    if brand:
+        system_prompt += BRAND_RULES_INSTRUCTIONS
     agent: Agent[None, str] = Agent(
         model=settings.agent_model,
         toolsets=[mcp],
@@ -914,6 +950,9 @@ async def stream_single_executor(
                                 if isinstance(code, str) and code:
                                     yield {"event": "code", "data": code}
                     if isinstance(node, ModelRequestNode):
+                        if brand:
+                            for event in _brand_events(node.request):
+                                yield {"event": "brand", "data": _json.dumps(event)}
                         has_tool_returns = any(
                             getattr(p, "part_kind", "") == "tool-return"
                             for p in node.request.parts
