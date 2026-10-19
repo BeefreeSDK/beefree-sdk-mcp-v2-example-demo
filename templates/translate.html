@@ -23,11 +23,6 @@
     <div class="container">
       <div class="header-left">
         <div class="header-brand">
-          <a href="/headless" class="back-link" aria-label="Back to headless modes">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M11 14L6 9l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </a>
           <a href="/" class="logo-link" aria-label="Beefree SDK MCP home">
             <svg aria-hidden="true" width="144" height="28" viewBox="0 0 164 32" fill="none" xmlns="http://www.w3.org/2000/svg">
               <g clip-path="url(#clip0_7680_11003)">
@@ -67,6 +62,10 @@
   </header>
 
   <main class="container">
+
+    {% set crumbs = [["Home", "/"], ["Headless", "/headless"]] %}
+    {% set current %}Bulk translations{% endset %}
+    {% include "partials/breadcrumb.html" %}
 
     <section class="card form-card" id="form-section">
       <div class="card-header-row">

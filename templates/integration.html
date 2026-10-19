@@ -114,11 +114,13 @@
 
     /* ── /builder: a workspace that fits the viewport ────────────────────── */
     .page-builder main.container { flex: none; padding-top: .75rem; padding-bottom: 1rem; }
+    /* The breadcrumb row (about 1.15rem plus its .6rem gap) comes out of the workspace height */
+    .page-builder .breadcrumb { margin: 0 0 .6rem; }
     .page-builder .demo-stage {
       display: flex;
       flex-direction: column;
-      height: calc(100vh - var(--builder-header-h) - 1.75rem);
-      height: calc(100dvh - var(--builder-header-h) - 1.75rem);
+      height: calc(100vh - var(--builder-header-h) - 3.5rem);
+      height: calc(100dvh - var(--builder-header-h) - 3.5rem);
       min-height: 560px;
       margin: 0;
     }
@@ -180,11 +182,6 @@
     <div class="container">
       <div class="header-left">
         <div class="header-brand">
-          <a href="/editor" class="back-link" aria-label="Back to editor experiences">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M11 14L6 9l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </a>
           <a href="/" class="logo-link" aria-label="Beefree SDK MCP home">
             <svg aria-hidden="true" width="144" height="28" viewBox="0 0 164 32" fill="none" xmlns="http://www.w3.org/2000/svg">
               <g clip-path="url(#clip0_7680_11003)">
@@ -222,6 +219,10 @@
   </header>
 
   <main class="container">
+
+    {% set crumbs = [["Home", "/"], ["In the editor", "/editor"]] %}
+    {% set current %}{% if simple_builder %}Agent in the builder{% else %}Integration guide{% endif %}{% endset %}
+    {% include "partials/breadcrumb.html" %}
 
     <!-- ═══════════════════════════════════════════════════════════════════════
          LIVE DEMO (hero — primary action, docs moved below)

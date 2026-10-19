@@ -1,0 +1,10 @@
+{# Breadcrumb under the site header. Set `crumbs` (list of [label, href]) and
+   `current` (the page name) before including. #}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    {% for label, href in crumbs %}
+    <li><a href="{{ href }}">{{ label }}</a></li>
+    {% endfor %}
+    <li><span aria-current="page">{{ current }}</span></li>
+  </ol>
+</nav>

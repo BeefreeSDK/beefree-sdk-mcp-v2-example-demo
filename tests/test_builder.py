@@ -64,7 +64,10 @@ class IntegrationTemplateUxTests(unittest.TestCase):
             self.assertIn('aria-label="Reset token counter"', html, path)
             self.assertIn('aria-expanded="true" aria-controls="em-chat-panel"', html, path)
             self.assertIn('class="inline-error" id="em-error" role="alert"', html, path)
-            self.assertIn('href="/editor" class="back-link"', html, path)
+            self.assertIn('<nav class="breadcrumb" aria-label="Breadcrumb">', html, path)
+            self.assertIn('<li><a href="/editor">In the editor</a></li>', html, path)
+            self.assertIn('class="logo-link"', html, path)
+            self.assertNotIn('class="back-link"', html, path)
             self.assertIn('<script src="/static/ui.js"></script>', html, path)
 
     def test_builder_title_and_plain_language(self):

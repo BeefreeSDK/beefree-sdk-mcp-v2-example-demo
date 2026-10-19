@@ -715,22 +715,37 @@ textarea { resize: vertical; }
   padding: 1rem 0;
 }
 
-/* ─── Back link ─────────────────────────────────────────────────────────────── */
+/* ─── Breadcrumb ───────────────────────────────────────────────────────────── */
+/* Sits under the site header, aligned with the page content: small, quiet links,
+   the current page as plain text (not a link), decorative separators. */
 
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 1.75rem;
-  height: 1.75rem;
-  margin-left: -.35rem;
-  border-radius: 6px;
-  color: var(--primary-lt);
-  text-decoration: none;
-  transition: color .15s, background .15s;
+.breadcrumb { margin: -1.75rem 0 1.75rem; font-size: .82rem; line-height: 1.4; }
+.breadcrumb ol { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .5rem; list-style: none; margin: 0; padding: 0; }
+.breadcrumb li { display: inline-flex; align-items: center; gap: .5rem; min-width: 0; color: var(--text-muted); }
+.breadcrumb li + li::before {
+  content: '';
+  flex: none;
+  width: 5px; height: 5px;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  opacity: .55;
 }
-.back-link:hover { color: var(--accent); }
+.breadcrumb a {
+  color: var(--text-muted);
+  text-decoration: none;
+  border-radius: 4px;
+  padding: .1rem .2rem;
+  margin: 0 -.2rem;
+}
+.breadcrumb a:hover { color: var(--primary-dk); text-decoration: underline; text-underline-offset: 3px; }
+.breadcrumb [aria-current="page"] {
+  color: var(--text);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ─── Landing page ───────────────────────────────────────────────────────────── */
 
@@ -1697,6 +1712,14 @@ textarea { resize: vertical; }
   max-width: 1640px;
   margin: 0 0 1.5rem;
 }
+/* On the editor pages the breadcrumb spans the same width as the stage below it */
+.page-integration .breadcrumb {
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 96vw;
+  max-width: 1640px;
+}
 
 .demo-workspace {
   display: flex;
@@ -1868,6 +1891,7 @@ textarea { resize: vertical; }
 
 @media (max-width: 1024px) {
   .demo-stage { width: 100%; left: 0; transform: none; }
+  .page-integration .breadcrumb { width: 100%; left: 0; transform: none; }
   .demo-workspace { flex-direction: column; min-height: 0; }
   .demo-workspace .edit-chat-panel { width: 100%; }
   .demo-editor-panel .demo-editor-container,
@@ -2262,7 +2286,6 @@ textarea:focus-visible, select:focus-visible, input:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 0;
 }
-.back-link:hover, .back-link:focus-visible { background: rgba(255,255,255,.1); }
 
 .visually-hidden {
   position: absolute !important;
