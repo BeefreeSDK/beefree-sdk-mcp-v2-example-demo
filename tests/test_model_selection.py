@@ -188,27 +188,26 @@ class ModelSelectionTests(unittest.TestCase):
             validate_sequence(normalized, child_policy)
             self.assertEqual(child_policy["rows"][-1], normalized["page"]["rows"][-1])
 
-    def test_bulk_children_pin_selected_model(self):
+    def test_bulk_submit_creates_columns_in_one_request(self):
+        """Palettes and translations are set up by the form POST itself (no second
+        request that could reach another app copy). Column URLs leave the model to
+        the page, which adds the visitor's choice when each stream opens."""
         cases = [
-            ("/translate-stream", routes.translation_sessions, {
-                "template_json": {}, "languages": ["Italian"],
-            }),
-            ("/palette-stream", routes.palette_sessions, {
-                "template_json": {}, "palettes": [routes.PALETTES[0]],
-            }),
+            ("/translate-submit", {"template_json": "{}", "languages": "Italian,French"}, "/stream-translate/child"),
+            ("/palette-submit", {"template_json": "{}", "palette_ids": routes.PALETTES[0]["id"]}, "/stream-palette/child"),
         ]
-        for endpoint, store, session in cases:
+        for endpoint, form, column_url in cases:
+            seed = AsyncMock(return_value="child")
             with (
                 self.subTest(endpoint=endpoint),
                 patch.object(routes, "get_settings", return_value=self.settings()),
-                patch.object(routes, "create_seeded_template", AsyncMock(return_value="child")),
-                patch.dict(store, {"bulk-test": session}),
+                patch.object(routes, "create_seeded_template", seed),
             ):
-                response = TestClient(routes.app).get(endpoint, params={
-                    "session_id": "bulk-test", "model": "openai:gpt-5-mini",
-                })
+                response = TestClient(routes.app).post(endpoint, data=form)
                 self.assertEqual(response.status_code, 200)
-                self.assertIn("model=openai%3Agpt-5-mini", response.text)
+                self.assertIn(f'sse-connect="{column_url}?', response.text)
+                self.assertNotIn("model=", response.text.split("sse-connect=", 1)[1].split(">", 1)[0])
+                self.assertEqual(seed.call_count, 2 if "translate" in endpoint else 1)
 
     def test_every_demo_includes_shared_selector(self):
         client = TestClient(routes.app)
@@ -259,8 +258,6 @@ class ModelSelectionTests(unittest.TestCase):
             ("/generate-stream", {"brief": "test"}),
             ("/codemode-stream", {"brief": "test"}),
             ("/execute-stream", {"plan_json": "{}"}),
-            ("/translate-stream", {"session_id": "test"}),
-            ("/palette-stream", {"session_id": "test"}),
             ("/stream-translate/test", {"language": "Italian"}),
             ("/stream-palette/test", {"palette_id": "forest"}),
             ("/edit-stream", {"session_id": "test", "message": "test"}),

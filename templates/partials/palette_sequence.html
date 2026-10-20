@@ -1,4 +1,4 @@
-<!-- Palette result view — returned via SSE "ready" event -->
+<!-- Palette result view, returned by POST /palette-submit -->
 
 <link rel="stylesheet" href="/static/results.css">
 
@@ -14,7 +14,7 @@
       class="pal-col"
       data-template-id="{{ template_id }}"
       hx-ext="sse"
-      sse-connect="/stream-palette/{{ template_id }}?palette_id={{ palette.id }}&amp;model={{ llm_model | urlencode }}"
+      sse-connect="/stream-palette/{{ template_id }}?palette_id={{ palette.id }}{% if llm_model %}&amp;model={{ llm_model | urlencode }}{% endif %}"
       sse-close="close"
     >
       <div class="pal-col-header">
@@ -168,10 +168,25 @@
     }, { once: true });
   });
 
+  /* When the safety net corrected this version, the corrected copy was saved as
+     a new Beefree template: download that one instead. */
+  function useTemplate(col, templateId) {
+    if (!/^[A-Za-z0-9-]{8,64}$/.test(templateId)) return;
+    col.dataset.templateId = templateId;
+    col.querySelectorAll('.col-dl-bar a').forEach(function (a) {
+      var kind = a.getAttribute('href').indexOf('/download-html/') === 0 ? 'html' : 'json';
+      a.href = (kind === 'html' ? '/download-html/' : '/download-template/') + templateId;
+      a.download = 'email-' + templateId.slice(0, 8) + '.' + kind;
+    });
+  }
+
   document.body.addEventListener('htmx:sseOpen', function (e) {
     var col = ownColumn(e.target);
     if (!col || col.dataset.outcome) return;
     col.classList.add(RUNNING);
+    e.detail.source.addEventListener('download-template', function (event) {
+      useTemplate(col, (event.data || '').trim());
+    });
     e.detail.source.addEventListener('outcome', function (event) {
       var outcome;
       try { outcome = JSON.parse(event.data).status; } catch (_) { return; }

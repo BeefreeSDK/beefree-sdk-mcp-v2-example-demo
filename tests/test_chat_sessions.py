@@ -85,3 +85,28 @@ class ChatSessionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PaletteCorrectionTests(unittest.TestCase):
+    """A palette version finished by the safety net is saved as a new Beefree
+    template, so its download works from any app copy (nothing kept in memory)."""
+
+    def test_corrected_copy_becomes_the_download(self):
+        fixed = {"page": {"rows": []}}
+
+        async def fake_executor(template_id, palette, settings):
+            yield {"event": "fixed-template", "data": fixed}
+            yield {"event": "fix-note", "data": "Completed automatically."}
+            yield {"event": "close", "data": ""}
+
+        seed = AsyncMock(return_value="fixed-tmpl")
+        with (
+            patch.object(main, "get_settings", return_value=settings()),
+            patch.object(main, "stream_palette_executor", fake_executor),
+            patch.object(main, "create_seeded_template", seed),
+        ):
+            body = TestClient(main.app).get(f"/stream-palette/orig?palette_id={main.PALETTES[0]['id']}").text
+        self.assertEqual(seed.call_args.args[1], fixed)
+        self.assertIn("event: download-template\r\ndata: fixed-tmpl", body)
+        self.assertNotIn("fixed-template", body)
+        self.assertIn("event: fix-note", body)

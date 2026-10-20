@@ -198,10 +198,10 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 - **Several instances:** generation (Single email, Code Mode, On-brand email, Email
   sequence) and the chats (Edit an email, the builder, the integration guide) work
   on any copy of the app. A chat session is a signed token naming the template, and
-  the page sends the last 6 turns with each message. Bulk translations, Color
-  palettes and sequence layout checks still keep sessions in memory: for those, run
-  one worker (the Dockerfile pins `--workers 1`) and one container, or enable sticky
-  sessions on the load balancer. `GET /healthcheck`
+  the page sends the last 6 turns with each message. Bulk translations and Color
+  palettes create their template copies in the form request itself, and a palette
+  version corrected by the safety net is saved as a new Beefree template. Only the
+  sequence layout checks (advisory) stay in memory; on another copy they are skipped. `GET /healthcheck`
   returns an `instance` id (hostname and pid); if it changes between calls, requests
   are being spread across copies.
 - **Streaming responses:** results stream over Server-Sent Events. Make sure your
@@ -218,15 +218,18 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 
 ### Sessions
 
-Chat sessions, pending runs and sequence layout checks are kept in memory
-(`app/sessions.py`):
-- **Expiry:** an entry is dropped after an hour without activity, so memory stays
-  flat. Using a chat keeps it alive.
-- **Restarts:** a restart or redeploy clears every session. Visitors see "This chat
-  is no longer available" and need to reload the page.
-- **Templates are safe:** the emails themselves live in Beefree, so already-generated
-  results can still be downloaded.
-- **Corrected palette versions:** these are kept for a day.
+The app keeps almost nothing between requests:
+- **Generation and chats:** inputs travel as tokens in the stream URL, and a chat
+  session is a signed token naming its template (`app/payload.py`). A restart or
+  redeploy doesn't break an open chat; the page sends its recent turns each time.
+- **Palettes and translations:** the form request creates the template copies and
+  returns the columns. A palette version corrected by the safety net is saved as a
+  new Beefree template, and its download links switch to it.
+- **Sequence layout checks:** the only in-memory state (`app/sessions.py`), dropped
+  after an hour without activity. They are advisory; on another app copy or after a
+  restart they are skipped.
+- **Templates are safe:** the emails themselves live in Beefree, so generated
+  results can always be downloaded.
 
 ---
 

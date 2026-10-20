@@ -25,7 +25,7 @@ class ResultsPartialTests(unittest.TestCase):
             "sequence": render(
                 "partials/sequence.html", plan=plan, llm_model="openai:gpt-5-mini",
                 emails_with_ids=[(e, f"tpl{i}") for i, e in enumerate(plan.emails)],
-        prompt_inputs={f"tpl{i}": f"in{i}" for i in range(len(plan.emails))},
+                prompt_inputs={f"tpl{i}": f"in{i}" for i in range(len(plan.emails))},
             ),
             "palette": render(
                 "partials/palette_sequence.html", llm_model="openai:gpt-5-mini",
@@ -69,15 +69,14 @@ class ResultsPartialTests(unittest.TestCase):
         self.assertIn("'Download ' + usable.length + ' of ' + total + ' emails'", html)
         self.assertIn('data-template-id="tpl2"', html)
 
-    def test_loading_partials_stop_on_stream_errors(self):
-        for name, context in [
-            ("partials/palette_loading.html", {"session_id": "s", "palettes": [PALETTE]}),
-            ("partials/translate_loading.html", {"session_id": "s", "languages": ["Spanish"]}),
-        ]:
-            with self.subTest(partial=name):
-                html = render(name, **context)
-                self.assertIn("htmx:sseError", html)
-                self.assertIn("inline-error", html)
+    def test_loading_partial_stops_on_stream_errors(self):
+        # Palettes and translations no longer have a loading step: their form POST
+        # returns the columns directly. The sequence still prepares over a stream.
+        plan = build_preset_plan("black-friday-fashion", "Test", routes.SEQUENCE_PRESETS["black-friday-fashion"], 0)
+        html = render("partials/execute_loading.html", input_id="tok", plan=plan,
+                      emails_with_ids=[(e, None) for e in plan.emails], pending_sessions=True)
+        self.assertIn("htmx:sseError", html)
+        self.assertIn("inline-error", html)
 
 
 class SequencePageTests(unittest.TestCase):

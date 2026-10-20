@@ -77,11 +77,6 @@ templates.env.filters["urlencode"] = quote
 # Maps template_id → {policy} for sequence layout validation
 template_layouts = ExpiringStore()
 
-# Temporary store for bulk-translation sessions (session_id → {template_json, languages})
-translation_sessions = ExpiringStore()
-
-# Temporary store for palette sessions (session_id → {template_json, palettes})
-palette_sessions = ExpiringStore()
 
 # Chat sessions (Edit an email, the builder, the integration guide) are signed
 # tokens naming the template; the conversation travels with each message
@@ -118,17 +113,8 @@ RUN_INPUT_FIELDS = {"brief", "message", "history"}
 MAX_RUN_INPUT_CHARS = 20_000
 BAD_INPUT = "This request could not be read. Reload the page and try again."
 
-# Templates corrected on our side after an agent run (template_id → template
-# JSON). Beefree has no update endpoint, so downloads serve these instead.
-# Kept for a day so result pages left open still download the fixed version.
-template_overrides = ExpiringStore(ttl_seconds=24 * 60 * 60)
-
-
 async def load_template(template_id: str, settings: Settings) -> dict:
-    """The template to download: our corrected copy if there is one, else Beefree's."""
-    override = template_overrides.get(template_id)
-    if override is not None:
-        return override
+    """The template to download, as Beefree has it."""
     data = await get_template(template_id, settings)
     return data.get("template", data)
 
@@ -791,7 +777,10 @@ async def translate_submit(
     template_json: str = Form(...),
     languages: str = Form(...),
 ):
-    """Parse template JSON, store session, return the loading partial."""
+    """Seed one template copy per language and return the column grid.
+
+    Everything happens in this request, so it works whichever copy of the app
+    answers; each column then streams its own translation."""
     try:
         parsed = json.loads(template_json)
     except json.JSONDecodeError as exc:
@@ -799,50 +788,22 @@ async def translate_submit(
             f"<p class='inline-error' role='alert'>The template JSON is not valid: {html_lib.escape(str(exc))}</p>", status_code=400
         )
     lang_list = [la.strip() for la in languages.split(",") if la.strip()]
-    session_id = uuid.uuid4().hex[:12]
-    translation_sessions[session_id] = {"template_json": parsed, "languages": lang_list}
+    try:
+        template_ids = await asyncio.gather(
+            *[create_seeded_template(get_settings(), parsed) for _ in lang_list]
+        )
+    except Exception as exc:
+        log.error("Translate setup error: %s", exc)
+        return HTMLResponse(
+            f"<p class='inline-error' role='alert'>We couldn't start the translations: {html_lib.escape(str(exc))}</p>",
+            status_code=502,
+        )
     return templates.TemplateResponse(
-        "partials/translate_loading.html",
-        {"request": request, "session_id": session_id, "languages": lang_list},
+        "partials/translate_sequence.html",
+        # No model in the column URLs: the page adds the visitor's chosen model
+        # when each stream opens (static/model-selection.js).
+        {"request": request, "languages_with_ids": list(zip(lang_list, template_ids)), "llm_model": None},
     )
-
-
-@app.get("/translate-stream")
-async def translate_stream_route(
-    request: Request, session_id: str,
-    settings: Settings = Depends(get_run_settings),
-):
-    """SSE: seed N template copies, render the column grid, agents stream previews."""
-    data = translation_sessions.pop(session_id, None)
-
-    async def generator():
-        if not data:
-            yield {"event": "close", "data": ""}
-            return
-        try:
-            template_json = data["template_json"]
-            languages = data["languages"]
-
-            template_ids: list[str] = await asyncio.gather(
-                *[create_seeded_template(settings, template_json) for _ in languages]
-            )
-
-            tmpl = templates.env.get_template("partials/translate_sequence.html")
-            result_html = tmpl.render(
-                languages_with_ids=list(zip(languages, template_ids)),
-                llm_model=settings.llm_model,
-            )
-            yield {"event": "ready", "data": result_html}
-        except Exception as exc:
-            log.error("Translate stream error: %s", exc)
-            yield {
-                "event": "ready",
-                "data": f"<p class='inline-error' role='alert'>We couldn't start the translations: {html_lib.escape(str(exc))}</p>",
-            }
-        finally:
-            yield {"event": "close", "data": ""}
-
-    return EventSourceResponse(generator())
 
 
 @app.get("/stream-translate/{template_id}")
@@ -872,7 +833,10 @@ async def palette_submit(
     template_json: str = Form(...),
     palette_ids: str = Form(...),
 ):
-    """Parse template JSON, resolve selected palettes, store session, return loading partial."""
+    """Seed one template copy per palette and return the column grid.
+
+    Everything happens in this request, so it works whichever copy of the app
+    answers; each column then streams its own recoloring."""
     try:
         parsed = json.loads(template_json)
     except json.JSONDecodeError as exc:
@@ -881,50 +845,20 @@ async def palette_submit(
         )
     id_set = {pid.strip() for pid in palette_ids.split(",") if pid.strip()}
     selected = [p for p in PALETTES if p["id"] in id_set]
-    session_id = uuid.uuid4().hex[:12]
-    palette_sessions[session_id] = {"template_json": parsed, "palettes": selected}
+    try:
+        template_ids = await asyncio.gather(
+            *[create_seeded_template(get_settings(), parsed) for _ in selected]
+        )
+    except Exception as exc:
+        log.error("Palette setup error: %s", exc)
+        return HTMLResponse(
+            f"<p class='inline-error' role='alert'>We couldn't start the color versions: {html_lib.escape(str(exc))}</p>",
+            status_code=502,
+        )
     return templates.TemplateResponse(
-        "partials/palette_loading.html",
-        {"request": request, "session_id": session_id, "palettes": selected},
+        "partials/palette_sequence.html",
+        {"request": request, "palettes_with_ids": list(zip(selected, template_ids)), "llm_model": None},
     )
-
-
-@app.get("/palette-stream")
-async def palette_stream_route(
-    request: Request, session_id: str,
-    settings: Settings = Depends(get_run_settings),
-):
-    """SSE: seed N template copies, render palette column grid."""
-    data = palette_sessions.pop(session_id, None)
-
-    async def generator():
-        if not data:
-            yield {"event": "close", "data": ""}
-            return
-        try:
-            template_json = data["template_json"]
-            palettes = data["palettes"]
-
-            template_ids: list[str] = await asyncio.gather(
-                *[create_seeded_template(settings, template_json) for _ in palettes]
-            )
-
-            tmpl = templates.env.get_template("partials/palette_sequence.html")
-            result_html = tmpl.render(
-                palettes_with_ids=list(zip(palettes, template_ids)),
-                llm_model=settings.llm_model,
-            )
-            yield {"event": "ready", "data": result_html}
-        except Exception as exc:
-            log.error("Palette stream error: %s", exc)
-            yield {
-                "event": "ready",
-                "data": f"<p class='inline-error' role='alert'>We couldn't start the color versions: {html_lib.escape(str(exc))}</p>",
-            }
-        finally:
-            yield {"event": "close", "data": ""}
-
-    return EventSourceResponse(generator())
 
 
 @app.get("/stream-palette/{template_id}")
@@ -941,7 +875,15 @@ async def stream_palette(
     async def generator():
         async for event in stream_palette_executor(template_id, palette, settings):
             if event["event"] == "fixed-template":
-                template_overrides[template_id] = event["data"]  # internal, not sent to the browser
+                # Beefree has no update endpoint: save the corrected copy as a new
+                # template and point the column's downloads at it. Nothing stays
+                # in this process, so any copy of the app can serve the download.
+                try:
+                    fixed_id = await create_seeded_template(settings, event["data"])
+                except Exception as exc:
+                    log.warning("Could not save the corrected palette version: %s", exc)
+                    continue
+                yield {"event": "download-template", "data": fixed_id}
                 continue
             yield event
 
