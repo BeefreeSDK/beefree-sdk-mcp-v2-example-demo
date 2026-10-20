@@ -92,6 +92,8 @@
 <script>
 (function () {
   var SESSION_ID = {{ session_id | tojson }};
+  // Recent [user, agent] turns; the server keeps nothing between requests.
+  var chatHistory = [];
   var chatMessages = document.getElementById('chat-messages');
   var chatInput    = document.getElementById('chat-input');
   var sendBtn      = document.getElementById('send-btn');
@@ -185,7 +187,7 @@
     // Open SSE stream for this turn
     if (currentEs) { currentEs.close(); currentEs = null; }
     // The message is saved with a POST first; the stream URL only carries its id.
-    window.beeStreamUrl('/edit-stream', { message: msg }, { session_id: SESSION_ID }).then(function (url) {
+    window.beeStreamUrl('/edit-stream', { message: msg, history: chatHistory.slice(-6) }, { session_id: SESSION_ID }).then(function (url) {
       var es = new EventSource(url);
       currentEs = es;
       listen(es);
@@ -231,6 +233,8 @@
       es.addEventListener('agent-message', function (ev) {
         agentBubble.div.classList.remove('agent-loading');
         agentBubble.inner.innerHTML = ev.data;
+        var reply = agentBubble.inner.textContent.trim();
+        if (reply) chatHistory = chatHistory.concat([[msg, reply]]).slice(-6);
         scrollChat();
       });
 

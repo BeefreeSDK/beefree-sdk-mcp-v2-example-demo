@@ -746,6 +746,9 @@ final_template = resp.json()</code></pre>
     var ready = { em: false, am: false };   // chat connected to a session
     var busy = { em: false, am: false };    // agent is working on a turn
     var lastMessage = { em: '', am: '' };   // for "Try again"
+    // Recent [user, agent] turns. The server keeps nothing between requests, so
+    // each message carries the conversation the agent should remember.
+    var chatHistory = { em: [], am: [] };
 
     // Plain-language labels for the marketer-facing builder; technical ones for the guide
     var LABELS = SIMPLE
@@ -1264,7 +1267,7 @@ final_template = resp.json()</code></pre>
         if (currentStreams[prefix]) currentStreams[prefix].close();
         var params = { session_id: sessionId };
         if (sel) { params.selection_type = sel.type; params.selection_id = sel.uuid; }
-        window.beeStreamUrl('/edit-stream', { message: msg }, params).then(listen, function (err) {
+        window.beeStreamUrl('/edit-stream', { message: msg, history: chatHistory[prefix].slice(-6) }, params).then(listen, function (err) {
           showFailure(SIMPLE ? 'Your message couldn’t be sent.' : 'Could not send the message.', err.message);
           restore(true);
         });
@@ -1287,6 +1290,8 @@ final_template = resp.json()</code></pre>
           agentDiv.classList.remove('agent-loading');
           agentInner.innerHTML = ev.data;
           if (pinned) scrollToEnd(list);
+          var reply = agentInner.textContent.trim();
+          if (reply) chatHistory[prefix] = chatHistory[prefix].concat([[msg, reply]]).slice(-6);
         });
 
         es.addEventListener('close', function () {
@@ -1324,6 +1329,10 @@ final_template = resp.json()</code></pre>
                        '&template_id=' + encodeURIComponent(emTemplateId), { method: 'POST' });
         }).then(function (response) {
           if (!response.ok) throw new Error('Could not refresh editor session');
+          return response.json();
+        }).then(function (data) {
+          // The session token names the template, so it changes with it.
+          emSessionId = sessionId = data.session_id;
           openStream();
         }).catch(function () {
           showFailure(SIMPLE ? 'We couldn’t reach the editor.' : 'Could not refresh the editor session.');

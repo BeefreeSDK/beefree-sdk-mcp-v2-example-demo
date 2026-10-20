@@ -128,7 +128,8 @@ class ModelSelectionTests(unittest.TestCase):
             ("/stream/test", {"prompt": "test"}, "stream_executor"),
             ("/stream-translate/test", {"language": "Italian"}, "stream_translation_executor"),
             ("/stream-palette/test", {"palette_id": "forest"}, "stream_palette_executor"),
-            ("/edit-stream", {"session_id": "test-session", "message": "test"}, "stream_edit_executor"),
+            ("/edit-stream", {"session_id": routes.chat_session("test", "test"), "message": "test"},
+             "stream_edit_executor"),
         ]
         for provider_model in [
             "openai:gpt-5-mini",
@@ -150,9 +151,6 @@ class ModelSelectionTests(unittest.TestCase):
                         )),
                         patch.object(routes, "create_template", AsyncMock(return_value="test")),
                         patch.object(routes, executor, fake_stream),
-                        patch.dict(routes.edit_sessions, {
-                            "test-session": {"template_id": "test", "messages": []},
-                        }),
                     ):
                         response = TestClient(routes.app).get(endpoint, params={
                             **params, "model": provider_model,

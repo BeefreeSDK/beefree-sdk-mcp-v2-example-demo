@@ -20,6 +20,7 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 from sse_starlette import EventSourceResponse
 
 from .agent import (
@@ -43,7 +44,7 @@ from .guards import sequence_guard, validate_sequence
 from .plans import build_preset_plan
 from .layouts import build_preset_layout
 from .samples import build_sample_template
-from .payload import pack, unpack
+from .payload import chat_session, chat_template, pack, unpack
 from .sessions import ExpiringStore
 
 
@@ -82,13 +83,38 @@ translation_sessions = ExpiringStore()
 # Temporary store for palette sessions (session_id → {template_json, palettes})
 palette_sessions = ExpiringStore()
 
-# Temporary store for edit sessions (session_id → {template_id, messages})
-edit_sessions = ExpiringStore()
+# Chat sessions (Edit an email, the builder, the integration guide) are signed
+# tokens naming the template; the conversation travels with each message
+# (chat_history below). Nothing is kept between requests.
+CHAT_HISTORY_TURNS = 6
+CHAT_TURN_CHARS = 600
+CHAT_EXPIRED = ("This chat could not be found. Reload the page to start a new one.")
+
+
+def chat_secret() -> str:
+    return get_settings().bee_api_key or "beefree-demo"
+
+
+def chat_history(turns) -> list:
+    """Rebuild the agent's message history from the [user, agent] text turns the
+    page sends back. The email itself lives in the Beefree template, so recent
+    wording is all the agent needs for "make it bigger" or "undo that"."""
+    history = []
+    if not isinstance(turns, list):
+        return history
+    for turn in turns[-CHAT_HISTORY_TURNS:]:
+        if not (isinstance(turn, list) and len(turn) == 2 and all(isinstance(t, str) for t in turn)):
+            continue
+        user, agent = (t.strip()[:CHAT_TURN_CHARS] for t in turn)
+        if user and agent:
+            history.append(ModelRequest(parts=[UserPromptPart(content=user)]))
+            history.append(ModelResponse(parts=[TextPart(content=agent)]))
+    return history
 
 # Stream inputs (briefs, chat messages, campaign plans, brand rules) travel as
 # compressed tokens in the stream URL (app/payload.py), not in server memory, so
 # any copy of the app behind a load balancer can run them.
-RUN_INPUT_FIELDS = {"brief", "message"}
+RUN_INPUT_FIELDS = {"brief", "message", "history"}
 MAX_RUN_INPUT_CHARS = 20_000
 BAD_INPUT = "This request could not be read. Reload the page and try again."
 
@@ -432,28 +458,22 @@ async def integration_start(template_id: str | None = None):
     settings = get_settings()
     if not template_id:
         template_id = await create_template(settings)
-    session_id = uuid.uuid4().hex[:12]
-    edit_sessions[session_id] = {"template_id": template_id, "messages": []}
-    return JSONResponse({"template_id": template_id, "session_id": session_id})
+    return JSONResponse({"template_id": template_id,
+                         "session_id": chat_session(template_id, chat_secret())})
 
 
 @app.post("/integration-refresh")
 async def integration_refresh(session_id: str, template_id: str):
-    """Repoint an existing chat session at a new templateId, keeping history.
+    """Point the chat at a new templateId; returns the session token to use next.
 
     Editor-managed mode starts a fresh MCP session per chat interaction, so each
-    turn the editor hands us a (possibly new) templateId to edit. Updating the
-    session in place lets the agent keep its conversation history across turns
-    while the editor stays in sync.
+    turn the editor hands us a (possibly new) templateId to edit. The page keeps
+    the conversation, so only the session token changes.
     """
-    session = edit_sessions.get(session_id)
-    if not session:
-        return JSONResponse(
-            {"error": "This chat is no longer available: it was inactive for over an hour, or the server restarted. Reload the page to start a new one."},
-            status_code=404,
-        )
-    session["template_id"] = template_id
-    return JSONResponse({"ok": True, "template_id": template_id})
+    if not chat_template(session_id, chat_secret()):
+        return JSONResponse({"error": CHAT_EXPIRED}, status_code=404)
+    return JSONResponse({"ok": True, "template_id": template_id,
+                         "session_id": chat_session(template_id, chat_secret())})
 
 
 @app.get("/codemode", response_class=HTMLResponse)
@@ -517,9 +537,17 @@ async def run_input(request: Request):
     except ValueError:
         return JSONResponse({"error": "The request was not valid JSON."}, status_code=400)
     fields = body if isinstance(body, dict) else {}
-    if not fields or set(fields) - RUN_INPUT_FIELDS or not all(isinstance(v, str) for v in fields.values()):
+    texts = [v for k, v in fields.items() if k != "history"]
+    if (not texts or set(fields) - RUN_INPUT_FIELDS or not all(isinstance(v, str) for v in texts)
+            or not isinstance(fields.get("history", []), list)):
         return JSONResponse({"error": "Send a brief or a message."}, status_code=400)
-    if sum(len(v) for v in fields.values()) > MAX_RUN_INPUT_CHARS:
+    if fields.get("history"):
+        # Only the recent turns are used; trim them here so the token stays short.
+        fields["history"] = [
+            [t[:CHAT_TURN_CHARS] for t in turn] for turn in fields["history"][-CHAT_HISTORY_TURNS:]
+            if isinstance(turn, list) and len(turn) == 2 and all(isinstance(t, str) for t in turn)
+        ]
+    if len(json.dumps(fields)) > MAX_RUN_INPUT_CHARS:
         return JSONResponse({"error": "That text is too long for this demo."}, status_code=413)
     return JSONResponse({"input_id": pack(fields)})
 
@@ -1077,8 +1105,7 @@ async def edit_start(request: Request, template_json: str = Form(...)):
         'title="Email preview"></iframe>'
     )
 
-    session_id = uuid.uuid4().hex[:12]
-    edit_sessions[session_id] = {"template_id": template_id, "messages": []}
+    session_id = chat_session(template_id, chat_secret())
 
     return templates.TemplateResponse(
         "partials/edit_workspace.html",
@@ -1119,42 +1146,31 @@ async def edit_stream_route(
     settings: Settings = Depends(get_run_settings),
 ):
     """SSE: run one edit-agent turn, stream previews + the agent's reply."""
+    turns = None
     if input_id:
-        message = (unpack(input_id) or {}).get("message")
+        saved = unpack(input_id) or {}
+        message, turns = saved.get("message"), saved.get("history")
     if not message:
         async def _missing():
             yield {"event": "agent-error", "data": html_lib.escape(
                 BAD_INPUT if input_id else "No message was sent.")}
             yield {"event": "close", "data": ""}
         return EventSourceResponse(_missing())
-    session = edit_sessions.get(session_id)
-    if not session:
+    template_id = chat_template(session_id, chat_secret())
+    if not template_id:
         async def _err():
-            yield {"event": "agent-message", "data": (
-                "<p>This chat is no longer available: it was inactive for over an hour, "
-                "or the server restarted. Reload the page to start a new one.</p>"
-            )}
+            yield {"event": "agent-message", "data": f"<p>{html_lib.escape(CHAT_EXPIRED)}</p>"}
             yield {"event": "close", "data": ""}
         return EventSourceResponse(_err())
-
-    template_id = session["template_id"]
-    history = session.get("messages", [])
-    new_messages: list = []
 
     async def generator():
         async for event in stream_edit_executor(
             template_id=template_id,
             message=with_selection(message, selection_type, selection_id),
             settings=settings,
-            message_history=history,
-            out_messages=new_messages,
+            message_history=chat_history(turns),
         ):
             yield event
-        # Persist updated conversation history after the stream completes
-        if new_messages:
-            # Re-store the session: keeps the history and marks it active again
-            session["messages"] = new_messages
-            edit_sessions[session_id] = session
 
     return EventSourceResponse(generator())
 

@@ -115,12 +115,9 @@ class EditorSelectionTests(unittest.TestCase):
             captured.update(kwargs)
             yield {"event": "close", "data": ""}
 
-        with (
-            patch.object(routes, "stream_edit_executor", fake_executor),
-            patch.dict(routes.edit_sessions, {"s1": {"template_id": "t1", "messages": []}}),
-        ):
+        with patch.object(routes, "stream_edit_executor", fake_executor):
             TestClient(routes.app).get("/edit-stream", params={
-                "session_id": "s1", "message": "Make this red",
+                "session_id": routes.chat_session("t1", routes.chat_secret()), "message": "Make this red",
                 "selection_type": "row", "selection_id": "row-uuid-1",
             })
         self.assertIn("uuid: row-uuid-1", captured["message"])

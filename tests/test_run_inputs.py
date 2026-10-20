@@ -71,8 +71,8 @@ class RunInputTests(unittest.TestCase):
         self.assertIn("could not be read", body)
         body = self.client.get("/execute-stream", params={"input_id": "gone"}).text
         self.assertIn("could not be read", body)
-        main.edit_sessions["s1"] = {"template_id": "t", "messages": []}
-        body = self.client.get("/edit-stream", params={"session_id": "s1", "input_id": "gone"}).text
+        session = main.chat_session("t", main.chat_secret())
+        body = self.client.get("/edit-stream", params={"session_id": session, "input_id": "gone"}).text
         self.assertIn("could not be read", body)
 
     def test_tokens_round_trip_and_reject_damage(self):
