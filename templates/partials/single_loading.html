@@ -583,8 +583,8 @@
 
   /* ── Stream ── */
   var brandId = {{ (brand_id or '') | tojson }};
-  var es = new EventSource('/generate-stream?brief=' + encodeURIComponent(brief) +
-    (brandId ? '&brand=' + encodeURIComponent(brandId) : ''));
+  // The brief (and brand rules id) were saved by the POST; the URL only carries their id.
+  var es = new EventSource('/generate-stream?input_id=' + encodeURIComponent({{ input_id | tojson }}));
   if (brandId) document.getElementById('se-brand').hidden = false;
   pendingScript = addLog('Reading your brief and planning the layout');
   setNote(pendingScript, 'Writing the first step...');

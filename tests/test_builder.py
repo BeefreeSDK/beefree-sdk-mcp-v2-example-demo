@@ -129,4 +129,4 @@ class EditorSelectionTests(unittest.TestCase):
         response = TestClient(app).get("/builder")
         self.assertIn("onSelectElement", response.text)
         self.assertIn('id="em-selection"', response.text)
-        self.assertIn("selection_id=", response.text)
+        self.assertIn("params.selection_id = sel.uuid", response.text)

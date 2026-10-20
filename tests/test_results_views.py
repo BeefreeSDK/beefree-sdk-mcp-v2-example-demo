@@ -25,6 +25,7 @@ class ResultsPartialTests(unittest.TestCase):
             "sequence": render(
                 "partials/sequence.html", plan=plan, llm_model="openai:gpt-5-mini",
                 emails_with_ids=[(e, f"tpl{i}") for i, e in enumerate(plan.emails)],
+        prompt_inputs={f"tpl{i}": f"in{i}" for i in range(len(plan.emails))},
             ),
             "palette": render(
                 "partials/palette_sequence.html", llm_model="openai:gpt-5-mini",

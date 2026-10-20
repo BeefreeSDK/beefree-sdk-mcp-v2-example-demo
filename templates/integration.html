@@ -1259,10 +1259,18 @@ final_template = resp.json()</code></pre>
       }
 
       // Open the SSE stream for this turn
+      // The message is saved with a POST first; the stream URL only carries its id.
       function openStream() {
         if (currentStreams[prefix]) currentStreams[prefix].close();
-        var url = '/edit-stream?session_id=' + encodeURIComponent(sessionId) + '&message=' + encodeURIComponent(msg);
-        if (sel) url += '&selection_type=' + encodeURIComponent(sel.type) + '&selection_id=' + encodeURIComponent(sel.uuid);
+        var params = { session_id: sessionId };
+        if (sel) { params.selection_type = sel.type; params.selection_id = sel.uuid; }
+        window.beeStreamUrl('/edit-stream', { message: msg }, params).then(listen, function (err) {
+          showFailure(SIMPLE ? 'Your message couldn’t be sent.' : 'Could not send the message.', err.message);
+          restore(true);
+        });
+      }
+
+      function listen(url) {
         var es = new EventSource(url);
         currentStreams[prefix] = es;
         var failed = false;

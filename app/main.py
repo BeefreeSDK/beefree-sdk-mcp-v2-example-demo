@@ -85,6 +85,21 @@ edit_sessions = ExpiringStore()
 # Brand rules checked by Beefree, ready for a generation (brand_id → brandRules)
 brand_sessions = ExpiringStore()
 
+# Long stream inputs (briefs, chat messages, campaign plans), saved by a POST so
+# the EventSource URL only carries a short id. Putting them in the query string
+# breaks behind proxies with URL limits (414 Request-URI Too Large).
+run_inputs = ExpiringStore(ttl_seconds=30 * 60)
+RUN_INPUT_FIELDS = {"brief", "message"}
+MAX_RUN_INPUT_CHARS = 60_000
+EXPIRED_INPUT = ("This request is no longer available: it was waiting for over half an hour, "
+                 "or the server restarted. Reload the page and try again.")
+
+
+def stash_input(**fields) -> str:
+    input_id = secrets.token_urlsafe(12)
+    run_inputs[input_id] = fields
+    return input_id
+
 # Templates corrected on our side after an agent run (template_id → template
 # JSON). Beefree has no update endpoint, so downloads serve these instead.
 # Kept for a day so result pages left open still download the fixed version.
@@ -291,6 +306,13 @@ PALETTES = [
 # ─── Routes ──────────────────────────────────────────────────────────────────
 
 
+async def _failed_stream(message: str):
+    """A stream that only reports why it could not start."""
+    yield {"event": "agent-error", "data": html_lib.escape(message)}
+    yield {"event": "outcome", "data": '{"status":"failed"}'}
+    yield {"event": "close", "data": ""}
+
+
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     """Browsers ask for /favicon.ico on their own; pages link the SVG and PNGs."""
@@ -443,10 +465,14 @@ async def codemode_page(request: Request):
 
 @app.get("/codemode-stream")
 async def codemode_stream(
-    request: Request, brief: str,
+    request: Request, brief: str | None = None, input_id: str | None = None,
     settings: Settings = Depends(get_run_settings),
 ):
     """SSE endpoint: creates a template, runs single email agent via Code Mode endpoint, streams previews."""
+    if input_id:
+        brief = (run_inputs.get(input_id) or {}).get("brief")
+    if not brief:
+        return EventSourceResponse(_failed_stream(EXPIRED_INPUT if input_id else "No brief was sent."))
 
     async def generator():
         try:
@@ -481,8 +507,23 @@ async def generate(request: Request, brief: str = Form(...)):
     """Return the loading partial immediately; SSE drives the generation."""
     return templates.TemplateResponse(
         "partials/single_loading.html",
-        {"request": request, "brief": brief},
+        {"request": request, "brief": brief, "input_id": stash_input(brief=brief)},
     )
+
+
+@app.post("/run-input")
+async def run_input(request: Request):
+    """Save a long stream input; the page then opens the stream with ?input_id=."""
+    try:
+        body = await request.json()
+    except ValueError:
+        return JSONResponse({"error": "The request was not valid JSON."}, status_code=400)
+    fields = body if isinstance(body, dict) else {}
+    if not fields or set(fields) - RUN_INPUT_FIELDS or not all(isinstance(v, str) for v in fields.values()):
+        return JSONResponse({"error": "Send a brief or a message."}, status_code=400)
+    if sum(len(v) for v in fields.values()) > MAX_RUN_INPUT_CHARS:
+        return JSONResponse({"error": "That text is too long for this demo."}, status_code=413)
+    return JSONResponse({"input_id": stash_input(**fields)})
 
 
 @app.get("/brand", response_class=HTMLResponse)
@@ -536,13 +577,15 @@ async def brand_generate(request: Request, brief: str = Form(...), brand_id: str
         )
     return templates.TemplateResponse(
         "partials/single_loading.html",
-        {"request": request, "brief": brief, "brand_id": brand_id},
+        {"request": request, "brief": brief, "brand_id": brand_id,
+         "input_id": stash_input(brief=brief, brand=brand_id)},
     )
 
 
 @app.get("/generate-stream")
 async def generate_stream(
-    request: Request, brief: str, brand: str | None = None,
+    request: Request, brief: str | None = None, brand: str | None = None,
+    input_id: str | None = None,
     settings: Settings = Depends(get_run_settings),
 ):
     """SSE endpoint: creates a template, runs single email agent, streams previews.
@@ -550,6 +593,12 @@ async def generate_stream(
     With ``brand`` (an id from /brand-rules), the template session carries those
     brand rules and the stream adds "brand" events each time they apply.
     """
+
+    if input_id:
+        saved = run_inputs.get(input_id) or {}
+        brief, brand = saved.get("brief"), saved.get("brand")
+    if not brief:
+        return EventSourceResponse(_failed_stream(EXPIRED_INPUT if input_id else "No brief was sent."))
 
     async def generator():
         try:
@@ -907,7 +956,7 @@ async def execute(request: Request, plan_json: str = Form(...)):
         raise HTTPException(status_code=400, detail="Invalid campaign plan.") from exc
     return templates.TemplateResponse(
         "partials/execute_loading.html",
-        {"request": request, "plan_json": plan_json, "plan": email_plan,
+        {"request": request, "input_id": stash_input(plan_json=plan_json), "plan": email_plan,
          "emails_with_ids": [(email, None) for email in email_plan.emails],
          "pending_sessions": True},
     )
@@ -915,10 +964,18 @@ async def execute(request: Request, plan_json: str = Form(...)):
 
 @app.get("/execute-stream")
 async def execute_stream(
-    request: Request, plan_json: str,
+    request: Request, plan_json: str | None = None, input_id: str | None = None,
     settings: Settings = Depends(get_run_settings),
 ):
     """SSE: load a static preset layout, seed templates, stream the sequence view."""
+    if input_id:
+        plan_json = (run_inputs.get(input_id) or {}).get("plan_json")
+    if not plan_json:
+        async def _missing():
+            yield {"event": "sequence", "data": (
+                f"<p class='inline-error' role='alert'>{html_lib.escape(EXPIRED_INPUT)}</p>")}
+            yield {"event": "close", "data": ""}
+        return EventSourceResponse(_missing())
     email_plan = EmailPlan.model_validate_json(plan_json)
     num_sections = max((e.body_section_count for e in email_plan.emails), default=3)
     try:
@@ -974,6 +1031,9 @@ async def execute_stream(
             sequence_html = tmpl.render(
                 plan=email_plan,
                 emails_with_ids=emails_with_ids,
+                # Each column's stream URL carries an id, not the (long) agent prompt
+                prompt_inputs={tid: stash_input(prompt=email.agent_prompt)
+                               for email, tid in emails_with_ids},
                 llm_model=settings.llm_model,
             )
             yield {"event": "sequence", "data": sequence_html}
@@ -1061,11 +1121,19 @@ def with_selection(message: str, selection_type: str | None, selection_id: str |
 
 @app.get("/edit-stream")
 async def edit_stream_route(
-    request: Request, session_id: str, message: str,
+    request: Request, session_id: str, message: str | None = None, input_id: str | None = None,
     selection_type: str | None = None, selection_id: str | None = None,
     settings: Settings = Depends(get_run_settings),
 ):
     """SSE: run one edit-agent turn, stream previews + the agent's reply."""
+    if input_id:
+        message = (run_inputs.get(input_id) or {}).get("message")
+    if not message:
+        async def _missing():
+            yield {"event": "agent-error", "data": html_lib.escape(
+                EXPIRED_INPUT if input_id else "No message was sent.")}
+            yield {"event": "close", "data": ""}
+        return EventSourceResponse(_missing())
     session = edit_sessions.get(session_id)
     if not session:
         async def _err():
@@ -1100,9 +1168,13 @@ async def edit_stream_route(
 
 @app.get("/stream/{template_id}")
 async def stream(
-    request: Request, template_id: str, prompt: str,
+    request: Request, template_id: str, prompt: str | None = None, input_id: str | None = None,
     settings: Settings = Depends(get_run_settings),
 ):
+    if input_id:
+        prompt = (run_inputs.get(input_id) or {}).get("prompt")
+    if not prompt:
+        return EventSourceResponse(_failed_stream(EXPIRED_INPUT if input_id else "No prompt was sent."))
     async def generator():
         async for event in stream_executor(
             template_id, prompt, settings,

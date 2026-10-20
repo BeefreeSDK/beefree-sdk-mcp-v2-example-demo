@@ -82,3 +82,21 @@ window.beeLoadSample = function (textareaId, statusId) {
     if (status) { status.textContent = 'Could not load the sample template'; status.className = 'json-status is-error'; }
   });
 };
+
+/* Long text (a brief, a chat message) is saved with a POST first, so the stream
+   URL only carries a short id. Proxies reject very long URLs (414). Resolves to
+   the URL to open with EventSource. */
+window.beeStreamUrl = function (path, fields, params) {
+  return fetch('/run-input', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(fields)
+  }).then(function (resp) {
+    return resp.json().catch(function () { return {}; }).then(function (data) {
+      if (!resp.ok || !data.input_id) throw new Error(data.error || 'The request could not be sent.');
+      var query = new URLSearchParams(params || {});
+      query.set('input_id', data.input_id);
+      return path + '?' + query.toString();
+    });
+  });
+};

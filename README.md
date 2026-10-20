@@ -199,6 +199,9 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
   visitor's requests can land on a process that doesn't know their session.
 - **Streaming responses:** results stream over Server-Sent Events. Make sure your
   proxy or gateway doesn't buffer them and allows connections of several minutes.
+- **Short stream URLs:** briefs, chat messages and campaign plans are sent with a
+  POST and kept for 30 minutes (`run_inputs` in `app/main.py`); the stream URL only
+  carries an `input_id`. This keeps URLs well under proxy limits (no 414 errors).
 - **Shared limits:** every visitor's agents use your LLM and Beefree API keys, so many
   simultaneous runs can hit provider rate limits. Set spending alerts with your
   providers.

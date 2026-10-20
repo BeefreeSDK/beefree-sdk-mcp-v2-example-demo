@@ -362,7 +362,22 @@ x-bee-template-id: &lt;template-id&gt;</code></pre>
         + '<div class="esk-label"><span class="phase-spinner" style="width:12px;height:12px;border-width:1.5px"></span>The preview appears when the script runs&hellip;</div>'
         + '</div>';
 
-      const es = new EventSource('/codemode-stream?brief=' + encodeURIComponent(brief));
+      let streamUrl;
+      try {
+        streamUrl = await window.beeStreamUrl('/codemode-stream', { brief: brief });
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Generate with Code Mode';
+        panel.className = 'codemode-preview-panel is-error';
+        badge.className = 'single-gen-status error';
+        badgeText.textContent = 'Error';
+        const note = document.createElement('p');
+        note.className = 'plan-error';
+        note.textContent = 'The brief could not be sent: ' + err.message + ' Try again.';
+        output.replaceChildren(note);
+        return;
+      }
+      const es = new EventSource(streamUrl);
       let failed = false;
       let completed = false;
       delete output.dataset.templateId;

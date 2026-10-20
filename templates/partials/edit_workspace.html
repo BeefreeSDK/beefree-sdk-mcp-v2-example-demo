@@ -184,67 +184,82 @@
 
     // Open SSE stream for this turn
     if (currentEs) { currentEs.close(); currentEs = null; }
-    var url = '/edit-stream?session_id=' + encodeURIComponent(SESSION_ID) +
-              '&message=' + encodeURIComponent(msg);
-    var es = new EventSource(url);
-    currentEs = es;
-
-    es.addEventListener('preview', function (ev) {
-      previewDiv.innerHTML = ev.data;
-      fixIframe();
-      // Flash the preview panel
-      previewOuter.scrollTop = 0;
-      previewOuter.classList.remove('preview-refreshing');
-      void previewOuter.offsetWidth;
-      previewOuter.classList.add('preview-refreshing');
-      previewOuter.addEventListener('animationend', function () {
-        previewOuter.classList.remove('preview-refreshing');
-      }, { once: true });
-    });
-
-    es.addEventListener('agent-error', function (ev) {
-      // The server HTML-escapes this text; a textarea decodes it without parsing markup.
-      var decoded = document.createElement('textarea');
-      decoded.innerHTML = ev.data;
+    // The message is saved with a POST first; the stream URL only carries its id.
+    window.beeStreamUrl('/edit-stream', { message: msg }, { session_id: SESSION_ID }).then(function (url) {
+      var es = new EventSource(url);
+      currentEs = es;
+      listen(es);
+    }, function (err) {
       agentBubble.div.classList.remove('agent-loading');
       var p = document.createElement('p');
       p.className = 'chat-error';
-      p.textContent = 'That change could not be made: ' + decoded.value + ' Try again, or rephrase the request.';
+      p.textContent = 'Your message could not be sent: ' + err.message + ' Try again.';
       agentBubble.inner.replaceChildren(p);
-      scrollChat();
-    });
-
-    es.addEventListener('agent-message', function (ev) {
-      agentBubble.div.classList.remove('agent-loading');
-      agentBubble.inner.innerHTML = ev.data;
-      scrollChat();
-    });
-
-    es.addEventListener('close', function () {
-      es.close();
-      currentEs = null;
       chatInput.disabled = false;
       sendBtn.disabled = false;
-      chatInput.focus({ preventScroll: true });
       statusBadge.textContent = 'Ready';
       statusBadge.className = 'edit-status-badge';
-      previewBadge.textContent = 'Updated';
       scrollChat();
     });
 
-    es.onerror = function () {
-      es.close();
-      currentEs = null;
-      if (agentBubble.div.classList.contains('agent-loading')) {
+    function listen(es) {
+      es.addEventListener('preview', function (ev) {
+        previewDiv.innerHTML = ev.data;
+        fixIframe();
+        // Flash the preview panel
+        previewOuter.scrollTop = 0;
+        previewOuter.classList.remove('preview-refreshing');
+        void previewOuter.offsetWidth;
+        previewOuter.classList.add('preview-refreshing');
+        previewOuter.addEventListener('animationend', function () {
+          previewOuter.classList.remove('preview-refreshing');
+        }, { once: true });
+      });
+
+      es.addEventListener('agent-error', function (ev) {
+        // The server HTML-escapes this text; a textarea decodes it without parsing markup.
+        var decoded = document.createElement('textarea');
+        decoded.innerHTML = ev.data;
         agentBubble.div.classList.remove('agent-loading');
-        agentBubble.inner.innerHTML = '<p class="chat-error">The connection to the server was lost. Send your message again.</p>';
-      }
-      chatInput.disabled = false;
-      sendBtn.disabled = false;
-      statusBadge.textContent = 'Ready';
-      statusBadge.className = 'edit-status-badge';
-      scrollChat();
-    };
+        var p = document.createElement('p');
+        p.className = 'chat-error';
+        p.textContent = 'That change could not be made: ' + decoded.value + ' Try again, or rephrase the request.';
+        agentBubble.inner.replaceChildren(p);
+        scrollChat();
+      });
+
+      es.addEventListener('agent-message', function (ev) {
+        agentBubble.div.classList.remove('agent-loading');
+        agentBubble.inner.innerHTML = ev.data;
+        scrollChat();
+      });
+
+      es.addEventListener('close', function () {
+        es.close();
+        currentEs = null;
+        chatInput.disabled = false;
+        sendBtn.disabled = false;
+        chatInput.focus({ preventScroll: true });
+        statusBadge.textContent = 'Ready';
+        statusBadge.className = 'edit-status-badge';
+        previewBadge.textContent = 'Updated';
+        scrollChat();
+      });
+
+      es.onerror = function () {
+        es.close();
+        currentEs = null;
+        if (agentBubble.div.classList.contains('agent-loading')) {
+          agentBubble.div.classList.remove('agent-loading');
+          agentBubble.inner.innerHTML = '<p class="chat-error">The connection to the server was lost. Send your message again.</p>';
+        }
+        chatInput.disabled = false;
+        sendBtn.disabled = false;
+        statusBadge.textContent = 'Ready';
+        statusBadge.className = 'edit-status-badge';
+        scrollChat();
+      };
+    }
   };
 
   /* ── Enter sends, Shift+Enter adds a new line ───────────────────── */

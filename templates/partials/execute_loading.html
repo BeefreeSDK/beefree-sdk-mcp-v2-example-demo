@@ -3,7 +3,7 @@
 <link rel="stylesheet" href="/static/results.css">
 
 <div hx-ext="sse"
-     sse-connect="/execute-stream?plan_json={{ plan_json | urlencode }}"
+     sse-connect="/execute-stream?input_id={{ input_id }}"
      sse-close="close">
 
   <!-- Replaced wholesale by the "sequence" SSE event when the emails are ready -->

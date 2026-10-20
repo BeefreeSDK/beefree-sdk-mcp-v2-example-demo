@@ -31,7 +31,7 @@
       {% if not pending_sessions %}
       data-template-id="{{ template_id }}"
       hx-ext="sse"
-      sse-connect="/stream/{{ template_id }}?prompt={{ email.agent_prompt | urlencode }}&amp;model={{ llm_model | urlencode }}"
+      sse-connect="/stream/{{ template_id }}?input_id={{ prompt_inputs[template_id] }}&amp;model={{ llm_model | urlencode }}"
       sse-close="close"
       {% endif %}
     >
