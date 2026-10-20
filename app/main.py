@@ -3,7 +3,9 @@ import html as html_lib
 import json
 import re
 import logging
+import os
 import secrets
+import socket
 import uuid
 from urllib.parse import quote
 
@@ -320,10 +322,16 @@ async def favicon():
                         headers={"Cache-Control": "public, max-age=86400"})
 
 
+# Which process answered: hostname (the container) and pid (the worker). Calling
+# /healthcheck a few times shows whether requests are spread across copies of the
+# app, which breaks the in-memory sessions (see README, "One instance only").
+INSTANCE_ID = f"{socket.gethostname()}:{os.getpid()}"
+
+
 @app.get("/healthcheck")
 async def healthcheck():
     """Liveness probe for the hosting platform: no external calls, always fast."""
-    return JSONResponse({"status": "ok"}, headers={"Cache-Control": "no-store"})
+    return JSONResponse({"status": "ok", "instance": INSTANCE_ID}, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/ai-models")

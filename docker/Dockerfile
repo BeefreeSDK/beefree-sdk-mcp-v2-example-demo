@@ -30,4 +30,6 @@ USER appuser
 EXPOSE 8000
 
 # Run uvicorn directly: main.py enables hot-reload, which is not wanted in production
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Exactly one worker: sessions live in memory. Pinned so a platform-set
+# WEB_CONCURRENCY can't start more.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

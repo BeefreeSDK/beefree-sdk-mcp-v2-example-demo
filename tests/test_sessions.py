@@ -54,8 +54,9 @@ if __name__ == "__main__":
 class HealthcheckTests(unittest.TestCase):
     def test_healthcheck_is_ok_without_external_calls(self):
         from fastapi.testclient import TestClient
-        from app.main import app
+        from app.main import INSTANCE_ID, app
         response = TestClient(app).get("/healthcheck")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"status": "ok"})
+        self.assertEqual(response.json()["status"], "ok")
+        self.assertEqual(response.json()["instance"], INSTANCE_ID)
         self.assertEqual(response.headers["cache-control"], "no-store")

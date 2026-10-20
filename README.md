@@ -195,8 +195,13 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 
 - **Health check:** `GET /healthcheck` returns `{"status": "ok"}` instantly, with no
   external calls. Point your platform's liveness or readiness probe at it.
-- **One worker only:** sessions live in memory, so with more than one worker a
-  visitor's requests can land on a process that doesn't know their session.
+- **One instance only:** sessions, saved briefs and plans live in memory, so every
+  request from a visitor must reach the same process. Run one worker (the
+  Dockerfile pins `--workers 1`) and one container, or enable sticky sessions on the
+  load balancer. With several instances, some requests land on a copy that never saw
+  the data: chats say "no longer available" and sequence emails fail at random.
+  `GET /healthcheck` returns an `instance` id (hostname and pid); call it a few times
+  and check it never changes.
 - **Streaming responses:** results stream over Server-Sent Events. Make sure your
   proxy or gateway doesn't buffer them and allows connections of several minutes.
 - **Short stream URLs:** briefs, chat messages and campaign plans are sent with a
