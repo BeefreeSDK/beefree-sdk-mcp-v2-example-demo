@@ -8,6 +8,7 @@ from app import main
 from app.beefree import BrandRulesRejected
 from app.brand import PRESETS, events_from_error, events_from_result, shape_errors
 from app.config import Settings
+from app.payload import unpack
 
 
 def settings():
@@ -104,13 +105,16 @@ class BrandRouteTests(unittest.TestCase):
         check.assert_not_called()
 
     def test_accepted_rules_are_used_for_the_generation(self):
+        """Rules travel as a token, so every request can land on a different app copy."""
         rules = PRESETS[0]["rules"]
         with patch.object(main, "validate_brand_rules", AsyncMock()):
             brand_id = self.client.post("/brand-rules", json={"rules": rules}).json()["brand_id"]
+        self.assertEqual(unpack(brand_id), {"rules": rules})
 
         partial = self.client.post("/brand-generate", data={"brief": "Hello", "brand_id": brand_id})
         self.assertEqual(partial.status_code, 200)
-        self.assertIn(json.dumps(brand_id), partial.text)
+        input_id = json.loads(partial.text.split("encodeURIComponent(", 1)[1].split(")", 1)[0])
+        self.assertEqual(unpack(input_id), {"brief": "Hello", "brand_rules": rules})
 
         seen = {}
 
@@ -124,19 +128,19 @@ class BrandRouteTests(unittest.TestCase):
             patch.object(main, "create_template", create),
             patch.object(main, "stream_single_executor", fake_stream),
         ):
-            body = self.client.get("/generate-stream", params={"brief": "Hello", "brand": brand_id}).text
+            body = self.client.get("/generate-stream", params={"input_id": input_id}).text
         self.assertEqual(create.call_args.kwargs["brand_rules"], rules)
         self.assertTrue(seen["brand"])
         self.assertIn("event: brand", body)
 
-    def test_unknown_brand_id(self):
-        response = self.client.post("/brand-generate", data={"brief": "Hello", "brand_id": "missing"})
-        self.assertEqual(response.status_code, 404)
+    def test_unreadable_brand_token(self):
+        response = self.client.post("/brand-generate", data={"brief": "Hello", "brand_id": "garbage"})
+        self.assertEqual(response.status_code, 400)
         create = AsyncMock(return_value="tmpl")
         with patch.object(main, "create_template", create):
-            body = self.client.get("/generate-stream", params={"brief": "Hello", "brand": "missing"}).text
+            body = self.client.get("/generate-stream", params={"input_id": "garbage"}).text
         create.assert_not_called()
-        self.assertIn("no longer available", body)
+        self.assertIn("could not be read", body)
 
     def test_plain_generation_has_no_brand_rules(self):
         seen = {}

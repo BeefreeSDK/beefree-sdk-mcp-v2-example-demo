@@ -195,18 +195,20 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 
 - **Health check:** `GET /healthcheck` returns `{"status": "ok"}` instantly, with no
   external calls. Point your platform's liveness or readiness probe at it.
-- **One instance only:** sessions, saved briefs and plans live in memory, so every
-  request from a visitor must reach the same process. Run one worker (the
-  Dockerfile pins `--workers 1`) and one container, or enable sticky sessions on the
-  load balancer. With several instances, some requests land on a copy that never saw
-  the data: chats say "no longer available" and sequence emails fail at random.
-  `GET /healthcheck` returns an `instance` id (hostname and pid); call it a few times
-  and check it never changes.
+- **Several instances:** Single email, Code Mode, On-brand email and Email sequence
+  generation work on any copy of the app. The chats (Edit an email, the builder,
+  the integration guide), Bulk translations, Color palettes and sequence layout
+  checks keep sessions in memory, so they need every request from a visitor on the
+  same process: run one worker (the Dockerfile pins `--workers 1`) and one
+  container, or enable sticky sessions on the load balancer. `GET /healthcheck`
+  returns an `instance` id (hostname and pid); if it changes between calls, requests
+  are being spread across copies.
 - **Streaming responses:** results stream over Server-Sent Events. Make sure your
   proxy or gateway doesn't buffer them and allows connections of several minutes.
-- **Short stream URLs:** briefs, chat messages and campaign plans are sent with a
-  POST and kept for 30 minutes (`run_inputs` in `app/main.py`); the stream URL only
-  carries an `input_id`. This keeps URLs well under proxy limits (no 414 errors).
+- **Stream inputs as tokens:** briefs, chat messages, campaign plans, per-email
+  prompts and brand rules travel in the stream URL as compressed tokens
+  (`app/payload.py`), not in server memory. A 6 KB plan becomes under 3 KB, well
+  within proxy URL limits (no 414), and any copy of the app can run it.
 - **Shared limits:** every visitor's agents use your LLM and Beefree API keys, so many
   simultaneous runs can hit provider rate limits. Set spending alerts with your
   providers.
@@ -244,6 +246,7 @@ Chat sessions, pending runs and sequence layout checks are kept in memory
 │   ├── samples.py       # Sample template for the template-based demos
 │   ├── brand.py         # Brand rule presets and Code Mode result → brand event parsing
 │   ├── sessions.py      # In-memory stores that expire after an hour of inactivity
+│   ├── payload.py       # Compressed tokens that carry stream inputs in the URL
 │   ├── plans.py         # Predefined campaign plans
 │   ├── layouts.py       # Predefined campaign layouts
 │   └── guards.py        # Sequence layout checks
