@@ -35,10 +35,11 @@ from .agent import (
     stream_edit_executor,
 )
 from .beefree import (
-    BrandRulesRejected, create_seeded_template, create_template, get_template,
-    validate_brand_rules,
+    BrandRulesRejected, ReusableRowsRejected, create_seeded_template, create_template,
+    get_template, validate_brand_rules, validate_reusable_rows,
 )
 from .brand import BLOCK_TYPES, PRESETS, shape_errors
+from .rows import SAMPLE_LIBRARY, library_cards, shape_errors as library_shape_errors
 from .config import Settings, get_settings
 from .guards import sequence_guard, validate_sequence
 from .plans import build_preset_plan
@@ -84,6 +85,10 @@ template_layouts = ExpiringStore()
 CHAT_HISTORY_TURNS = 6
 CHAT_TURN_CHARS = 600
 CHAT_EXPIRED = ("This chat could not be found. Reload the page to start a new one.")
+
+# The sample library for the /rows page script. "</" is escaped so the JSON can
+# sit inside a <script>.
+SAMPLE_LIBRARY_JSON = json.dumps(SAMPLE_LIBRARY).replace("</", "<\\/")
 
 
 def chat_secret() -> str:
@@ -592,6 +597,80 @@ async def brand_generate(request: Request, brief: str = Form(...), brand_id: str
     )
 
 
+@app.get("/rows", response_class=HTMLResponse)
+async def rows_page(request: Request):
+    return templates.TemplateResponse(
+        "rows.html",
+        {
+            "request": request, "sample_rows": library_cards(SAMPLE_LIBRARY),
+            "sample_rows_json": SAMPLE_LIBRARY_JSON,
+        },
+    )
+
+
+@app.post("/rows-library")
+async def rows_library(request: Request, settings: Settings = Depends(get_run_settings)):
+    """Check a reusableRows library with Beefree; returns the rows the page shows."""
+    try:
+        body = await request.json()
+    except ValueError:
+        return JSONResponse({"errors": ["The request was not valid JSON."]}, status_code=400)
+    library = body.get("library") if isinstance(body, dict) else None
+    errors = library_shape_errors(library)
+    if errors:
+        return JSONResponse({"errors": errors[:20]}, status_code=422)
+    try:
+        await validate_reusable_rows(settings, library)
+    except ReusableRowsRejected as exc:
+        return JSONResponse({"errors": exc.details[:20]}, status_code=422)
+    except Exception as exc:
+        log.error("Reusable rows validation failed: %s", exc)
+        return JSONResponse(
+            {"errors": ["Beefree could not check this library right now. Try again in a moment."]},
+            status_code=502,
+        )
+    return JSONResponse({"rows": library_cards(library)})
+
+
+@app.post("/rows-generate", response_class=HTMLResponse)
+async def rows_generate(
+    request: Request, brief: str = Form(...), library: str = Form(...),
+    settings: Settings = Depends(get_run_settings),
+):
+    """Same result view as Single email, on a template created here with the row library.
+
+    Like the palettes, the template is created in this request, so the stream URL
+    only carries its id and the brief, whatever the size of the library."""
+    try:
+        parsed = json.loads(library)
+    except json.JSONDecodeError:
+        parsed = None
+    errors = library_shape_errors(parsed)
+    if not errors:
+        try:
+            template_id = await create_template(settings, reusable_rows=parsed)
+        except ReusableRowsRejected as exc:
+            errors = exc.details
+        except Exception as exc:
+            log.error("Saved rows template error: %s", exc)
+            return HTMLResponse(
+                "<p class='inline-error' role='alert'>We couldn't start the email: "
+                f"{html_lib.escape(str(exc))}</p>",
+                status_code=502,
+            )
+    if errors:
+        return HTMLResponse(
+            "<p class='inline-error' role='alert'>This row library can't be used "
+            f"({html_lib.escape(errors[0])}). Choose it again to continue.</p>",
+            status_code=422,
+        )
+    return templates.TemplateResponse(
+        "partials/single_loading.html",
+        {"request": request, "brief": brief, "rows": True,
+         "input_id": pack({"brief": brief, "template_id": template_id})},
+    )
+
+
 @app.get("/generate-stream")
 async def generate_stream(
     request: Request, brief: str | None = None, input_id: str | None = None,
@@ -601,23 +680,27 @@ async def generate_stream(
 
     ``input_id`` is a token (app/payload.py) with the brief and, from the brand
     page, the brand rules: the template session then carries them and the stream
-    adds "brand" events each time they apply.
+    adds "brand" events each time they apply. From the saved rows page it names
+    the template /rows-generate created with the library instead, and the stream
+    adds "rows" events for searches and placements.
     """
-    rules = None
+    rules = rows_template = None
     if input_id:
         saved = unpack(input_id) or {}
         brief = saved.get("brief")
         rules = saved.get("brand_rules") if isinstance(saved.get("brand_rules"), dict) else None
+        rows_template = saved.get("template_id") if isinstance(saved.get("template_id"), str) else None
     if not brief:
         return EventSourceResponse(_failed_stream(BAD_INPUT if input_id else "No brief was sent."))
 
     async def generator():
         try:
-            template_id = await create_template(settings, brand_rules=rules)
+            template_id = rows_template or await create_template(settings, brand_rules=rules)
             # Tell the frontend which template was created so it can offer a download
             yield {"event": "template-id", "data": template_id}
             async for event in stream_single_executor(
                 template_id, brief, settings, progressive=True, brand=bool(rules),
+                reusable_rows=bool(rows_template),
             ):
                 if event["event"] != "close":
                     yield event

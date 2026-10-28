@@ -1,0 +1,860 @@
+[
+  {
+    "metadata": {
+      "category": "Brand essentials",
+      "dateCreated": "2026-02-10T09:00:00.000000Z",
+      "dateModified": "2026-08-01T10:30:00.000000Z",
+      "description": "Required in every campaign: logo, social links, company details and the unsubscribe link. Reviewed by Legal on 2026-08-01.",
+      "idParent": null,
+      "name": "Fieldnote footer",
+      "slug": "fieldnote-footer",
+      "uuid": "0b58c7e8-6efc-5572-9f17-a66f77c3d4cd",
+      "tags": [
+        "footer",
+        "legal",
+        "unsubscribe",
+        "social",
+        "brand"
+      ]
+    },
+    "columns": [
+      {
+        "grid-columns": 12,
+        "modules": [
+          {
+            "type": "mailup-bee-newsletter-modules-image",
+            "uuid": "8bd49455-a33b-584c-85e4-d716d5e0fa77",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "class": "center autowidth",
+                "hideContentOnMobile": false,
+                "width": "140px"
+              },
+              "style": {
+                "padding-top": "0px",
+                "padding-right": "0px",
+                "padding-bottom": "0px",
+                "padding-left": "0px",
+                "width": "100%"
+              },
+              "image": {
+                "src": "https://placehold.co/360x96/FFFFFF/1F3A5F/png?text=Fieldnote",
+                "alt": "Fieldnote",
+                "href": "https://shop.example",
+                "target": "_blank",
+                "width": "360px",
+                "height": "96px"
+              }
+            }
+          },
+          {
+            "type": "mailup-bee-newsletter-modules-social",
+            "uuid": "dbe5026d-cd33-5d4a-b659-ebe78cc16409",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "hideContentOnMobile": false,
+                "iconsDefaultWidth": 32,
+                "padding": "0 4px 0 4px"
+              },
+              "style": {
+                "padding-top": "10px",
+                "padding-right": "10px",
+                "padding-bottom": "10px",
+                "padding-left": "10px",
+                "text-align": "center"
+              },
+              "iconsList": {
+                "icons": [
+                  {
+                    "type": "follow",
+                    "id": "facebook",
+                    "name": "Facebook",
+                    "text": "",
+                    "image": {
+                      "prefix": "https://www.facebook.com/fieldnote.example",
+                      "href": "https://www.facebook.com/fieldnote.example",
+                      "alt": "Facebook",
+                      "title": "Facebook",
+                      "target": "_blank",
+                      "src": "https://app-rsrc.getbee.io/public/resources/social-networks-icon-sets/circle-color/facebook@2x.png"
+                    }
+                  },
+                  {
+                    "type": "follow",
+                    "id": "instagram",
+                    "name": "Instagram",
+                    "text": "",
+                    "image": {
+                      "prefix": "https://www.instagram.com/fieldnote.example",
+                      "href": "https://www.instagram.com/fieldnote.example",
+                      "alt": "Instagram",
+                      "title": "Instagram",
+                      "target": "_blank",
+                      "src": "https://app-rsrc.getbee.io/public/resources/social-networks-icon-sets/circle-color/instagram@2x.png"
+                    }
+                  },
+                  {
+                    "type": "follow",
+                    "id": "linkedin",
+                    "name": "LinkedIn",
+                    "text": "",
+                    "image": {
+                      "prefix": "https://www.linkedin.com/company/fieldnote-example",
+                      "href": "https://www.linkedin.com/company/fieldnote-example",
+                      "alt": "LinkedIn",
+                      "title": "LinkedIn",
+                      "target": "_blank",
+                      "src": "https://app-rsrc.getbee.io/public/resources/social-networks-icon-sets/circle-color/linkedin@2x.png"
+                    }
+                  },
+                  {
+                    "type": "follow",
+                    "id": "youtube",
+                    "name": "YouTube",
+                    "text": "",
+                    "image": {
+                      "prefix": "https://www.youtube.com/@fieldnote.example",
+                      "href": "https://www.youtube.com/@fieldnote.example",
+                      "alt": "YouTube",
+                      "title": "YouTube",
+                      "target": "_blank",
+                      "src": "https://app-rsrc.getbee.io/public/resources/social-networks-icon-sets/circle-color/youtube@2x.png"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "type": "mailup-bee-newsletter-modules-text",
+            "uuid": "9a728fdc-eb70-5c0e-928b-1471beabb4e9",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "hideContentOnMobile": false
+              },
+              "style": {
+                "padding-top": "10px",
+                "padding-right": "10px",
+                "padding-bottom": "10px",
+                "padding-left": "10px"
+              },
+              "text": {
+                "computedStyle": {
+                  "linkColor": "#ffffff"
+                },
+                "html": "<div style=\"font-size:12px;text-align:center;\"><p><strong>Fieldnote S.r.l.</strong> · Via dell'Esempio 12, 20121 Milano, Italy · VAT IT01234567890</p><p>Questions? Write to <a href=\"mailto:help@fieldnote.example\" style=\"color:#ffffff;\">help@fieldnote.example</a>, Monday to Friday, 9:00–18:00.</p><p>You receive this email because you signed up at shop.example.<br><a href=\"{{unsubscribe}}\" style=\"color:#ffffff;\">Unsubscribe</a> · <a href=\"https://shop.example/preferences\" style=\"color:#ffffff;\">Manage preferences</a> · <a href=\"https://shop.example/privacy\" style=\"color:#ffffff;\">Privacy policy</a></p></div>",
+                "style": {
+                  "color": "#D9E1EA",
+                  "font-family": "inherit",
+                  "line-height": "150%"
+                }
+              }
+            }
+          }
+        ],
+        "style": {
+          "background-color": "transparent",
+          "padding-top": "5px",
+          "padding-right": "0px",
+          "padding-bottom": "5px",
+          "padding-left": "0px"
+        },
+        "uuid": "db82a5bf-bd59-571b-8738-1b363dbfffd3"
+      }
+    ],
+    "container": {
+      "style": {
+        "background-color": "transparent",
+        "background-image": "none",
+        "background-position": "top left",
+        "background-repeat": "no-repeat"
+      }
+    },
+    "content": {
+      "computedStyle": {
+        "hideContentOnDesktop": false,
+        "hideContentOnMobile": false,
+        "rowColStackOnMobile": true,
+        "rowReverseColStackOnMobile": false,
+        "verticalAlign": "top"
+      },
+      "style": {
+        "background-color": "#1F3A5F",
+        "background-image": "none",
+        "border-radius": "0px",
+        "color": "#000000",
+        "width": "600px"
+      }
+    },
+    "empty": false,
+    "locked": false,
+    "synced": true,
+    "type": "one-column-empty",
+    "uuid": "instance-0b58c7e8-6efc-5572-9f17-a66f77c3d4cd",
+    "webFonts": [
+      {
+        "fontFamily": "'Roboto', Tahoma, Verdana, Segoe, sans-serif",
+        "name": "Roboto",
+        "type": "default",
+        "url": "https://fonts.googleapis.com/css2?family=Roboto:wght@400;700"
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "category": "Back to school",
+      "dateCreated": "2026-07-01T08:00:00.000000Z",
+      "dateModified": "2026-08-20T14:15:00.000000Z",
+      "description": "Full-width photo of a school desk, the \"Ready for the first bell\" headline and a button to the Edukit bundles.",
+      "idParent": null,
+      "name": "Back-to-school hero",
+      "slug": "back-to-school-hero",
+      "uuid": "972c273d-f00a-5633-97e5-e142f2821681",
+      "tags": [
+        "back-to-school",
+        "hero",
+        "seasonal",
+        "edukit"
+      ]
+    },
+    "columns": [
+      {
+        "grid-columns": 12,
+        "modules": [
+          {
+            "type": "mailup-bee-newsletter-modules-image",
+            "uuid": "522d2866-8d41-5728-9b8c-af6e0c5e20bb",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "class": "center autowidth",
+                "hideContentOnMobile": false,
+                "width": "100%"
+              },
+              "style": {
+                "padding-top": "0px",
+                "padding-right": "0px",
+                "padding-bottom": "0px",
+                "padding-left": "0px",
+                "width": "100%"
+              },
+              "image": {
+                "src": "https://picsum.photos/id/20/1200/640",
+                "alt": "Notebooks, pencils and books on a school desk",
+                "href": "https://shop.example/edukit",
+                "target": "_blank",
+                "width": "600px",
+                "height": "320px"
+              }
+            }
+          },
+          {
+            "type": "mailup-bee-newsletter-modules-heading",
+            "uuid": "159af15b-4a6e-5b00-9e56-b5232361c0c3",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "hideContentOnMobile": false
+              },
+              "style": {
+                "padding-top": "10px",
+                "padding-right": "10px",
+                "padding-bottom": "0px",
+                "padding-left": "10px",
+                "text-align": "center",
+                "width": "100%"
+              },
+              "heading": {
+                "title": "h1",
+                "text": "Ready for the first bell",
+                "style": {
+                  "color": "#1F3A5F",
+                  "direction": "ltr",
+                  "font-family": "inherit",
+                  "font-size": "28px",
+                  "font-weight": "700",
+                  "letter-spacing": "0px",
+                  "line-height": "120%",
+                  "link-color": "#1F3A5F",
+                  "text-align": "center"
+                }
+              }
+            }
+          },
+          {
+            "type": "mailup-bee-newsletter-modules-text",
+            "uuid": "fbddc597-484f-52cc-890d-13ebaba23a0e",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "hideContentOnMobile": false
+              },
+              "style": {
+                "padding-top": "10px",
+                "padding-right": "10px",
+                "padding-bottom": "10px",
+                "padding-left": "10px"
+              },
+              "text": {
+                "computedStyle": {
+                  "linkColor": "#1F3A5F"
+                },
+                "html": "<div style=\"font-size:15px;text-align:center;\"><p>Everything on the school list, packed in one box. Pick the Edukit for your child's grade and we deliver it before the first day of school.</p></div>",
+                "style": {
+                  "color": "#333333",
+                  "font-family": "inherit",
+                  "line-height": "150%"
+                }
+              }
+            }
+          },
+          {
+            "type": "mailup-bee-newsletter-modules-button",
+            "uuid": "a75906e2-5955-514e-8379-6cfbb6d68d28",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "hideContentOnMobile": false
+              },
+              "style": {
+                "padding-top": "10px",
+                "padding-right": "10px",
+                "padding-bottom": "10px",
+                "padding-left": "10px",
+                "text-align": "center"
+              },
+              "button": {
+                "label": "Shop Edukits",
+                "href": "https://shop.example/edukit",
+                "target": "_blank",
+                "style": {
+                  "background-color": "#F2A541",
+                  "border-radius": "4px",
+                  "color": "#1F3A5F",
+                  "direction": "ltr",
+                  "font-family": "inherit",
+                  "font-size": "16px",
+                  "font-weight": "700",
+                  "letter-spacing": "0px",
+                  "line-height": "200%",
+                  "max-width": "100%",
+                  "padding-bottom": "6px",
+                  "padding-left": "24px",
+                  "padding-right": "24px",
+                  "padding-top": "6px",
+                  "width": "auto",
+                  "border-top": "0px solid transparent",
+                  "border-right": "0px solid transparent",
+                  "border-bottom": "0px solid transparent",
+                  "border-left": "0px solid transparent"
+                }
+              }
+            }
+          }
+        ],
+        "style": {
+          "background-color": "transparent",
+          "padding-top": "5px",
+          "padding-right": "0px",
+          "padding-bottom": "5px",
+          "padding-left": "0px"
+        },
+        "uuid": "12a9eab8-0b06-5374-ab63-d3240aa01dea"
+      }
+    ],
+    "container": {
+      "style": {
+        "background-color": "transparent",
+        "background-image": "none",
+        "background-position": "top left",
+        "background-repeat": "no-repeat"
+      }
+    },
+    "content": {
+      "computedStyle": {
+        "hideContentOnDesktop": false,
+        "hideContentOnMobile": false,
+        "rowColStackOnMobile": true,
+        "rowReverseColStackOnMobile": false,
+        "verticalAlign": "top"
+      },
+      "style": {
+        "background-color": "#F6F4EF",
+        "background-image": "none",
+        "border-radius": "0px",
+        "color": "#000000",
+        "width": "600px"
+      }
+    },
+    "empty": false,
+    "locked": false,
+    "synced": false,
+    "type": "one-column-empty",
+    "uuid": "instance-972c273d-f00a-5633-97e5-e142f2821681",
+    "webFonts": [
+      {
+        "fontFamily": "'Roboto', Tahoma, Verdana, Segoe, sans-serif",
+        "name": "Roboto",
+        "type": "default",
+        "url": "https://fonts.googleapis.com/css2?family=Roboto:wght@400;700"
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "category": "Cart recovery",
+      "dateCreated": "2026-04-15T11:00:00.000000Z",
+      "dateModified": "2026-09-05T16:40:00.000000Z",
+      "description": "\"You left something behind\": a photo of the item left in the cart, its name and price, and a button back to the cart.",
+      "idParent": null,
+      "name": "Cart reminder",
+      "slug": "cart-reminder",
+      "uuid": "a4764666-584d-578a-b3fe-3a6bddccba50",
+      "tags": [
+        "abandoned-cart",
+        "cart",
+        "reminder",
+        "lifecycle",
+        "cta"
+      ]
+    },
+    "columns": [
+      {
+        "grid-columns": 6,
+        "modules": [
+          {
+            "type": "mailup-bee-newsletter-modules-image",
+            "uuid": "324a5876-cb34-56db-a2d7-a25a95db2ce8",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "class": "center autowidth",
+                "hideContentOnMobile": false,
+                "width": "100%"
+              },
+              "style": {
+                "padding-top": "0px",
+                "padding-right": "0px",
+                "padding-bottom": "0px",
+                "padding-left": "0px",
+                "width": "100%"
+              },
+              "image": {
+                "src": "https://picsum.photos/id/26/600/400",
+                "alt": "Everyday Carry Kit: wallet, headphones, watch and notebook",
+                "href": "https://shop.example/cart",
+                "target": "_blank",
+                "width": "600px",
+                "height": "400px"
+              }
+            }
+          }
+        ],
+        "style": {
+          "background-color": "transparent",
+          "padding-top": "5px",
+          "padding-right": "0px",
+          "padding-bottom": "5px",
+          "padding-left": "0px"
+        },
+        "uuid": "572f823d-7845-5c1e-ae99-5f35cb777d4c"
+      },
+      {
+        "grid-columns": 6,
+        "modules": [
+          {
+            "type": "mailup-bee-newsletter-modules-heading",
+            "uuid": "d9cb82f5-35e2-57c4-bcf8-09a8a5e4aa1d",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "hideContentOnMobile": false
+              },
+              "style": {
+                "padding-top": "10px",
+                "padding-right": "10px",
+                "padding-bottom": "0px",
+                "padding-left": "10px",
+                "text-align": "left",
+                "width": "100%"
+              },
+              "heading": {
+                "title": "h1",
+                "text": "You left something behind",
+                "style": {
+                  "color": "#1F3A5F",
+                  "direction": "ltr",
+                  "font-family": "inherit",
+                  "font-size": "24px",
+                  "font-weight": "700",
+                  "letter-spacing": "0px",
+                  "line-height": "120%",
+                  "link-color": "#1F3A5F",
+                  "text-align": "left"
+                }
+              }
+            }
+          },
+          {
+            "type": "mailup-bee-newsletter-modules-text",
+            "uuid": "27024488-f887-55a3-bc15-aac1f2973450",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "hideContentOnMobile": false
+              },
+              "style": {
+                "padding-top": "10px",
+                "padding-right": "10px",
+                "padding-bottom": "10px",
+                "padding-left": "10px"
+              },
+              "text": {
+                "computedStyle": {
+                  "linkColor": "#1F3A5F"
+                },
+                "html": "<div style=\"font-size:15px;text-align:left;\"><p>Your <strong>Everyday Carry Kit</strong> is still in your cart: leather wallet, wireless headphones and a pocket notebook. We are keeping it for you for 48 hours.</p><p><strong>€89.00</strong></p></div>",
+                "style": {
+                  "color": "#333333",
+                  "font-family": "inherit",
+                  "line-height": "150%"
+                }
+              }
+            }
+          },
+          {
+            "type": "mailup-bee-newsletter-modules-button",
+            "uuid": "8ee4a0f9-47d4-5f5e-8db8-188fa89e405e",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "hideContentOnMobile": false
+              },
+              "style": {
+                "padding-top": "10px",
+                "padding-right": "10px",
+                "padding-bottom": "10px",
+                "padding-left": "10px",
+                "text-align": "left"
+              },
+              "button": {
+                "label": "Complete my order",
+                "href": "https://shop.example/cart",
+                "target": "_blank",
+                "style": {
+                  "background-color": "#1F3A5F",
+                  "border-radius": "4px",
+                  "color": "#ffffff",
+                  "direction": "ltr",
+                  "font-family": "inherit",
+                  "font-size": "16px",
+                  "font-weight": "700",
+                  "letter-spacing": "0px",
+                  "line-height": "200%",
+                  "max-width": "100%",
+                  "padding-bottom": "6px",
+                  "padding-left": "24px",
+                  "padding-right": "24px",
+                  "padding-top": "6px",
+                  "width": "auto",
+                  "border-top": "0px solid transparent",
+                  "border-right": "0px solid transparent",
+                  "border-bottom": "0px solid transparent",
+                  "border-left": "0px solid transparent"
+                }
+              }
+            }
+          }
+        ],
+        "style": {
+          "background-color": "transparent",
+          "padding-top": "5px",
+          "padding-right": "0px",
+          "padding-bottom": "5px",
+          "padding-left": "0px"
+        },
+        "uuid": "b654dd81-ee7b-5f6c-b72d-96dd24c12a26"
+      }
+    ],
+    "container": {
+      "style": {
+        "background-color": "transparent",
+        "background-image": "none",
+        "background-position": "top left",
+        "background-repeat": "no-repeat"
+      }
+    },
+    "content": {
+      "computedStyle": {
+        "hideContentOnDesktop": false,
+        "hideContentOnMobile": false,
+        "rowColStackOnMobile": true,
+        "rowReverseColStackOnMobile": false,
+        "verticalAlign": "middle"
+      },
+      "style": {
+        "background-color": "#ffffff",
+        "background-image": "none",
+        "border-radius": "0px",
+        "color": "#000000",
+        "width": "600px"
+      }
+    },
+    "empty": false,
+    "locked": false,
+    "synced": false,
+    "type": "2-columns-empty",
+    "uuid": "instance-a4764666-584d-578a-b3fe-3a6bddccba50",
+    "webFonts": [
+      {
+        "fontFamily": "'Roboto', Tahoma, Verdana, Segoe, sans-serif",
+        "name": "Roboto",
+        "type": "default",
+        "url": "https://fonts.googleapis.com/css2?family=Roboto:wght@400;700"
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "category": "Product news",
+      "dateCreated": "2026-05-02T09:30:00.000000Z",
+      "dateModified": "2026-10-01T09:00:00.000000Z",
+      "description": "The month's featured product: a desk setup photo next to its name, a short description, the price and a button.",
+      "idParent": null,
+      "name": "Product of the month",
+      "slug": "product-of-the-month",
+      "uuid": "24276818-6ce9-5ec0-92a4-05b3446fce8f",
+      "tags": [
+        "product-news",
+        "featured",
+        "monthly",
+        "new"
+      ]
+    },
+    "columns": [
+      {
+        "grid-columns": 6,
+        "modules": [
+          {
+            "type": "mailup-bee-newsletter-modules-image",
+            "uuid": "33893262-8fe3-5a89-93ae-41c4c7c8734f",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "class": "center autowidth",
+                "hideContentOnMobile": false,
+                "width": "100%"
+              },
+              "style": {
+                "padding-top": "0px",
+                "padding-right": "0px",
+                "padding-bottom": "0px",
+                "padding-left": "0px",
+                "width": "100%"
+              },
+              "image": {
+                "src": "https://picsum.photos/id/60/600/400",
+                "alt": "Workspace Set: keyboard, tablet stand and desk accessories",
+                "href": "https://shop.example/new/workspace-set",
+                "target": "_blank",
+                "width": "600px",
+                "height": "400px"
+              }
+            }
+          }
+        ],
+        "style": {
+          "background-color": "transparent",
+          "padding-top": "5px",
+          "padding-right": "0px",
+          "padding-bottom": "5px",
+          "padding-left": "0px"
+        },
+        "uuid": "a817ea16-f60f-5106-8e65-559d610151ed"
+      },
+      {
+        "grid-columns": 6,
+        "modules": [
+          {
+            "type": "mailup-bee-newsletter-modules-text",
+            "uuid": "a94dd3af-324a-51c1-b97e-18258bf2182d",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "hideContentOnMobile": false
+              },
+              "style": {
+                "padding-top": "10px",
+                "padding-right": "10px",
+                "padding-bottom": "10px",
+                "padding-left": "10px"
+              },
+              "text": {
+                "computedStyle": {
+                  "linkColor": "#1F3A5F"
+                },
+                "html": "<div style=\"font-size:12px;text-align:left;\"><p><strong>PRODUCT OF THE MONTH</strong></p></div>",
+                "style": {
+                  "color": "#F2A541",
+                  "font-family": "inherit",
+                  "line-height": "150%"
+                }
+              }
+            }
+          },
+          {
+            "type": "mailup-bee-newsletter-modules-heading",
+            "uuid": "d05b5fdd-1837-5933-a466-c15392fe772b",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "hideContentOnMobile": false
+              },
+              "style": {
+                "padding-top": "10px",
+                "padding-right": "10px",
+                "padding-bottom": "0px",
+                "padding-left": "10px",
+                "text-align": "left",
+                "width": "100%"
+              },
+              "heading": {
+                "title": "h1",
+                "text": "The Workspace Set",
+                "style": {
+                  "color": "#1F3A5F",
+                  "direction": "ltr",
+                  "font-family": "inherit",
+                  "font-size": "24px",
+                  "font-weight": "700",
+                  "letter-spacing": "0px",
+                  "line-height": "120%",
+                  "link-color": "#1F3A5F",
+                  "text-align": "left"
+                }
+              }
+            }
+          },
+          {
+            "type": "mailup-bee-newsletter-modules-text",
+            "uuid": "f9b109a8-5009-54ce-985f-364940adf62c",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "hideContentOnMobile": false
+              },
+              "style": {
+                "padding-top": "10px",
+                "padding-right": "10px",
+                "padding-bottom": "10px",
+                "padding-left": "10px"
+              },
+              "text": {
+                "computedStyle": {
+                  "linkColor": "#1F3A5F"
+                },
+                "html": "<div style=\"font-size:15px;text-align:left;\"><p>A low-profile keyboard, an aluminium tablet stand and a felt desk mat, designed to work together. <strong>€149</strong></p></div>",
+                "style": {
+                  "color": "#333333",
+                  "font-family": "inherit",
+                  "line-height": "150%"
+                }
+              }
+            }
+          },
+          {
+            "type": "mailup-bee-newsletter-modules-button",
+            "uuid": "b3779f8f-0b14-5856-9031-20d4d7af5288",
+            "locked": false,
+            "descriptor": {
+              "computedStyle": {
+                "hideContentOnMobile": false
+              },
+              "style": {
+                "padding-top": "10px",
+                "padding-right": "10px",
+                "padding-bottom": "10px",
+                "padding-left": "10px",
+                "text-align": "left"
+              },
+              "button": {
+                "label": "Discover it",
+                "href": "https://shop.example/new/workspace-set",
+                "target": "_blank",
+                "style": {
+                  "background-color": "#F2A541",
+                  "border-radius": "4px",
+                  "color": "#1F3A5F",
+                  "direction": "ltr",
+                  "font-family": "inherit",
+                  "font-size": "16px",
+                  "font-weight": "700",
+                  "letter-spacing": "0px",
+                  "line-height": "200%",
+                  "max-width": "100%",
+                  "padding-bottom": "6px",
+                  "padding-left": "24px",
+                  "padding-right": "24px",
+                  "padding-top": "6px",
+                  "width": "auto",
+                  "border-top": "0px solid transparent",
+                  "border-right": "0px solid transparent",
+                  "border-bottom": "0px solid transparent",
+                  "border-left": "0px solid transparent"
+                }
+              }
+            }
+          }
+        ],
+        "style": {
+          "background-color": "transparent",
+          "padding-top": "5px",
+          "padding-right": "0px",
+          "padding-bottom": "5px",
+          "padding-left": "0px"
+        },
+        "uuid": "71cb22de-bd40-5ebb-97bd-8aa7fc9a1308"
+      }
+    ],
+    "container": {
+      "style": {
+        "background-color": "transparent",
+        "background-image": "none",
+        "background-position": "top left",
+        "background-repeat": "no-repeat"
+      }
+    },
+    "content": {
+      "computedStyle": {
+        "hideContentOnDesktop": false,
+        "hideContentOnMobile": false,
+        "rowColStackOnMobile": true,
+        "rowReverseColStackOnMobile": false,
+        "verticalAlign": "middle"
+      },
+      "style": {
+        "background-color": "#ffffff",
+        "background-image": "none",
+        "border-radius": "0px",
+        "color": "#000000",
+        "width": "600px"
+      }
+    },
+    "empty": false,
+    "locked": false,
+    "synced": false,
+    "type": "2-columns-empty",
+    "uuid": "instance-24276818-6ce9-5ec0-92a4-05b3446fce8f",
+    "webFonts": [
+      {
+        "fontFamily": "'Roboto', Tahoma, Verdana, Segoe, sans-serif",
+        "name": "Roboto",
+        "type": "default",
+        "url": "https://fonts.googleapis.com/css2?family=Roboto:wght@400;700"
+      }
+    ]
+  }
+]

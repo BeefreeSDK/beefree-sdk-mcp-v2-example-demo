@@ -156,10 +156,11 @@
   padding: .25rem .6rem; border-radius: 999px;
   background: #F3EFFF; border: 1px solid var(--border);
 }
-.se-brand[hidden] { display: none; }
+.se-brand[hidden], .se-rows[hidden] { display: none; }
 .se-brand svg { color: var(--primary); flex: none; }
 .se-brand b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 .se-log li[data-kind="brand"] > span { color: var(--primary-dk); }
+.se-log li[data-kind="rows"] > span { color: #1a7a40; }
 .se-log li[data-kind="brand-blocked"] > span { color: #9A3412; }
 .se-swatch {
   display: inline-block; width: .7rem; height: .7rem; border-radius: 3px;
@@ -259,6 +260,12 @@
       <span><b id="se-brand-applied">0</b> presets used</span>
       <span><b id="se-brand-fixed">0</b> values corrected</span>
       <span><b id="se-brand-blocked">0</b> refused</span>
+    </span>
+    <span class="se-brand se-rows" id="se-rows" hidden title="What the agent did with the saved rows during this run">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2" y="2.5" width="12" height="4" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="9.5" width="12" height="4" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+      Saved rows:
+      <span><b id="se-rows-placed">0</b> placed</span>
+      <span><b id="se-rows-searches">0</b> searches</span>
     </span>
     <span class="se-usage" id="se-usage" hidden>
       <span id="se-usage-tokens"></span>
@@ -583,9 +590,11 @@
 
   /* ── Stream ── */
   var brandId = {{ (brand_id or '') | tojson }};
+  var withRows = {{ 'true' if rows else 'false' }};
   // The brief (and brand rules id) were saved by the POST; the URL only carries their id.
   var es = new EventSource('/generate-stream?input_id=' + encodeURIComponent({{ input_id | tojson }}));
   if (brandId) document.getElementById('se-brand').hidden = false;
+  if (withRows) document.getElementById('se-rows').hidden = false;
   pendingScript = addLog('Reading your brief and planning the layout');
   setNote(pendingScript, 'Writing the first step...');
 
@@ -665,6 +674,26 @@
     var text = m ? 'Sent back: ' + m[1] + ' blocks must use a brand style'
       : 'Refused: ' + msg.charAt(0).toLowerCase() + msg.slice(1);
     brandLog('brand-blocked', function (span) { span.textContent = text; });
+  });
+
+  /* ── Saved rows at work ── */
+  var rowsCount = { placed: 0, searches: 0 };
+  function bumpRows(key) {
+    rowsCount[key] += 1;
+    document.getElementById('se-rows-' + key).textContent = rowsCount[key];
+  }
+  es.addEventListener('rows', function (e) {
+    var ev;
+    try { ev = JSON.parse(e.data); } catch (_) { return; }
+    if (ev.kind === 'search') { bumpRows('searches'); addLog('Searched the saved rows library', 'rows'); return; }
+    if (ev.kind === 'facets') { addLog('Listed the categories and tags of the saved rows', 'rows'); return; }
+    if (ev.kind === 'details') { addLog('Compared saved rows before choosing', 'rows'); return; }
+    if (ev.kind === 'placed') { bumpRows('placed'); addLog('Placed a saved row', 'rows'); return; }
+    if (ev.kind === 'summary') {
+      var names = ev.placed || [];
+      addLog(names.length ? 'Saved rows in the email: ' + names.join(', ')
+        : 'No saved row ended up in the email', 'rows');
+    }
   });
 
   es.addEventListener('outcome', function (e) {
