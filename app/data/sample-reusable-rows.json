@@ -39,7 +39,7 @@
                 "width": "100%"
               },
               "image": {
-                "src": "https://placehold.co/360x96/FFFFFF/1F3A5F/png?text=Fieldnote",
+                "src": "https://placehold.co/360x96/1F3A5F/FFFFFF/png?text=Fieldnote",
                 "alt": "Fieldnote",
                 "href": "https://shop.example",
                 "target": "_blank",
