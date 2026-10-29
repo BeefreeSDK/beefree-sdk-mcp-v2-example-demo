@@ -337,24 +337,24 @@ enforces them on every call:
 
 REUSABLE_ROWS_INSTRUCTIONS = """
 
-SAVED ROWS FIRST: this session has the customer's library of saved rows, their
+REUSABLE ROWS FIRST: this session has the customer's library of reusable rows, their
 real, approved content (headers, footers with legal text and unsubscribe links,
 recurring sections). Building the email out of these rows is the point of this
-run: a saved row always beats a section you would build, even a better-looking
+run: a reusable row always beats a section you would build, even a better-looking
 one. The script API has four functions for it: searchReusableRows,
 getReusableRowsFacets, getReusableRowsDetails and addReusableRow, documented in
 the beefree_execute description. If that description does not list them, the
-plan does not include saved rows: build every section yourself and say so.
+plan does not include reusable rows: build every section yourself and say so.
 
 How to work (this overrides the build order above):
 1. First script, before building anything: set the subject and preheader, then
    call getReusableRowsFacets and search the library for every section the brief
    asks for (header, footer, and each body section the brief names or describes),
    using the brief's own words, for example text: "footer".
-2. Plan the email from the results: for each section, the saved row that fits
+2. Plan the email from the results: for each section, the reusable row that fits
    it, or "build" when no row does. Header and footer come from the library
    whenever it has one; a legal or required footer always does.
-3. Then build in reading order, one script per section: place saved rows with
+3. Then build in reading order, one script per section: place reusable rows with
    addReusableRow at their position, and build only the sections no row covers.
 4. Finish with validation and any fixes to your own sections.
 
@@ -372,9 +372,9 @@ Rules:
   read the content hierarchy in a later script.
 - Synced rows (synced: true) are shared across the customer's emails: place them
   as they are and never edit, restyle or delete their content.
-- Keep the saved rows as they are, with their images, links, fonts and colors,
+- Keep the reusable rows as they are, with their images, links, fonts and colors,
   and match the sections you build to their style rather than restyling the rows.
-- In your final message, name the saved rows you used and the sections you
+- In your final message, name the reusable rows you used and the sections you
   built yourself.
 """
 
@@ -390,14 +390,14 @@ def _row_events(request) -> list[dict]:
 
 
 async def _placed_rows_event(template_id: str, settings: Settings) -> dict | None:
-    """A "rows" event naming the saved rows the finished email contains."""
+    """A "rows" event naming the reusable rows the finished email contains."""
     try:
         from .beefree import get_template
 
         template_data = await get_template(template_id, settings)
         names = placed_rows(template_data.get("template", template_data))
     except Exception as exc:
-        log.warning("Could not read the placed saved rows of %s: %s", template_id, exc)
+        log.warning("Could not read the placed reusable rows of %s: %s", template_id, exc)
         return None
     return {"event": "rows", "data": _json.dumps({"kind": "summary", "placed": names})}
 
@@ -975,9 +975,9 @@ async def stream_single_executor(
     the agent is free to batch everything into as few scripts as possible
     (the Code Mode page relies on that).
 
-    With ``reusable_rows`` (the session carries a saved rows library) the agent is told
+    With ``reusable_rows`` (the session carries a reusable rows library) the agent is told
     how to use it, and the stream adds "rows" events for each search and placement,
-    then one naming the saved rows the finished email contains.
+    then one naming the reusable rows the finished email contains.
 
     Emits:
     - "preview" events: rendered email HTML in an iframe (same as other executors)

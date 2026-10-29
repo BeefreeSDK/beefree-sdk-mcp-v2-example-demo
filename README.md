@@ -38,11 +38,11 @@ These only need `BEE_API_KEY`.
   - Beefree validates the rules before they are used (`POST /brand-rules`); its error list is shown as is.
   - The generation uses the Single email result view. The template session carries the rules, and the toolbar counts presets used, values corrected and calls refused. Each correction and refusal appears in the Activity log.
   - Brand Rules require a Superpowers or Enterprise plan.
-- **Email from saved rows** (`/rows`): attach a library of [Reusable Rows](https://docs.beefree.io/beefree-sdk/ai-and-mcp/reusable-rows-for-ai), then generate an email that places them.
+- **Email from reusable rows** (`/rows`): attach a library of [Reusable Rows](https://docs.beefree.io/beefree-sdk/ai-and-mcp/reusable-rows-for-ai), then generate an email that places them.
   - Two ways to get the library: the sample one (four rows for a fictional store, in `app/data/sample-reusable-rows.json`: a synced footer and one row for each sample brief) or pasting your own `reusableRows` JSON.
   - Beefree validates the library before it is used (`POST /v2/sdk/mcp/template/validate`); its error list is shown as is.
   - The template is created with the library when the brief is sent, so the stream URL only carries its id and the brief, whatever the size of the library.
-  - The generation uses the Single email result view. The template session carries the library, the toolbar counts searches and placed rows, and the Activity log ends with the saved rows the email contains.
+  - The generation uses the Single email result view. The template session carries the library, the toolbar counts searches and placed rows, and the Activity log ends with the reusable rows the email contains.
   - Reusable Rows require a Core plan or above.
 
 **Change an existing template.** Each of these has a **Use a sample template** button (served by `/sample-template`), so they can be tried without bringing your own Beefree JSON.
@@ -202,10 +202,10 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 - **Health check:** `GET /healthcheck` returns `{"status": "ok"}` instantly, with no
   external calls. Point your platform's liveness or readiness probe at it.
 - **Several instances:** generation (Single email, Code Mode, On-brand email, Email
-  from saved rows, Email sequence) and the chats (Edit an email, the builder, the
+  from reusable rows, Email sequence) and the chats (Edit an email, the builder, the
   integration guide) work on any copy of the app. A chat session is a signed token
   naming the template, and the page sends the last 6 turns with each message. Bulk
-  translations, Color palettes and Email from saved rows create their templates in
+  translations, Color palettes and Email from reusable rows create their templates in
   the form request itself, and a palette version corrected by the safety net is
   saved as a new Beefree template. Only the sequence layout checks (advisory) stay
   in memory; on another copy they are skipped. `GET /healthcheck`
@@ -232,7 +232,7 @@ The app keeps almost nothing between requests:
 - **Palettes and translations:** the form request creates the template copies and
   returns the columns. A palette version corrected by the safety net is saved as a
   new Beefree template, and its download links switch to it.
-- **Email from saved rows:** the form request creates the template with the row
+- **Email from reusable rows:** the form request creates the template with the row
   library, so the stream only carries its id and the brief.
 - **Sequence layout checks:** the only in-memory state (`app/sessions.py`), dropped
   after an hour without activity. They are advisory; on another app copy or after a
@@ -259,7 +259,7 @@ The app keeps almost nothing between requests:
 │   ├── samples.py       # Sample template for the template-based demos
 │   ├── brand.py         # Brand rule presets and Code Mode result → brand event parsing
 │   ├── rows.py          # Sample row library, shape check and Code Mode result → rows event parsing
-│   ├── data/            # sample-reusable-rows.json: the sample saved rows
+│   ├── data/            # sample-reusable-rows.json: the sample reusable rows
 │   ├── sessions.py      # In-memory stores that expire after an hour of inactivity
 │   ├── payload.py       # Compressed tokens that carry stream inputs in the URL
 │   ├── plans.py         # Predefined campaign plans
@@ -276,13 +276,13 @@ The app keeps almost nothing between requests:
 │   ├── palette.html     # Color palettes
 │   ├── edit.html        # Edit an email
 │   ├── brand.html       # On-brand email
-│   ├── rows.html        # Email from saved rows
+│   ├── rows.html        # Email from reusable rows
 │   └── partials/        # htmx partials: loading states and results views
 ├── static/
 │   ├── style.css        # Site styles
 │   ├── results.css      # Shared styles for the sequence, palette and translation results
 │   ├── brand.css        # On-brand email page
-│   ├── rows.css         # Email from saved rows page
+│   ├── rows.css         # Email from reusable rows page
 │   ├── ui.js            # Shared UI: inline server errors, collapse state, sample loader
 │   ├── model-selection.js  # Provider/model picker
 │   ├── tokens.js        # Header token counter (sessionStorage)
@@ -333,12 +333,12 @@ refused with a message the agent recovers from (these runs get 6 tool retries
 instead of 3). Preset values that replace the agent's own are reported in each
 result's `presetApplication`, which `app/brand.py` turns into `brand` events.
 
-Saved rows sessions (`/rows`) send a `reusableRows: {"entries": [...]}` object in
+Reusable rows sessions (`/rows`) send a `reusableRows: {"entries": [...]}` object in
 the body of `POST /v2/sdk/mcp/template`. On Core plans and above, Beefree then adds
 `searchReusableRows`, `getReusableRowsFacets`, `getReusableRowsDetails` and
 `addReusableRow` to the `beefree_execute` description, and
 `REUSABLE_ROWS_INSTRUCTIONS` tells the agent to search the library for every
-section before building anything, to place a saved row whenever one fits, and never
+section before building anything, to place a reusable row whenever one fits, and never
 to edit a synced row. Each call is listed in the script result's `completed`, which
 `app/rows.py` turns into `rows` events. A placed row keeps its `metadata`, while the
 sections the agent builds have none, so the rows of the finished email that have a
@@ -386,7 +386,7 @@ Browser → FastAPI (app/main.py)
               │
               └─ Beefree REST API  (api.getbee.io)
                     ├─ POST /v2/sdk/mcp/template   — create / seed a template session
-                    ├─ POST /v2/sdk/mcp/template/validate — check brand rules / a saved rows library
+                    ├─ POST /v2/sdk/mcp/template/validate — check brand rules / a reusable rows library
                     ├─ GET  /v2/sdk/mcp/template/:id — read current template JSON
                     └─ POST /v1/message/html         — render template to email HTML
 ```
@@ -404,7 +404,7 @@ Browser → FastAPI (app/main.py)
 | `app/pricing.py` | Per-model token prices (update when providers change prices) |
 | `app/recolor.py` | Color plan for palette runs, plus the safety net that applies missed changes |
 | `app/samples.py` | Sample template served at `/sample-template` |
-| `app/rows.py` | The sample row library, a local shape check, the parser that turns reusable rows calls in Code Mode results into `rows` SSE events, and the lookup that names the saved rows a template contains |
+| `app/rows.py` | The sample row library, a local shape check, the parser that turns reusable rows calls in Code Mode results into `rows` SSE events, and the lookup that names the reusable rows a template contains |
 | `app/brand.py` | Brand rule presets, a local shape check, and the parser that turns `presetApplication` results and refusals into `brand` SSE events |
 | `app/sessions.py` | `ExpiringStore`: in-memory stores that forget entries after an hour of inactivity |
 | `templates/` | Jinja2 HTML templates for the web UI |

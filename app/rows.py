@@ -1,4 +1,4 @@
-"""Reusable Rows for the Email from saved rows page (/rows).
+"""Reusable Rows for the Email from reusable rows page (/rows).
 
 A `reusableRows` library travels with the template session, in the body of
 POST /v2/sdk/mcp/template. Beefree stores it for the session and, on Core plans and above,
@@ -7,7 +7,7 @@ getReusableRowsFacets, getReusableRowsDetails and addReusableRow.
 
 This module holds the sample library shown on the pages, a cheap local shape
 check, the parser that turns Code Mode results into "rows" events, and the lookup
-that names the saved rows a finished template contains.
+that names the reusable rows a finished template contains.
 """
 
 import json
@@ -75,9 +75,9 @@ def shape_errors(library) -> list[str]:
         return ['A row library must be a JSON object, like {"entries": [...]}.']
     entries = library.get("entries")
     if not isinstance(entries, list):
-        return ['The library needs an "entries" array of saved rows.']
+        return ['The library needs an "entries" array of reusable rows.']
     if not entries:
-        return ["The library has no rows: add at least one saved row to entries."]
+        return ["The library has no rows: add at least one reusable row to entries."]
     errors = []
     for index, row in enumerate(entries):
         if not isinstance(row, dict):
@@ -91,7 +91,7 @@ def shape_errors(library) -> list[str]:
 
 
 def placed_rows(template: dict) -> list[str]:
-    """The names of the saved rows a template contains, in page order.
+    """The names of the reusable rows a template contains, in page order.
 
     A placed row keeps its metadata, while the sections the agent builds have
     none, so on a blank template every named row is a saved one.

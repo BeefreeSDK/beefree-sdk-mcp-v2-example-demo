@@ -29,7 +29,7 @@ async def create_template(
     """Create a blank template session and return the templateId.
 
     With ``brand_rules``, Beefree enforces them on every Code Mode call in the session.
-    With ``reusable_rows`` (a ``{"entries": [...]}`` library of saved rows), the agent
+    With ``reusable_rows`` (a ``{"entries": [...]}`` library of reusable rows), the agent
     can search the library and place its rows (Core plans and above).
     """
     body = {}

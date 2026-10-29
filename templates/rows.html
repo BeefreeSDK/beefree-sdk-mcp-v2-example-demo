@@ -6,7 +6,7 @@
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="/static/favicon-32.png" type="image/png" sizes="32x32" />
   <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
-  <title>Beefree SDK MCP — Email from saved rows</title>
+  <title>Beefree SDK MCP — Email from reusable rows</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -46,10 +46,10 @@
               </defs>
             </svg>
           </a>
-          <h1 class="brand-tag">Email from saved rows</h1>
+          <h1 class="brand-tag">Email from reusable rows</h1>
         </div>
         <p class="header-sub">
-          Attach a library of saved rows, then watch the agent find and place them in a new email.
+          Attach a library of reusable rows, then watch the agent find and place them in a new email.
         </p>
       </div>
       <div class="header-tokens">
@@ -66,7 +66,7 @@
   <main class="container">
 
     {% set crumbs = [["Home", "/"], ["Headless", "/headless"]] %}
-    {% set current %}Email from saved rows{% endset %}
+    {% set current %}Email from reusable rows{% endset %}
     {% include "partials/breadcrumb.html" %}
 
     <!-- ── Step 1: row library ── -->
@@ -194,7 +194,7 @@
             <p class="field-label" id="preset-heading">Start from an idea <span class="label-count" id="preset-label"></span></p>
             <div class="seq-prompt-grid" role="group" aria-labelledby="preset-heading">
               <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectPreset(this)"
-                data-prompt="Goal: Back-to-school promotion for our Edukit bundles&#10;Audience: Parents who bought school supplies last year&#10;Primary CTA: &quot;Shop Edukits&quot; → https://shop.example/edukit&#10;Include: the back-to-school hero, a short paragraph on why parents trust Fieldnote, our three Edukit bundles (Primary €29, Middle school €39, High school €59), and the legal footer&#10;Notes: warm, practical tone. Write the paragraph and the bundles yourself in the style of the saved rows.">
+                data-prompt="Goal: Back-to-school promotion for our Edukit bundles&#10;Audience: Parents who bought school supplies last year&#10;Primary CTA: &quot;Shop Edukits&quot; → https://shop.example/edukit&#10;Include: the back-to-school hero, a short paragraph on why parents trust Fieldnote, our three Edukit bundles (Primary €29, Middle school €39, High school €59), and the legal footer&#10;Notes: warm, practical tone. Write the paragraph and the bundles yourself in the style of the reusable rows.">
                 <span class="seq-prompt-header">
                   <span class="seq-prompt-tag">Seasonal</span>
                   <span class="seq-prompt-check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -226,12 +226,12 @@
           <div class="field full" style="margin-top:.25rem;">
             <label for="custom-brief">Or write your own brief</label>
             <textarea id="custom-brief" rows="7" style="resize:vertical;" oninput="onCustomInput(this)"
-              placeholder="Goal: …&#10;Audience: …&#10;Primary CTA: &quot;Button label&quot; → https://…&#10;Include: …, and our footer from the saved rows"></textarea>
+              placeholder="Goal: …&#10;Audience: …&#10;Primary CTA: &quot;Button label&quot; → https://…&#10;Include: …, and our footer from the reusable rows"></textarea>
           </div>
 
           <div class="field full actions">
             <button type="submit" class="btn btn-primary" id="single-submit" disabled aria-describedby="single-hint">
-              Generate email with saved rows
+              Generate email with reusable rows
               <span id="spinner" class="htmx-indicator spinner"></span>
             </button>
             <span class="action-hint" id="single-hint">Choose a row library first.</span>

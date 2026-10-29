@@ -16,7 +16,7 @@ class BreadcrumbTests(unittest.TestCase):
         "/codemode": ("Headless", "Code Mode"),
         "/sequence": ("Headless", "Email sequence"),
         "/brand": ("Headless", "On-brand email"),
-        "/rows": ("Headless", "Email from saved rows"),
+        "/rows": ("Headless", "Email from reusable rows"),
         "/edit": ("Headless", "Edit an email"),
         "/translate": ("Headless", "Bulk translations"),
         "/palette": ("Headless", "Color palettes"),

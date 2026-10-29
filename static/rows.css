@@ -1,4 +1,4 @@
-/* Email from saved rows (/rows). Shares the tabs, errors and summary styles of brand.css. */
+/* Email from reusable rows (/rows). Shares the tabs, errors and summary styles of brand.css. */
 
 .rw-note { font-size: .82rem; color: var(--text-muted); margin: 0 0 .9rem; max-width: 78ch; }
 

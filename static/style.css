@@ -876,6 +876,110 @@ textarea { resize: vertical; }
   padding-bottom: 3rem;
 }
 
+.mode-flip {
+  --card-w: calc((100% - 3rem) / 3);
+  overflow: clip;
+  overflow-clip-margin: 1rem;
+  padding-bottom: 0.5rem;
+}
+
+.mode-flip-stage {
+  position: relative;
+  perspective: 1400px;
+  margin-top: .5rem;
+}
+
+.mode-flip .mode-card,
+.mode-flip .mode-card:hover {
+  position: absolute;
+  top: 0;
+  left: calc(50% - var(--card-w) / 2);
+  width: var(--card-w);
+  transform:
+    translateX(calc(var(--d) * 78%))
+    translateZ(calc(var(--ad) * -220px))
+    rotateY(calc(var(--d) * -38deg));
+  z-index: calc(10 - var(--ad));
+  opacity: calc(1 - var(--ad) * .25);
+  cursor: pointer;
+  transition: transform .55s cubic-bezier(.2, .7, .2, 1), opacity .55s, border-color .2s, box-shadow .2s;
+}
+
+.mode-flip .mode-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(to right, rgba(38,4,93,.10), rgba(38,4,93,0) 60%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .55s;
+}
+.mode-flip .mode-card:not(.is-active)::after { opacity: 1; }
+.mode-flip .mode-card[style*="--d: -"]::after { transform: scaleX(-1); }
+
+.mode-flip .mode-card.is-active:hover {
+  transform: translateY(-3px);
+}
+.mode-flip .mode-card:not(.is-active):hover { border-color: var(--primary-lt); }
+.mode-flip .mode-card.no-anim { transition: none; }
+.mode-flip .mode-card.is-out { opacity: 0; pointer-events: none; }
+.mode-flip .mode-card > * { flex-shrink: 0; }
+
+.mode-flip-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.75rem;
+}
+
+.flip-dots {
+  display: flex;
+  gap: .6rem;
+}
+
+.flip-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 99px;
+  border: 2px solid var(--primary-lt);
+  background: transparent;
+  cursor: pointer;
+  transition: width .3s, background .2s, border-color .2s;
+}
+.flip-dot[aria-current="true"] {
+  width: 26px;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+@media (max-width: 900px) {
+  .mode-flip { --card-w: 60%; }
+}
+@media (max-width: 640px) {
+  .mode-flip { --card-w: 82%; }
+  .mode-flip .mode-card { opacity: calc(1 - var(--ad) * .45); }
+}
+
+.carousel-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 99px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--primary);
+  cursor: pointer;
+  transition: border-color .2s, opacity .2s;
+}
+.carousel-btn:hover:not(:disabled) { border-color: var(--primary); }
+.carousel-btn:disabled { opacity: .4; cursor: default; }
+
 .mode-card {
   position: relative;
   display: flex;

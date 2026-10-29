@@ -261,9 +261,9 @@
       <span><b id="se-brand-fixed">0</b> values corrected</span>
       <span><b id="se-brand-blocked">0</b> refused</span>
     </span>
-    <span class="se-brand se-rows" id="se-rows" hidden title="What the agent did with the saved rows during this run">
+    <span class="se-brand se-rows" id="se-rows" hidden title="What the agent did with the reusable rows during this run">
       <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2" y="2.5" width="12" height="4" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="9.5" width="12" height="4" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
-      Saved rows:
+      Reusable rows:
       <span><b id="se-rows-placed">0</b> placed</span>
       <span><b id="se-rows-searches">0</b> searches</span>
     </span>
@@ -676,7 +676,7 @@
     brandLog('brand-blocked', function (span) { span.textContent = text; });
   });
 
-  /* ── Saved rows at work ── */
+  /* ── Reusable rows at work ── */
   var rowsCount = { placed: 0, searches: 0 };
   function bumpRows(key) {
     rowsCount[key] += 1;
@@ -685,14 +685,14 @@
   es.addEventListener('rows', function (e) {
     var ev;
     try { ev = JSON.parse(e.data); } catch (_) { return; }
-    if (ev.kind === 'search') { bumpRows('searches'); addLog('Searched the saved rows library', 'rows'); return; }
-    if (ev.kind === 'facets') { addLog('Listed the categories and tags of the saved rows', 'rows'); return; }
-    if (ev.kind === 'details') { addLog('Compared saved rows before choosing', 'rows'); return; }
-    if (ev.kind === 'placed') { bumpRows('placed'); addLog('Placed a saved row', 'rows'); return; }
+    if (ev.kind === 'search') { bumpRows('searches'); addLog('Searched the reusable rows library', 'rows'); return; }
+    if (ev.kind === 'facets') { addLog('Listed the categories and tags of the reusable rows', 'rows'); return; }
+    if (ev.kind === 'details') { addLog('Compared reusable rows before choosing', 'rows'); return; }
+    if (ev.kind === 'placed') { bumpRows('placed'); addLog('Placed a reusable row', 'rows'); return; }
     if (ev.kind === 'summary') {
       var names = ev.placed || [];
-      addLog(names.length ? 'Saved rows in the email: ' + names.join(', ')
-        : 'No saved row ended up in the email', 'rows');
+      addLog(names.length ? 'Reusable rows in the email: ' + names.join(', ')
+        : 'No reusable row ended up in the email', 'rows');
     }
   });
 

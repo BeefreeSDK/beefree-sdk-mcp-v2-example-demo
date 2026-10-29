@@ -652,7 +652,7 @@ async def rows_generate(
         except ReusableRowsRejected as exc:
             errors = exc.details
         except Exception as exc:
-            log.error("Saved rows template error: %s", exc)
+            log.error("Reusable rows template error: %s", exc)
             return HTMLResponse(
                 "<p class='inline-error' role='alert'>We couldn't start the email: "
                 f"{html_lib.escape(str(exc))}</p>",
@@ -680,7 +680,7 @@ async def generate_stream(
 
     ``input_id`` is a token (app/payload.py) with the brief and, from the brand
     page, the brand rules: the template session then carries them and the stream
-    adds "brand" events each time they apply. From the saved rows page it names
+    adds "brand" events each time they apply. From the reusable rows page it names
     the template /rows-generate created with the library instead, and the stream
     adds "rows" events for searches and placements.
     """
