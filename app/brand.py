@@ -15,7 +15,7 @@ import re
 
 BLOCK_TYPES = [
     "paragraph", "title", "list", "image", "button", "social",
-    "icon", "spacer", "divider", "table", "menu", "video",
+    "icon", "spacer", "divider", "table", "menu",
 ]
 MAX_RULES_BYTES = 32_000
 
@@ -118,7 +118,7 @@ PRESETS = [
             primary="#0B2545", on_primary="#FFFFFF", link="#13A89E",
             heading_font="Georgia, 'Times New Roman', serif",
             body_font="Arial, 'Helvetica Neue', Helvetica, sans-serif",
-            radius="2px", no_add=["video", "menu", "social"],
+            radius="2px", no_add=["menu", "social"],
             max_rows=8, max_columns=2, max_buttons=2,
         ),
     },
@@ -133,7 +133,7 @@ PRESETS = [
             primary="#5B2A4E", on_primary="#FFFFFF", link="#A0801A",
             heading_font="Georgia, 'Times New Roman', serif",
             body_font="'Trebuchet MS', 'Lucida Grande', Tahoma, sans-serif",
-            radius="30px", no_add=["video", "table", "menu"],
+            radius="30px", no_add=["table", "menu"],
             max_rows=10, max_columns=3, max_buttons=3,
         ),
     },
@@ -148,7 +148,7 @@ PRESETS = [
             primary="#8B5CF6", on_primary="#FFFFFF", link="#22D3EE",
             heading_font="'Helvetica Neue', Helvetica, Arial, sans-serif",
             body_font="'Helvetica Neue', Helvetica, Arial, sans-serif",
-            radius="0px", heading_spacing="1px", no_add=["video", "table"],
+            radius="0px", heading_spacing="1px", no_add=["table"],
             max_rows=9, max_columns=3, max_buttons=2,
         ),
     },
