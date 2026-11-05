@@ -164,7 +164,8 @@
         <h2 class="cluster-title" id="headless-modes-title">Create a new email</h2>
         <p class="cluster-desc">Start from a brief and let the AI build the email for you.</p>
       </div>
-      <div class="mode-grid">
+      <div class="mode-flip" tabindex="-1">
+        <div class="mode-flip-stage">
         <a href="/single" class="mode-card">
           <div class="mode-icon mode-icon-single">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -244,6 +245,37 @@
             </svg>
           </span>
         </a>
+
+        <a href="/rows" class="mode-card">
+          <div class="mode-icon" style="background:rgba(26,122,64,.12);color:#1a7a40;">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <rect x="5" y="5" width="22" height="8" rx="2" stroke="currentColor" stroke-width="2"/>
+              <rect x="5" y="19" width="22" height="8" rx="2" stroke="currentColor" stroke-width="2"/>
+              <path d="M16 13v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="mode-badge" style="background:rgba(26,122,64,.14);color:#1a7a40;">Reusable rows</div>
+          <h3 class="mode-title">Email from reusable rows</h3>
+          <p class="mode-desc">
+            Attach a library of reusable rows. The agent searches it and places the approved header, footer and sections instead of building them.
+          </p>
+          <span class="mode-cta">
+            Pick a row library
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
+        </div>
+        <div class="mode-flip-nav">
+          <button type="button" class="carousel-btn" data-flip-prev aria-label="Previous mode">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="flip-dots" data-flip-dots></div>
+          <button type="button" class="carousel-btn" data-flip-next aria-label="Next mode">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -252,7 +284,8 @@
         <h2 class="cluster-title" id="headless-transform-title">Change an existing template</h2>
         <p class="cluster-desc">Bring a Beefree template and adapt it, without touching the layout.</p>
       </div>
-      <div class="mode-grid">
+      <div class="mode-flip" tabindex="-1">
+        <div class="mode-flip-stage">
         <a href="/edit" class="mode-card">
           <div class="mode-icon mode-icon-single" style="background:rgba(130,237,168,.15);color:#1a7a40;">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -318,6 +351,16 @@
             </svg>
           </span>
         </a>
+        </div>
+        <div class="mode-flip-nav">
+          <button type="button" class="carousel-btn" data-flip-prev aria-label="Previous mode">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="flip-dots" data-flip-dots></div>
+          <button type="button" class="carousel-btn" data-flip-next aria-label="Next mode">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
       </div>
     </section>
     {% endif %}
@@ -331,6 +374,78 @@
     </div>
   </footer>
 
-
+  <script>
+    document.querySelectorAll('.mode-flip').forEach(function (box) {
+      var stage = box.querySelector('.mode-flip-stage');
+      var cards = Array.prototype.slice.call(stage.querySelectorAll('.mode-card'));
+      var n = cards.length;
+      // Five cards are always in view; with fewer, copies fill the ring (a whole number of rounds).
+      var m = n >= 5 ? n : n * Math.ceil(5 / n);
+      for (var c = n; c < m; c++) {
+        var copy = cards[c % n].cloneNode(true);
+        copy.classList.add('is-copy');
+        stage.appendChild(copy);
+        cards.push(copy);
+      }
+      var active = 0;
+      var offsets = cards.map(function () { return 0; });
+      var dots = cards.slice(0, n).map(function (card, i) {
+        var dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = 'flip-dot';
+        dot.setAttribute('aria-label', card.querySelector('.mode-title').textContent);
+        dot.addEventListener('click', function () { show(active + ((i - active % n) % n + n) % n); });
+        box.querySelector('[data-flip-dots]').appendChild(dot);
+        return dot;
+      });
+      function show(i) {
+        active = (i % m + m) % m;
+        cards.forEach(function (card, k) {
+          var d = (k - active + m) % m;
+          if (d > m / 2) d -= m;
+          // A card wrapping round to the other side jumps instead of crossing the stage.
+          card.classList.toggle('no-anim', Math.abs(d - offsets[k]) > m / 2);
+          offsets[k] = d;
+          card.style.setProperty('--d', d);
+          card.style.setProperty('--ad', Math.abs(d));
+          card.classList.toggle('is-active', d === 0);
+          card.classList.toggle('is-out', Math.abs(d) > 2);
+          card.tabIndex = d === 0 ? 0 : -1;
+          card.setAttribute('aria-hidden', d === 0 ? 'false' : 'true');
+        });
+        dots.forEach(function (dot, k) { dot.setAttribute('aria-current', k === active % n ? 'true' : 'false'); });
+        requestAnimationFrame(function () {
+          cards.forEach(function (card) { card.classList.remove('no-anim'); });
+        });
+      }
+      function fit() {
+        // Same width as a card in a three-column mode grid at this size.
+        var room = box.clientWidth;
+        var cols = Math.max(1, Math.min(3, Math.floor((room + 24) / (260 + 24))));
+        box.style.setProperty('--card-w', (room - (cols - 1) * 24) / cols + 'px');
+        cards.forEach(function (card) { card.style.height = 'auto'; });
+        var h = Math.max.apply(null, cards.map(function (card) { return card.offsetHeight; }));
+        cards.forEach(function (card) { card.style.height = h + 'px'; });
+        stage.style.height = h + 'px';
+      }
+      cards.forEach(function (card, i) {
+        card.addEventListener('click', function (e) {
+          if (i === active) return;
+          e.preventDefault();
+          show(i);
+        });
+      });
+      box.querySelector('[data-flip-prev]').addEventListener('click', function () { show(active - 1); });
+      box.querySelector('[data-flip-next]').addEventListener('click', function () { show(active + 1); });
+      box.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowLeft') { show(active - 1); e.preventDefault(); }
+        if (e.key === 'ArrowRight') { show(active + 1); e.preventDefault(); }
+      });
+      window.addEventListener('resize', fit);
+      if (document.fonts) document.fonts.ready.then(fit);
+      fit();
+      show(0);
+    });
+  </script>
 </body>
 </html>

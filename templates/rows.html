@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/static/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
+  <title>Beefree SDK MCP — Email from reusable rows</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="/static/vendor/htmx.min.js"></script>
+  <script src="/static/vendor/sse.js"></script>
+  <script src="/static/model-selection.js"></script>
+  <script src="/static/tokens.js"></script>
+  <script src="/static/ui.js"></script>
+  <link rel="stylesheet" href="/static/brand.css" />
+  <link rel="stylesheet" href="/static/rows.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <div class="header-left">
+        <div class="header-brand">
+          <a href="/" class="logo-link" aria-label="Beefree SDK MCP home">
+            <svg aria-hidden="true" width="144" height="28" viewBox="0 0 164 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g clip-path="url(#clip0_7680_11003)">
+                <path d="M33.4775 19.0436L33.4756 27.3739C33.4756 27.6679 33.3183 27.9382 33.0647 28.0857L26.4655 31.8891C25.915 32.2066 25.2278 31.8075 25.2318 31.1724L25.279 23.7721C25.2809 23.4762 25.1227 23.2009 24.8651 23.0545L17.4539 18.8156C17.1964 18.6681 17.0381 18.3938 17.0401 18.098L17.0932 9.74209C17.0951 9.44619 16.9379 9.17291 16.6813 9.02545L10.1106 5.2427C9.56208 4.92715 9.56208 4.1358 10.1106 3.81926L16.5486 0.110236C16.7992 -0.0342713 17.1089 -0.0362374 17.3615 0.105321L24.872 4.30685C25.1315 4.45234 25.2927 4.7266 25.2927 5.02348L25.2908 13.3469C25.2908 13.6399 25.4471 13.9102 25.6997 14.0576L33.0676 18.3339C33.3212 18.4813 33.4766 18.7517 33.4766 19.0446L33.4775 19.0436Z" fill="#7747FF"/>
+                <path d="M0.409929 19.2656L6.95797 23.0533C7.21357 23.2008 7.36987 23.475 7.3679 23.7699L7.3217 31.1723C7.31777 31.8073 8.00197 32.2064 8.5505 31.8889L15.1241 28.0855C15.3777 27.939 15.534 27.6677 15.534 27.3738V19.0523C15.536 18.7554 15.3758 18.4812 15.1172 18.3357L7.63431 14.1292C7.38265 13.9877 7.07496 13.9897 6.82428 14.1342L0.409929 17.8422C-0.136643 18.1587 -0.136643 18.9491 0.409929 19.2656Z" fill="#7747FF"/>
+                <path d="M42.2422 6.17285H45.0665V14.4383C45.8568 13.9123 47.1486 13.3638 48.6801 13.3638C52.3184 13.3638 54.2088 16.4211 54.2088 19.6464C54.2088 23.8745 50.9775 26.1198 47.412 26.1198C45.8568 26.1198 43.8219 25.6892 42.2422 24.6147V6.17285ZM45.0665 23.205C45.5688 23.5393 46.4545 23.7782 47.3638 23.7782C49.8047 23.7782 51.2174 22.106 51.2174 19.7172C51.2174 17.6155 50.1164 15.728 48.0579 15.728C46.8851 15.728 45.617 16.3493 45.0665 16.8988V23.205Z" fill="currentColor"/>
+                <path d="M67.7788 24.5184C67.1329 25.0915 65.2416 26.1188 62.6807 26.1188C58.6837 26.1188 56.0039 23.6346 56.0039 19.8125C56.0039 15.9905 58.5411 13.3628 62.3219 13.3628C66.1027 13.3628 68.2094 16.2775 68.2094 19.6218V20.7926H58.9235C59.0916 22.3449 60.5033 23.7791 63.1595 23.7791C65.0263 23.7791 66.2472 23.0143 66.8931 22.513L67.7788 24.5193V24.5184ZM65.2661 18.5228C65.1944 16.946 64.1415 15.5845 62.2747 15.5845C60.6232 15.5845 59.1634 16.6353 58.9481 18.5228H65.2661Z" fill="currentColor"/>
+                <path d="M81.7319 24.5184C81.0861 25.0915 79.1947 26.1188 76.6339 26.1188C72.6368 26.1188 69.957 23.6346 69.957 19.8125C69.957 15.9905 72.4943 13.3628 76.275 13.3628C80.0558 13.3628 82.1625 16.2775 82.1625 19.6218V20.7926H72.8767C73.0438 22.3449 74.4564 23.7791 77.1126 23.7791C78.9794 23.7791 80.2003 23.0143 80.8462 22.513L81.7319 24.5193V24.5184ZM79.2193 18.5228C79.1475 16.946 78.0947 15.5845 76.2279 15.5845C74.5764 15.5845 73.1165 16.6353 72.9012 18.5228H79.2193Z" fill="currentColor"/>
+                <path d="M85.5105 25.76V16.0141H83.4766V13.7207H85.5105V11.3555C85.5105 9.94579 85.8457 8.58428 86.6115 7.67693C87.4972 6.64965 88.9334 6.24365 90.2487 6.24365C91.9956 6.24365 93.2637 6.96029 93.4554 7.10381L92.3544 9.27732C92.091 9.08661 91.3488 8.63245 90.3923 8.63245C88.9806 8.63245 88.3102 9.63613 88.3102 11.3083V13.7207H91.3498V16.0141H88.3102V25.76H85.5105Z" fill="currentColor"/>
+                <path d="M93.3633 25.7599V13.697H96.1876V15.5599C96.451 14.9868 97.4085 13.3618 98.8201 13.3618C99.873 13.3618 100.52 13.6961 100.974 13.9595L99.9447 16.5872C99.6095 16.3483 99.0836 16.0141 98.3414 16.0141C96.9769 16.0141 96.1876 17.5427 96.1876 19.0477V25.7599H93.3633Z" fill="currentColor"/>
+                <path d="M113.345 24.5184C112.699 25.0915 110.808 26.1188 108.247 26.1188C104.25 26.1188 101.57 23.6346 101.57 19.8125C101.57 15.9905 104.108 13.3628 107.888 13.3628C111.669 13.3628 113.776 16.2775 113.776 19.6218V20.7926H104.49C104.658 22.3449 106.07 23.7791 108.726 23.7791C110.593 23.7791 111.814 23.0143 112.459 22.513L113.345 24.5193V24.5184ZM110.833 18.5228C110.761 16.946 109.708 15.5845 107.841 15.5845C106.19 15.5845 104.73 16.6353 104.515 18.5228H110.833Z" fill="currentColor"/>
+                <path d="M127.298 24.5184C126.652 25.0915 124.761 26.1188 122.2 26.1188C118.203 26.1188 115.523 23.6346 115.523 19.8125C115.523 15.9905 118.061 13.3628 121.841 13.3628C125.622 13.3628 127.729 16.2775 127.729 19.6218V20.7926H118.443C118.61 22.3449 120.023 23.7791 122.679 23.7791C124.546 23.7791 125.767 23.0143 126.413 22.513L127.298 24.5193V24.5184ZM124.786 18.5228C124.714 16.946 123.661 15.5845 121.794 15.5845C120.143 15.5845 118.683 16.6353 118.468 18.5228H124.786Z" fill="currentColor"/>
+                <path d="M133.224 23.5628C133.703 24.1201 134.676 24.9321 136.319 24.9321C137.755 24.9321 138.824 24.072 138.824 22.7183C138.824 19.2944 133.24 20.0906 133.24 16.5075C133.24 14.5168 134.915 13.4502 136.685 13.4502C138.217 13.4502 139.286 14.2622 139.653 14.6603L139.015 15.4723C138.505 14.9631 137.771 14.4853 136.702 14.4853C135.554 14.4853 134.437 15.1066 134.437 16.3964C134.437 19.2787 140.053 18.4185 140.053 22.7026C140.053 24.3433 138.665 25.983 136.224 25.983C134.549 25.983 133.049 25.0757 132.555 24.3905L133.225 23.5628H133.224Z" fill="currentColor"/>
+                <path d="M142.383 25.7596V13.7036H145.159C148.732 13.7036 151.684 15.7896 151.684 19.7395C151.684 23.4819 149.02 25.7596 145.191 25.7596H142.384H142.383ZM144.983 24.7245C148.157 24.7245 150.471 23.1477 150.471 19.6923C150.471 16.2369 148.046 14.7397 145.078 14.7397H143.531V24.7255H144.983V24.7245Z" fill="currentColor"/>
+                <path d="M161.304 25.7596L155.29 20.3765V25.7596H154.141V13.7036H155.29V19.1025L160.65 13.7036H162.198L156.231 19.6913L163.107 25.7587H161.304V25.7596Z" fill="currentColor"/>
+              </g>
+              <defs>
+                <clipPath id="clip0_7680_11003"><rect width="163.105" height="32" fill="white"/></clipPath>
+              </defs>
+            </svg>
+          </a>
+          <h1 class="brand-tag">Email from reusable rows</h1>
+        </div>
+        <p class="header-sub">
+          Attach a library of reusable rows, then watch the agent find and place them in a new email.
+        </p>
+      </div>
+      <div class="header-tokens">
+        <div class="token-badge">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 4.5H15l-4 3 1.5 4.5L8 10.5 3.5 13 5 8.5 1 5.5h5z" fill="currentColor"/></svg>
+          <span id="token-total">0 tokens</span>
+          <button class="token-reset-btn" onclick="beeTokensReset()" title="Reset token counter" aria-label="Reset token counter">↺</button>
+        </div>
+        <div class="token-breakdown" id="token-breakdown"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    {% set crumbs = [["Home", "/"], ["Headless", "/headless"]] %}
+    {% set current %}Email from reusable rows{% endset %}
+    {% include "partials/breadcrumb.html" %}
+
+    <!-- ── Step 1: row library ── -->
+    <section class="card form-card br-card" id="rows-section" aria-labelledby="rows-title">
+      <div class="card-header-row">
+        <h2 class="card-title" id="rows-title">1. Choose a row library</h2>
+        <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Shown in the collapsed card once the library is accepted -->
+      <div class="br-summary" id="rows-summary" hidden>
+        <div>
+          <p class="br-summary-name" id="rows-summary-name"></p>
+          <p class="br-summary-facts" id="rows-summary-facts"></p>
+        </div>
+        <button type="button" class="btn-link" id="rows-change">Change library</button>
+      </div>
+
+      <div class="card-body">
+        <div>
+          <p class="br-intro">
+            A row library travels with the email session, as <code>reusableRows</code>. The agent searches it in the
+            words of the brief, reads what a row contains, and places the approved row instead of building a new one.
+            A synced row is placed as it is, never edited.
+          </p>
+
+          <div class="br-tabs" role="tablist" aria-label="Which row library to use">
+            <button type="button" role="tab" id="tab-sample" aria-controls="panel-sample" aria-selected="true">Use the sample library</button>
+            <button type="button" role="tab" id="tab-paste" aria-controls="panel-paste" aria-selected="false" tabindex="-1">Paste your own JSON</button>
+          </div>
+
+          <!-- Sample library -->
+          <div class="br-panel" role="tabpanel" id="panel-sample" aria-labelledby="tab-sample">
+            <p class="rw-note">Four rows saved from the Beefree builder. The agent searches them by name, category, description and tags.</p>
+            <ul class="rw-rows" aria-label="Rows in the sample library">
+              {% for row in sample_rows %}
+              <li class="rw-row">
+                <p class="rw-row-name">
+                  {{ row.name }}
+                  {% if row.synced %}<span class="rw-badge" title="Placed as it is, never edited">Synced</span>{% endif %}
+                </p>
+                {% if row.category %}<p class="rw-row-meta">{{ row.category }}</p>{% endif %}
+                {% if row.description %}<p class="rw-row-desc">{{ row.description }}</p>{% endif %}
+                <ul class="br-chips rw-tags" aria-label="Tags">
+                  {% for tag in row.tags %}<li>{{ tag }}</li>{% endfor %}
+                </ul>
+                <p class="rw-row-meta">
+                  Blocks: {{ row.blocks | join(", ") or "none" }}
+                </p>
+              </li>
+              {% endfor %}
+            </ul>
+            <details class="br-json">
+              <summary>View JSON</summary>
+              <pre id="rw-json"></pre>
+              <button type="button" class="btn-link" id="edit-json">Edit as JSON</button>
+            </details>
+          </div>
+
+          <!-- Paste JSON -->
+          <div class="br-panel" role="tabpanel" id="panel-paste" aria-labelledby="tab-paste" hidden>
+            <div class="field">
+              <label for="paste-json">Row library JSON</label>
+              <textarea id="paste-json" rows="14" spellcheck="false"
+                placeholder='{ "entries": [ { "metadata": { "name": "…", "description": "…", "tags": [ … ] }, "columns": [ … ] } ] }'></textarea>
+            </div>
+            <p class="br-paste-status" id="paste-status" aria-live="polite">
+              Paste the <code>reusableRows</code> object your app sends to Beefree, with or without the outer <code>reusableRows</code> key.
+              Only <code>metadata.name</code> and <code>columns</code> are required; <code>metadata.description</code> is highly recommended.
+            </p>
+          </div>
+
+          <div class="br-errors" id="rows-errors" role="alert" hidden></div>
+
+          <div class="field actions">
+            <button type="button" class="btn btn-primary" id="rows-submit">
+              Use this library
+              <span class="spinner" id="rows-spinner" hidden></span>
+            </button>
+            <span class="action-hint" id="rows-hint">Beefree checks the library before it is used.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Step 2: brief ── -->
+    <section class="card form-card is-waiting" id="form-section" aria-labelledby="brief-title">
+      <div class="card-header-row">
+        <h2 class="card-title" id="brief-title">2. Write your brief</h2>
+        <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="brief-summary" id="brief-summary" hidden>
+        <p class="brief-summary-label" id="brief-summary-label"></p>
+        <p class="brief-summary-text" id="brief-summary-text"></p>
+        <button type="button" class="brief-summary-more" id="brief-summary-more" aria-expanded="false">Show full brief</button>
+      </div>
+
+      <div class="card-body">
+        <div>
+        <p class="br-waiting" id="brief-waiting">Choose a row library first. Name the rows you want in the brief, or describe them: the agent finds them in the library.</p>
+        <form
+          hx-post="/rows-generate"
+          hx-disabled-elt="find button[type=submit]"
+          hx-target="#workspace"
+          hx-swap="innerHTML"
+          hx-indicator="#spinner"
+          class="campaign-form"
+          id="brief-form"
+          inert
+          onsubmit="return !!document.getElementById('brief').value.trim() && !!document.getElementById('rows-library').value"
+        >
+          <input type="hidden" id="brief" name="brief" value="" />
+          <input type="hidden" id="rows-library" name="library" value="" />
+
+          <div class="field full">
+            <p class="field-label" id="preset-heading">Start from an idea <span class="label-count" id="preset-label"></span></p>
+            <div class="seq-prompt-grid" role="group" aria-labelledby="preset-heading">
+              <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectPreset(this)"
+                data-prompt="Goal: Back-to-school promotion for our Edukit bundles&#10;Audience: Parents who bought school supplies last year&#10;Primary CTA: &quot;Shop Edukits&quot; → https://shop.example/edukit&#10;Include: the back-to-school hero, a short paragraph on why parents trust Fieldnote, our three Edukit bundles (Primary €29, Middle school €39, High school €59), and the legal footer&#10;Notes: warm, practical tone. Write the paragraph and the bundles yourself in the style of the reusable rows.">
+                <span class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Seasonal</span>
+                  <span class="seq-prompt-check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                </span>
+                <span class="seq-prompt-title">Back-to-school promotion</span>
+                <span class="seq-prompt-desc">Saved hero and footer; the agent writes the paragraph and the bundles.</span>
+              </button>
+              <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectPreset(this)"
+                data-prompt="Goal: Abandoned cart reminder&#10;Audience: Shoppers who left items in their cart yesterday&#10;Primary CTA: &quot;Complete my order&quot; → https://shop.example/cart&#10;Include: the cart reminder with the item left behind, three short reasons to order from us (free shipping over €50, 30-day free returns, secure checkout), and the legal footer&#10;Notes: friendly, low-pressure tone; keep it short.">
+                <span class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Lifecycle</span>
+                  <span class="seq-prompt-check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                </span>
+                <span class="seq-prompt-title">Abandoned cart reminder</span>
+                <span class="seq-prompt-desc">Saved cart reminder and footer; the agent writes the reasons to order.</span>
+              </button>
+              <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectPreset(this)"
+                data-prompt="Goal: Monthly product news&#10;Audience: All subscribers&#10;Primary CTA: &quot;See what's new&quot; → https://shop.example/new&#10;Include: a two-line intro to this month's news, the product of the month, two shorter updates (the Quiet Keys keyboard now in charcoal, the Paperlight e-reader back in stock), a closing &quot;See what's new&quot; button, and the footer every campaign must have&#10;Notes: upbeat, concise tone. Write the intro, the updates and the closing yourself.">
+                <span class="seq-prompt-header">
+                  <span class="seq-prompt-tag">Newsletter</span>
+                  <span class="seq-prompt-check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                </span>
+                <span class="seq-prompt-title">Monthly product news</span>
+                <span class="seq-prompt-desc">Saved product of the month and footer; the agent writes the rest.</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="field full" style="margin-top:.25rem;">
+            <label for="custom-brief">Or write your own brief</label>
+            <textarea id="custom-brief" rows="7" style="resize:vertical;" oninput="onCustomInput(this)"
+              placeholder="Goal: …&#10;Audience: …&#10;Primary CTA: &quot;Button label&quot; → https://…&#10;Include: …, and our footer from the reusable rows"></textarea>
+          </div>
+
+          <div class="field full actions">
+            <button type="submit" class="btn btn-primary" id="single-submit" disabled aria-describedby="single-hint">
+              Generate email with reusable rows
+              <span id="spinner" class="htmx-indicator spinner"></span>
+            </button>
+            <span class="action-hint" id="single-hint">Choose a row library first.</span>
+          </div>
+        </form>
+        </div>
+      </div>
+    </section>
+
+    <p class="demo-disclaimer">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:.1rem">
+        <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+      </svg>
+      Output quality varies across AI providers and models. Beefree stores the library and places the rows; how well the agent searches and chooses depends on the model. Reusable Rows require a Core plan or above.
+    </p>
+
+    <div id="workspace"></div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      Powered by <strong>Beefree SDK MCP</strong> ·
+      <strong>PydanticAI</strong> · <strong>FastAPI</strong>
+    </div>
+  </footer>
+
+  <script>
+  (function () {
+    var SAMPLE = {{ sample_rows_json | safe }};
+    var $ = function (id) { return document.getElementById(id); };
+    function el(tag, text) {
+      var e = document.createElement(tag);
+      if (text) e.textContent = text;
+      return e;
+    }
+
+    var source = 'sample';   // which tab supplies the library
+    var pasted = null;       // parsed JSON from the paste tab, or null
+    $('rw-json').textContent = JSON.stringify(SAMPLE, null, 2);
+
+    function currentLibrary() { return source === 'sample' ? SAMPLE : pasted; }
+    function refresh() { $('rows-submit').disabled = !currentLibrary(); }
+
+    /* ── Tabs ── */
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.br-tabs [role=tab]'));
+    function selectTab(tab, focus) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+        $(t.getAttribute('aria-controls')).hidden = !on;
+      });
+      if (focus) tab.focus();
+      source = tab.id.replace('tab-', '');
+      refresh();
+    }
+    tabs.forEach(function (t, i) {
+      t.addEventListener('click', function () { selectTab(t); });
+      t.addEventListener('keydown', function (e) {
+        var next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+        if (next == null) return;
+        e.preventDefault();
+        selectTab(tabs[(next + tabs.length) % tabs.length], true);
+      });
+    });
+
+    /* ── Paste ── */
+    var pasteStatus = $('paste-status');
+    var pasteHelp = pasteStatus.innerHTML;
+    $('paste-json').addEventListener('input', function () {
+      var raw = this.value.trim();
+      pasted = null;
+      pasteStatus.classList.remove('is-error');
+      if (!raw) { pasteStatus.innerHTML = pasteHelp; refresh(); return; }
+      try {
+        var obj = JSON.parse(raw);
+        if (obj && typeof obj === 'object' && !Array.isArray(obj) && obj.reusableRows) obj = obj.reusableRows;
+        if (Array.isArray(obj)) obj = { entries: obj };
+        if (!obj || typeof obj !== 'object') throw new Error('expected an object');
+        pasted = obj;
+        pasteStatus.textContent = 'Valid JSON. Use this library to have Beefree check it.';
+      } catch (err) {
+        pasteStatus.textContent = 'Not valid JSON yet: ' + err.message;
+        pasteStatus.classList.add('is-error');
+      }
+      refresh();
+    });
+    $('edit-json').addEventListener('click', function () {
+      $('paste-json').value = JSON.stringify(SAMPLE, null, 2);
+      selectTab($('tab-paste'), true);
+      $('paste-json').dispatchEvent(new Event('input'));
+      $('paste-json').focus();
+    });
+
+    /* ── Accept: Beefree validates, then the brief unlocks ── */
+    var rowsSection = $('rows-section');
+    var briefSection = $('form-section');
+    $('rows-submit').addEventListener('click', async function () {
+      var library = currentLibrary();
+      if (!library) return;
+      var btn = this;
+      var errors = $('rows-errors');
+      btn.disabled = true;
+      $('rows-spinner').hidden = false;
+      $('rows-hint').textContent = 'Checking with Beefree...';
+      errors.hidden = true;
+      try {
+        var resp = await fetch('/rows-library', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ library: library })
+        });
+        var data = await resp.json().catch(function () { return {}; });
+        if (!resp.ok || !data.rows) {
+          var list = data.errors || ['Beefree could not check this library right now. Try again in a moment.'];
+          errors.replaceChildren(el('p', list.length > 1 ? 'Beefree found ' + list.length + ' problems in this library:' : 'Beefree found a problem in this library:'));
+          var ul = el('ul');
+          list.forEach(function (m) { ul.appendChild(el('li', m)); });
+          errors.appendChild(ul);
+          errors.hidden = false;
+          $('rows-hint').textContent = 'Fix the library and try again.';
+          return;
+        }
+        acceptLibrary(library, data.rows);
+      } catch (_) {
+        errors.replaceChildren(el('p', 'The server could not be reached. Check your connection and try again.'));
+        errors.hidden = false;
+      } finally {
+        btn.disabled = false;
+        $('rows-spinner').hidden = true;
+        $('rows-hint').textContent = 'Beefree checks the library before it is used.';
+      }
+    });
+
+    function acceptLibrary(library, rows) {
+      $('rows-library').value = JSON.stringify(library);
+      var synced = rows.filter(function (r) { return r.synced; }).length;
+      $('rows-summary-name').textContent = (source === 'sample' ? 'Sample library' : 'Your library') +
+        ' · ' + rows.length + (rows.length === 1 ? ' row' : ' rows');
+      $('rows-summary-facts').textContent = rows.map(function (r) { return r.name; }).join(' · ') +
+        (synced ? ' (' + synced + ' synced)' : '');
+      $('rows-summary').hidden = false;
+      rowsSection.classList.add('is-collapsed', 'is-accepted');
+      briefSection.classList.remove('is-waiting');
+      $('brief-form').inert = false;
+      $('brief-waiting').hidden = true;
+      updateSubmit();
+      briefSection.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    }
+
+    $('rows-change').addEventListener('click', function () {
+      $('rows-library').value = '';
+      $('rows-summary').hidden = true;
+      rowsSection.classList.remove('is-collapsed', 'is-accepted');
+      if (!briefSection.classList.contains('is-locked')) {
+        briefSection.classList.add('is-waiting');
+        $('brief-form').inert = true;
+        $('brief-waiting').hidden = false;
+      }
+      updateSubmit();
+      rowsSection.scrollIntoView({ block: 'start' });
+    });
+
+    /* ── Brief (same behavior as the Single email page) ── */
+    var activePreset = null;
+
+    window.selectPreset = function (card) {
+      document.querySelectorAll('.seq-prompt-card').forEach(function (c) {
+        c.classList.remove('seq-prompt-card-selected');
+        c.setAttribute('aria-pressed', 'false');
+      });
+      var custom = $('custom-brief');
+      if (activePreset === card) {
+        activePreset = null;
+        custom.value = '';
+        $('brief').value = '';
+        $('preset-label').textContent = '';
+        updateSubmit();
+        return;
+      }
+      card.classList.add('seq-prompt-card-selected');
+      card.setAttribute('aria-pressed', 'true');
+      activePreset = card;
+      custom.value = card.dataset.prompt;
+      $('brief').value = custom.value;
+      $('preset-label').textContent = 'selected';
+      updateSubmit();
+    };
+
+    window.onCustomInput = function (ta) {
+      if (activePreset && ta.value !== activePreset.dataset.prompt) {
+        activePreset.classList.remove('seq-prompt-card-selected');
+        activePreset.setAttribute('aria-pressed', 'false');
+        activePreset = null;
+        $('preset-label').textContent = '';
+      }
+      $('brief').value = ta.value;
+      updateSubmit();
+    };
+
+    function updateSubmit() {
+      var hasRows = !!$('rows-library').value;
+      var hasBrief = !!$('brief').value.trim();
+      $('single-submit').disabled = !(hasRows && hasBrief);
+      $('single-hint').textContent = !hasRows ? 'Choose a row library first.'
+        : !hasBrief ? 'Pick an idea or write a brief to continue.' : '';
+    }
+
+    function lockForm() {
+      briefSection.classList.add('is-locked');
+      briefSection.querySelectorAll('.seq-prompt-card, #single-submit').forEach(function (b) { b.disabled = true; });
+      $('custom-brief').readOnly = true;
+      $('rows-change').hidden = true;
+      var preset = briefSection.querySelector('.seq-prompt-card-selected .seq-prompt-title');
+      $('brief-summary-label').textContent = preset ? 'Idea: ' + preset.textContent.trim() : 'Your brief';
+      $('brief-summary-text').textContent = $('brief').value.trim();
+      $('brief-summary').hidden = false;
+      briefSection.classList.add('is-collapsed');
+    }
+
+    window.unlockForm = function () {
+      briefSection.classList.remove('is-locked', 'is-collapsed');
+      briefSection.querySelectorAll('.seq-prompt-card').forEach(function (b) { b.disabled = false; });
+      $('custom-brief').readOnly = false;
+      $('rows-change').hidden = false;
+      $('brief-summary').hidden = true;
+      $('workspace').replaceChildren();
+      updateSubmit();
+      briefSection.scrollIntoView({ block: 'start' });
+      $('single-submit').focus({ preventScroll: true });
+    };
+
+    $('brief-summary-more').addEventListener('click', function () {
+      var summary = $('brief-summary');
+      var open = summary.classList.toggle('is-expanded');
+      this.setAttribute('aria-expanded', String(open));
+      this.textContent = open ? 'Show less' : 'Show full brief';
+    });
+
+    window.toggleCard = function (card) { if (card) card.classList.toggle('is-collapsed'); };
+
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      var tgt = e.detail && e.detail.target;
+      if (!tgt || tgt.id !== 'workspace') return;
+      var result = $('se-card');
+      if (!result) return;  // an error message, not the result view
+      lockForm();
+      setTimeout(function () {
+        var header = document.querySelector('.site-header');
+        var top = window.scrollY + result.getBoundingClientRect().top - (header ? header.offsetHeight : 0) - 16;
+        var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({ top: Math.max(0, top), behavior: reduce ? 'auto' : 'smooth' });
+      }, 350);
+    });
+
+    refresh();
+  })();
+  </script>
+
+</body>
+</html>

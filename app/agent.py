@@ -23,6 +23,7 @@ from .brand import events_from_error, events_from_result
 from .config import Settings
 from .guards import validate_sequence
 from .pricing import request_cost
+from .rows import events_from_result as row_events_from_result, placed_rows
 
 
 CODE_MODE_INSTRUCTIONS = """
@@ -332,6 +333,73 @@ enforces them on every call:
 - When the brief asks for colors or fonts that conflict with the rules, follow
   the rules and keep the brief's content, structure and tone.
 """
+
+
+REUSABLE_ROWS_INSTRUCTIONS = """
+
+REUSABLE ROWS FIRST: this session has the customer's library of reusable rows, their
+real, approved content (headers, footers with legal text and unsubscribe links,
+recurring sections). Building the email out of these rows is the point of this
+run: a reusable row always beats a section you would build, even a better-looking
+one. The script API has four functions for it: searchReusableRows,
+getReusableRowsFacets, getReusableRowsDetails and addReusableRow, documented in
+the beefree_execute description. If that description does not list them, the
+plan does not include reusable rows: build every section yourself and say so.
+
+How to work (this overrides the build order above):
+1. First script, before building anything: set the subject and preheader, then
+   call getReusableRowsFacets and search the library for every section the brief
+   asks for (header, footer, and each body section the brief names or describes),
+   using the brief's own words, for example text: "footer".
+2. Plan the email from the results: for each section, the reusable row that fits
+   it, or "build" when no row does. Header and footer come from the library
+   whenever it has one; a legal or required footer always does.
+3. Then build in reading order, one script per section: place reusable rows with
+   addReusableRow at their position, and build only the sections no row covers.
+4. Finish with validation and any fixes to your own sections.
+
+Rules:
+- On an empty search, read its explanation (unknownValues, didYouMean,
+  closestNames) and retry once with the suggested words before building.
+- Choose by name, category, description and tags. Use getReusableRowsDetails
+  (up to five ids) only when the summaries cannot tell rows apart.
+- Never invent a reusableRowId: only use ids returned by searchReusableRows in
+  this session.
+- addReusableRow always inserts a NEW section at `position` (appended when
+  omitted), counted against the sections the email has when the script runs. It
+  never fills an existing section.
+- A placed row's ids only exist once its script ends: to edit blocks inside it,
+  read the content hierarchy in a later script.
+- Synced rows (synced: true) are shared across the customer's emails: place them
+  as they are and never edit, restyle or delete their content.
+- Keep the reusable rows as they are, with their images, links, fonts and colors,
+  and match the sections you build to their style rather than restyling the rows.
+- In your final message, name the reusable rows you used and the sections you
+  built yourself.
+"""
+
+
+def _row_events(request) -> list[dict]:
+    """Reusable rows calls (searches, placements) in the tool results the agent is
+    about to read."""
+    events = []
+    for part in request.parts:
+        if getattr(part, "part_kind", "") == "tool-return":
+            events.extend(row_events_from_result(part.content))
+    return events
+
+
+async def _placed_rows_event(template_id: str, settings: Settings) -> dict | None:
+    """A "rows" event naming the reusable rows the finished email contains."""
+    try:
+        from .beefree import get_template
+
+        template_data = await get_template(template_id, settings)
+        names = placed_rows(template_data.get("template", template_data))
+    except Exception as exc:
+        log.warning("Could not read the placed reusable rows of %s: %s", template_id, exc)
+        return None
+    return {"event": "rows", "data": _json.dumps({"kind": "summary", "placed": names})}
 
 
 def _brand_events(request) -> list[dict]:
@@ -897,6 +965,7 @@ async def stream_single_executor(
     *,
     progressive: bool = False,
     brand: bool = False,
+    reusable_rows: bool = False,
 ) -> AsyncIterator[dict]:
     """Run one single-email agent and yield SSE events.
 
@@ -905,6 +974,10 @@ async def stream_single_executor(
     section per script so the live preview fills in step by step; without it
     the agent is free to batch everything into as few scripts as possible
     (the Code Mode page relies on that).
+
+    With ``reusable_rows`` (the session carries a reusable rows library) the agent is told
+    how to use it, and the stream adds "rows" events for each search and placement,
+    then one naming the reusable rows the finished email contains.
 
     Emits:
     - "preview" events: rendered email HTML in an iframe (same as other executors)
@@ -918,6 +991,8 @@ async def stream_single_executor(
         system_prompt += PROGRESSIVE_BUILD_INSTRUCTIONS
     if brand:
         system_prompt += BRAND_RULES_INSTRUCTIONS
+    if reusable_rows:
+        system_prompt += REUSABLE_ROWS_INSTRUCTIONS
     agent: Agent[None, str] = Agent(
         model=settings.agent_model,
         toolsets=[mcp],
@@ -953,6 +1028,9 @@ async def stream_single_executor(
                         if brand:
                             for event in _brand_events(node.request):
                                 yield {"event": "brand", "data": _json.dumps(event)}
+                        if reusable_rows:
+                            for event in _row_events(node.request):
+                                yield {"event": "rows", "data": _json.dumps(event)}
                         has_tool_returns = any(
                             getattr(p, "part_kind", "") == "tool-return"
                             for p in node.request.parts
@@ -974,5 +1052,10 @@ async def stream_single_executor(
             yield _preview_event(preview_html)
     except Exception:
         pass
+
+    if reusable_rows:
+        summary = await _placed_rows_event(template_id, settings)
+        if summary:
+            yield summary
 
     yield {"event": "close", "data": ""}
