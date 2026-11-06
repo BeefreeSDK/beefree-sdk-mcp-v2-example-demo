@@ -35,11 +35,16 @@ from .agent import (
     stream_edit_executor,
 )
 from .beefree import (
-    BrandRulesRejected, ReusableRowsRejected, create_seeded_template, create_template,
-    get_template, validate_brand_rules, validate_reusable_rows,
+    BrandRulesRejected, FileManagerRejected, ReusableRowsRejected, create_seeded_template,
+    create_template, delete_file, get_template, list_folder, upload_from_url, validate_brand_rules,
+    validate_file_manager, validate_reusable_rows,
 )
 from .brand import BLOCK_TYPES, PRESETS, shape_errors
 from .rows import SAMPLE_LIBRARY, library_cards, shape_errors as library_shape_errors
+from .files import (
+    PRESETS as FILE_PRESETS, SAMPLE_FILES, SAMPLE_FOLDER, UPLOAD_FOLDER, file_entry,
+    shape_errors as access_shape_errors, summary as access_summary, with_uid,
+)
 from .config import Settings, get_settings
 from .guards import sequence_guard, validate_sequence
 from .plans import build_preset_plan
@@ -85,6 +90,9 @@ template_layouts = ExpiringStore()
 CHAT_HISTORY_TURNS = 6
 CHAT_TURN_CHARS = 600
 CHAT_EXPIRED = ("This chat could not be found. Reload the page to start a new one.")
+
+# The File Manager access presets for the /files page script.
+FILE_PRESETS_JSON = json.dumps(FILE_PRESETS).replace("</", "<\\/")
 
 # The sample library for the /rows page script. "</" is escaped so the JSON can
 # sit inside a <script>.
@@ -671,6 +679,169 @@ async def rows_generate(
     )
 
 
+def browser_uid(uid) -> str | None:
+    """The visitor's editor user ID (see /integration-auth), or None if it isn't one."""
+    return uid if isinstance(uid, str) and EDITOR_UID.match(uid) else None
+
+
+async def file_manager_state(settings: Settings, uid: str) -> dict:
+    """The files the /files page shows: the sample folder and the default upload folder."""
+    folders = [SAMPLE_FOLDER, UPLOAD_FOLDER]
+    listings = await asyncio.gather(*(list_folder(settings, uid, folder) for folder in folders))
+    return {"uid": uid, "folders": [
+        {"path": folder, "files": [f for f in map(file_entry, items) if f]}
+        for folder, items in zip(folders, listings)
+    ]}
+
+
+@app.get("/files", response_class=HTMLResponse)
+async def files_page(request: Request):
+    return templates.TemplateResponse(
+        "files.html",
+        {
+            "request": request, "presets": FILE_PRESETS, "presets_json": FILE_PRESETS_JSON,
+            "sample_folder": SAMPLE_FOLDER, "upload_folder": UPLOAD_FOLDER,
+            "sample_count": len(SAMPLE_FILES),
+        },
+    )
+
+
+@app.get("/files-state")
+async def files_state(uid: str | None = None, settings: Settings = Depends(get_run_settings)):
+    """The visitor's File Manager, read with the Content Services API.
+
+    Each browser has its own editor user ID; a missing or unknown one gets a new one,
+    which the page keeps, as the editor pages do.
+    """
+    uid = browser_uid(uid) or f"demo-{secrets.token_hex(16)}"
+    try:
+        return JSONResponse(await file_manager_state(settings, uid))
+    except Exception as exc:
+        log.error("File Manager listing failed: %s", exc)
+        return JSONResponse(
+            {"uid": uid, "errors": ["Your File Manager could not be read right now. Try again in a moment."]},
+            status_code=502,
+        )
+
+
+@app.post("/files-samples")
+async def files_samples(request: Request, settings: Settings = Depends(get_run_settings)):
+    """Store the sample brand images in the visitor's File Manager, replacing earlier copies."""
+    try:
+        body = await request.json()
+    except ValueError:
+        body = None
+    uid = browser_uid(body.get("uid") if isinstance(body, dict) else None)
+    if not uid:
+        return JSONResponse({"errors": [BAD_INPUT]}, status_code=400)
+    results = await asyncio.gather(
+        *(upload_from_url(settings, uid, f"{SAMPLE_FOLDER}/{f['name']}", f["url"]) for f in SAMPLE_FILES),
+        return_exceptions=True,
+    )
+    failed = [f["name"] for f, r in zip(SAMPLE_FILES, results) if isinstance(r, Exception)]
+    for f, r in zip(SAMPLE_FILES, results):
+        if isinstance(r, Exception):
+            log.error("Sample file %s failed: %s", f["name"], r)
+    state = await file_manager_state(settings, uid)
+    if failed:
+        state["errors"] = [f"Could not add {', '.join(failed)}. Try again in a moment."]
+    return JSONResponse(state, status_code=502 if len(failed) == len(SAMPLE_FILES) else 200)
+
+
+def shown_file(path) -> bool:
+    """A file directly inside one of the folders the page shows."""
+    if not isinstance(path, str):
+        return False
+    folder, _, name = path.rpartition("/")
+    return folder in (SAMPLE_FOLDER, UPLOAD_FOLDER) and bool(name) and name not in (".", "..")
+
+
+@app.post("/files-delete")
+async def files_delete(request: Request, settings: Settings = Depends(get_run_settings)):
+    """Delete one file the page shows from the visitor's File Manager."""
+    try:
+        body = await request.json()
+    except ValueError:
+        body = None
+    body = body if isinstance(body, dict) else {}
+    uid = browser_uid(body.get("uid"))
+    path = body.get("path")
+    if not uid or not shown_file(path):
+        return JSONResponse({"errors": [BAD_INPUT]}, status_code=400)
+    try:
+        await delete_file(settings, uid, path)
+    except Exception as exc:
+        log.error("File delete failed: %s", exc)
+        return JSONResponse(
+            {"errors": ["The file could not be deleted right now. Try again in a moment."]}, status_code=502,
+        )
+    return JSONResponse(await file_manager_state(settings, uid))
+
+
+@app.post("/files-access")
+async def files_access(request: Request, settings: Settings = Depends(get_run_settings)):
+    """Check a File Manager access with Beefree, for this browser's uid."""
+    try:
+        body = await request.json()
+    except ValueError:
+        return JSONResponse({"errors": ["The request was not valid JSON."]}, status_code=400)
+    config = body.get("access") if isinstance(body, dict) else None
+    uid = browser_uid(body.get("uid") if isinstance(body, dict) else None)
+    if not uid:
+        return JSONResponse({"errors": [BAD_INPUT]}, status_code=400)
+    errors = access_shape_errors(config)
+    if errors:
+        return JSONResponse({"errors": errors[:20]}, status_code=422)
+    try:
+        await validate_file_manager(settings, with_uid(config, uid))
+    except FileManagerRejected as exc:
+        return JSONResponse({"errors": exc.details[:20]}, status_code=422)
+    except Exception as exc:
+        log.error("File Manager validation failed: %s", exc)
+        return JSONResponse(
+            {"errors": ["Beefree could not check this access right now. Try again in a moment."]},
+            status_code=502,
+        )
+    return JSONResponse({"access": access_summary(config)})
+
+
+@app.post("/files-generate", response_class=HTMLResponse)
+async def files_generate(
+    request: Request, brief: str = Form(...), access: str = Form(...), uid: str = Form(...),
+    settings: Settings = Depends(get_run_settings),
+):
+    """Same result view as Single email, on a template created here with the File Manager access."""
+    try:
+        config = json.loads(access)
+    except json.JSONDecodeError:
+        config = None
+    errors = access_shape_errors(config) if browser_uid(uid) else [BAD_INPUT]
+    if not errors:
+        try:
+            template_id = await create_template(settings, file_manager=with_uid(config, uid))
+        except FileManagerRejected as exc:
+            errors = exc.details
+        except Exception as exc:
+            log.error("File Manager template error: %s", exc)
+            return HTMLResponse(
+                "<p class='inline-error' role='alert'>We couldn't start the email: "
+                f"{html_lib.escape(str(exc))}</p>",
+                status_code=502,
+            )
+    if errors:
+        return HTMLResponse(
+            "<p class='inline-error' role='alert'>This File Manager access can't be used "
+            f"({html_lib.escape(errors[0])}). Choose it again to continue.</p>",
+            status_code=422,
+        )
+    return templates.TemplateResponse(
+        "partials/single_loading.html",
+        {"request": request, "brief": brief, "files": True, "files_uid": uid,
+         "input_id": pack({"brief": brief, "template_id": template_id,
+                           "files": {"uid": uid, "access": config}})},
+    )
+
+
 @app.get("/generate-stream")
 async def generate_stream(
     request: Request, brief: str | None = None, input_id: str | None = None,
@@ -680,27 +851,31 @@ async def generate_stream(
 
     ``input_id`` is a token (app/payload.py) with the brief and, from the brand
     page, the brand rules: the template session then carries them and the stream
-    adds "brand" events each time they apply. From the reusable rows page it names
-    the template /rows-generate created with the library instead, and the stream
-    adds "rows" events for searches and placements.
+    adds "brand" events each time they apply. From the reusable rows and File Manager
+    pages it names the template /rows-generate or /files-generate created instead, and
+    the stream adds "rows" or "files" events for what the agent does with them.
     """
-    rules = rows_template = None
+    rules = session_template = file_manager = None
     if input_id:
         saved = unpack(input_id) or {}
         brief = saved.get("brief")
         rules = saved.get("brand_rules") if isinstance(saved.get("brand_rules"), dict) else None
-        rows_template = saved.get("template_id") if isinstance(saved.get("template_id"), str) else None
+        session_template = saved.get("template_id") if isinstance(saved.get("template_id"), str) else None
+        files = saved.get("files") if isinstance(saved.get("files"), dict) else {}
+        if browser_uid(files.get("uid")) and isinstance(files.get("access"), dict):
+            file_manager = files
     if not brief:
         return EventSourceResponse(_failed_stream(BAD_INPUT if input_id else "No brief was sent."))
 
     async def generator():
         try:
-            template_id = rows_template or await create_template(settings, brand_rules=rules)
+            template_id = session_template or await create_template(settings, brand_rules=rules)
             # Tell the frontend which template was created so it can offer a download
             yield {"event": "template-id", "data": template_id}
             async for event in stream_single_executor(
                 template_id, brief, settings, progressive=True, brand=bool(rules),
-                reusable_rows=bool(rows_template),
+                reusable_rows=bool(session_template) and not file_manager,
+                file_manager=file_manager,
             ):
                 if event["event"] != "close":
                     yield event

@@ -156,12 +156,62 @@
   padding: .25rem .6rem; border-radius: 999px;
   background: #F3EFFF; border: 1px solid var(--border);
 }
-.se-brand[hidden], .se-rows[hidden] { display: none; }
+.se-brand[hidden], .se-rows[hidden], .se-files[hidden] { display: none; }
 .se-brand svg { color: var(--primary); flex: none; }
 .se-brand b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 .se-log li[data-kind="brand"] > span { color: var(--primary-dk); }
 .se-log li[data-kind="rows"] > span { color: #1a7a40; }
+.se-log li[data-kind="files"] > span { color: #0F5E8C; }
+.se-saved { grid-column: 2; display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.se-saved img {
+  width: 44px; height: 44px; object-fit: cover; border-radius: 6px;
+  border: 1px solid var(--border); background: #fff;
+}
 .se-log li[data-kind="brand-blocked"] > span { color: #9A3412; }
+
+/* ── File Manager Status: the visitor's folders, live during the run ── */
+.se-fm { padding: .75rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--surface); }
+.se-fm-title { display: flex; align-items: center; gap: .5rem; margin: 0 0 .5rem; font-size: .85rem; font-weight: 700; }
+.se-fm-new {
+  min-width: 1.2rem; padding: .05rem .35rem; border-radius: 99px;
+  background: #16A34A; color: #fff; font-size: .68rem; text-align: center;
+}
+.se-fm-new[hidden] { display: none; }
+.se-fm-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; height: 112px; }
+.se-fm-col { min-width: 0; display: flex; flex-direction: column; gap: .4rem; }
+.se-fm-label { margin: 0 0 0 2px; font-size: .74rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.se-fm-label span { font-weight: 400; color: var(--text-muted); }
+.se-fm-carousel { flex: 1; min-height: 0; position: relative; display: flex; }
+.se-fm-strip {
+  flex: 1; min-width: 0; display: flex; gap: .5rem; margin: 0; padding: 4px 2px;
+  list-style: none; overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; scrollbar-width: none;
+}
+.se-fm-strip::-webkit-scrollbar { display: none; }
+/* Over the strip's edges, so the first image lines up with the folder name. */
+.se-fm-arrow {
+  position: absolute; top: 18px; z-index: 1; width: 24px; height: 24px; padding: 0; display: grid; place-items: center;
+  border: 1px solid var(--border); border-radius: 50%; background: var(--surface); color: var(--text);
+  cursor: pointer; box-shadow: 0 1px 2px rgba(38,4,93,.12);
+}
+.se-fm-arrow:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.se-fm-arrow:first-child { left: -4px; }
+.se-fm-arrow:last-child { right: -4px; }
+.se-fm-arrow:disabled { visibility: hidden; }
+.se-fm-arrow[hidden] { display: none; }
+.se-fm-strip li { flex: none; width: 76px; display: flex; flex-direction: column; gap: .15rem; position: relative; }
+.se-fm-strip img {
+  width: 76px; height: 52px; object-fit: cover; border-radius: 6px;
+  border: 1px solid var(--border); background: #fff; display: block;
+}
+.se-fm-strip span { font-size: .64rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.se-fm-strip li.is-new img { border-color: #16A34A; box-shadow: 0 0 0 2px #16A34A; animation: se-fm-pulse 1.2s ease-out 2; }
+.se-fm-strip li.is-new span { color: #15803D; font-weight: 600; }
+.se-fm-strip li.is-new::after {
+  content: "New"; position: absolute; top: -3px; right: -2px; padding: 0 .3rem; border-radius: 4px;
+  background: #16A34A; color: #fff; font-size: .58rem; font-weight: 700; line-height: 1.4;
+}
+@keyframes se-fm-pulse { from { box-shadow: 0 0 0 7px rgba(22,163,74,.35); } to { box-shadow: 0 0 0 2px #16A34A; } }
+.se-fm-empty { margin: 0; font-size: .74rem; color: var(--text-muted); }
 .se-swatch {
   display: inline-block; width: .7rem; height: .7rem; border-radius: 3px;
   vertical-align: -1px; margin: 0 .15rem 0 .1rem;
@@ -232,7 +282,8 @@
 .se-caption { text-align: center; font-size: .76rem; color: var(--text-muted); margin-top: .9rem; }
 
 @media (prefers-reduced-motion: reduce) {
-  .se-status-dot, .se-progress::after, .se-skeleton div { animation: none; }
+  .se-status-dot, .se-progress::after, .se-skeleton div, .se-fm-strip li.is-new img { animation: none; }
+  .se-fm-strip { scroll-behavior: auto; }
   .se-frame { transition: none; }
 }
 
@@ -267,6 +318,13 @@
       <span><b id="se-rows-placed">0</b> placed</span>
       <span><b id="se-rows-searches">0</b> searches</span>
     </span>
+    <span class="se-brand se-files" id="se-files" hidden title="What the agent did in your File Manager during this run">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1.75 4.25c0-.69.56-1.25 1.25-1.25h3.2l1.5 1.75h5.3c.69 0 1.25.56 1.25 1.25v6.75c0 .69-.56 1.25-1.25 1.25H3c-.69 0-1.25-.56-1.25-1.25V4.25Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      File Manager:
+      <span><b id="se-files-saved">0</b> saved</span>
+      <span><b id="se-files-searches">0</b> searches</span>
+      <span><b id="se-files-removed">0</b> removed</span>
+    </span>
     <span class="se-usage" id="se-usage" hidden>
       <span id="se-usage-tokens"></span>
       <span class="se-usage-cost" id="se-usage-cost"></span>
@@ -292,6 +350,14 @@
       </a>
     </div>
   </div>
+  {% if files %}
+  <section class="se-fm" aria-labelledby="se-fm-title">
+    <h3 class="se-fm-title" id="se-fm-title">File Manager Status <span class="se-fm-new" id="se-fm-new" hidden></span></h3>
+    <div class="se-fm-panel" id="se-fm-panel">
+      <p class="se-fm-empty">Reading your File Manager…</p>
+    </div>
+  </section>
+  {% endif %}
 
   <div class="se-body">
     <aside class="se-side">
@@ -530,6 +596,7 @@
     if (finished) return;
     finished = true;
     clearInterval(timer);
+    if (window.onRunFinished) window.onRunFinished(state);
     card.dataset.state = state;
     statusEl.dataset.state = state;
     frame.style.minHeight = '';
@@ -591,10 +658,12 @@
   /* ── Stream ── */
   var brandId = {{ (brand_id or '') | tojson }};
   var withRows = {{ 'true' if rows else 'false' }};
+  var withFiles = {{ 'true' if files else 'false' }};
   // The brief (and brand rules id) were saved by the POST; the URL only carries their id.
   var es = new EventSource('/generate-stream?input_id=' + encodeURIComponent({{ input_id | tojson }}));
   if (brandId) document.getElementById('se-brand').hidden = false;
   if (withRows) document.getElementById('se-rows').hidden = false;
+  if (withFiles) document.getElementById('se-files').hidden = false;
   pendingScript = addLog('Reading your brief and planning the layout');
   setNote(pendingScript, 'Writing the first step...');
 
@@ -693,6 +762,168 @@
       var names = ev.placed || [];
       addLog(names.length ? 'Reusable rows in the email: ' + names.join(', ')
         : 'No reusable row ended up in the email', 'rows');
+    }
+  });
+
+  /* ── File Manager at work ── */
+  var filesCount = { saved: 0, searches: 0, removed: 0 };
+  function bumpFiles(key) {
+    filesCount[key] += 1;
+    document.getElementById('se-files-' + key).textContent = filesCount[key];
+  }
+  /* File Manager Status: files that weren't there when the run started are new. */
+  var fmUid = {{ (files_uid or '') | tojson }};
+  var fmPanel = document.getElementById('se-fm-panel');
+  var fmBaseline = null, fmSeen = {}, fmLoading = null, fmAgain = false;
+  var fmArrows = [];
+  function fmArrow(dir) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'se-fm-arrow';
+    btn.setAttribute('aria-label', dir < 0 ? 'Previous files' : 'Next files');
+    btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="' +
+      (dir < 0 ? 'M7.5 2.5 4 6l3.5 3.5' : 'M4.5 2.5 8 6l-3.5 3.5') +
+      '" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    return btn;
+  }
+  // Arrows move the strip by what fits on screen; they hide when every file fits.
+  function fmCarousel(strip) {
+    var box = document.createElement('div');
+    box.className = 'se-fm-carousel';
+    var prev = fmArrow(-1), next = fmArrow(1);
+    function update() {
+      var max = strip.scrollWidth - strip.clientWidth;
+      prev.hidden = next.hidden = max <= 1;
+      prev.disabled = strip.scrollLeft <= 1;
+      next.disabled = strip.scrollLeft >= max - 1;
+    }
+    prev.addEventListener('click', function () { strip.scrollBy({ left: -strip.clientWidth * .8 }); });
+    next.addEventListener('click', function () { strip.scrollBy({ left: strip.clientWidth * .8 }); });
+    strip.addEventListener('scroll', update, { passive: true });
+    box.appendChild(prev);
+    box.appendChild(strip);
+    box.appendChild(next);
+    fmArrows.push(update);
+    return box;
+  }
+  window.addEventListener('resize', function () { fmArrows.forEach(function (update) { update(); }); });
+  function fmRender(folders) {
+    fmArrows = [];
+    var cols = folders.map(function (folder) {
+      var col = document.createElement('div');
+      col.className = 'se-fm-col';
+      var label = document.createElement('p');
+      label.className = 'se-fm-label';
+      label.title = folder.path;
+      label.appendChild(document.createTextNode(folder.path + ' '));
+      var count = document.createElement('span');
+      count.textContent = folder.files.length === 1 ? '1 file' : folder.files.length + ' files';
+      label.appendChild(count);
+      col.appendChild(label);
+      if (!folder.files.length) {
+        var empty = document.createElement('p');
+        empty.className = 'se-fm-empty';
+        empty.textContent = 'Empty.';
+        col.appendChild(empty);
+        return col;
+      }
+      var strip = document.createElement('ul');
+      strip.className = 'se-fm-strip';
+      var isNew = function (f) { return !fmBaseline[f.path]; };
+      // New files first, so they are in view without scrolling.
+      folder.files.filter(isNew).concat(folder.files.filter(function (f) { return !isNew(f); }))
+        .forEach(function (f) {
+          var li = document.createElement('li');
+          li.title = f.path;
+          if (isNew(f)) li.className = 'is-new';
+          var img = document.createElement('img');
+          img.src = f.thumbnail;
+          img.alt = f.name;
+          img.loading = 'lazy';
+          // Only a file shown for the first time pulses.
+          if (fmSeen[f.path]) img.style.animation = 'none';
+          var name = document.createElement('span');
+          name.textContent = f.name;
+          li.appendChild(img);
+          li.appendChild(name);
+          strip.appendChild(li);
+        });
+      col.appendChild(fmCarousel(strip));
+      return col;
+    });
+    fmPanel.replaceChildren.apply(fmPanel, cols);
+    fmArrows.forEach(function (update) { update(); });
+    var fresh = 0;
+    folders.forEach(function (folder) {
+      folder.files.forEach(function (f) {
+        if (!fmBaseline[f.path]) fresh += 1;
+        fmSeen[f.path] = true;
+      });
+    });
+    var badge = document.getElementById('se-fm-new');
+    badge.textContent = fresh + ' new';
+    badge.hidden = !fresh;
+  }
+  function fmLoad() {
+    if (!fmPanel) return;
+    // One request at a time; a call made meanwhile reloads once more afterwards.
+    if (fmLoading) { fmAgain = true; return; }
+    fmLoading = fetch('/files-state?uid=' + encodeURIComponent(fmUid))
+      .then(function (resp) { return resp.ok ? resp.json() : Promise.reject(); })
+      .then(function (data) {
+        var folders = data.folders || [];
+        if (!fmBaseline) {
+          fmBaseline = {};
+          folders.forEach(function (folder) {
+            folder.files.forEach(function (f) { fmBaseline[f.path] = true; });
+          });
+        }
+        fmRender(folders);
+      })
+      .catch(function () {
+        if (!fmBaseline) fmPanel.replaceChildren(Object.assign(document.createElement('p'),
+          { className: 'se-fm-empty', textContent: 'Your File Manager could not be read right now.' }));
+      })
+      .finally(function () {
+        fmLoading = null;
+        if (fmAgain) { fmAgain = false; fmLoad(); }
+      });
+  }
+  fmLoad();
+
+  es.addEventListener('files', function (e) {
+    var ev;
+    try { ev = JSON.parse(e.data); } catch (_) { return; }
+    if (ev.kind === 'upload' || ev.kind === 'remove' || ev.kind === 'summary') fmLoad();
+    if (ev.kind === 'search') { bumpFiles('searches'); addLog('Searched your File Manager', 'files'); return; }
+    if (ev.kind === 'list') { bumpFiles('searches'); addLog('Looked inside a File Manager folder', 'files'); return; }
+    if (ev.kind === 'upload') { bumpFiles('saved'); addLog('Saved an image to your File Manager', 'files'); return; }
+    if (ev.kind === 'remove') { bumpFiles('removed'); addLog('Deleted a file from your File Manager', 'files'); return; }
+    if (ev.kind !== 'summary') return;
+    var saved = ev.saved || [], removed = ev.removed || [];
+    // The counters follow the calls; the summary is what the File Manager really holds now.
+    document.getElementById('se-files-saved').textContent = saved.length;
+    document.getElementById('se-files-removed').textContent = removed.length;
+    if (saved.length) {
+      var li = addLog('Saved to your File Manager: ' + saved.map(function (f) { return f.path; }).join(', '), 'files');
+      var thumbs = document.createElement('ul');
+      thumbs.className = 'se-saved';
+      saved.forEach(function (f) {
+        if (!f.thumbnail) return;
+        var item = document.createElement('li');
+        var img = document.createElement('img');
+        img.src = f.thumbnail;
+        img.alt = f.name;
+        img.loading = 'lazy';
+        item.appendChild(img);
+        thumbs.appendChild(item);
+      });
+      if (thumbs.children.length) li.appendChild(thumbs);
+    }
+    if (removed.length) addLog('Deleted from your File Manager: ' + removed.map(function (f) { return f.path; }).join(', '), 'files');
+    if (ev.images) {
+      addLog(ev.fromFileManager + ' of the ' + ev.images + (ev.images === 1 ? ' image' : ' images') +
+        ' in the email come from your File Manager', 'files');
     }
   });
 
