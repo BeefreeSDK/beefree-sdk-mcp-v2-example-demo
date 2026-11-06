@@ -6,11 +6,11 @@ A FastAPI web application that demonstrates AI-powered email campaign generation
 
 ## Features
 
-The home page offers two paths: **In the editor** (`/editor`) and **Headless** (`/headless`).
+The home page offers two paths: **In the editor** (opens `/builder`) and **Headless** (`/headless`).
 
 ### In the editor
 
-Both need the editor credentials `BEE_CLIENT_ID` / `BEE_CLIENT_SECRET`.
+Needs the editor credentials `BEE_CLIENT_ID` / `BEE_CLIENT_SECRET`.
 
 - **Agent in the builder** (`/builder`): a marketer-facing page with the visual Beefree editor and an AI chat side by side, sized to fit the window. Notable behaviour:
   - **Starter ideas:** three short buttons. Each fills the composer with a detailed brief (brand, colors, layout, copy) that can be edited before sending.
@@ -21,7 +21,6 @@ Both need the editor credentials `BEE_CLIENT_ID` / `BEE_CLIENT_SECRET`.
     - Saving checks each setting with the same endpoints as the headless pages (`/brand-rules`, `/rows-library`, `/files-access`).
     - Every chat turn passes the settings to `bee.startMcpSession({ brandRules, reusableRows, fileManager })`, so each turn's session carries them. The editor adds its own `uid` to the File Manager access. The message tells the server which settings are on, so the agent's prompt explains how to use them.
     - A strip under the chat header shows what the agent can use. The choice is remembered in this browser (`localStorage`).
-- **Integration guide** (`/integration`): the developer page. It runs live demos of both session models, **Editor-managed** (a fresh MCP session per chat turn) and **API-managed + co-editing** (a persistent shared session), with implementation code for each.
 
 ### Headless
 
@@ -78,7 +77,7 @@ These only need `BEE_API_KEY`.
 - [uv](https://docs.astral.sh/uv/) (package manager)
 - A **Beefree CSAPI key** — get one at [developers.beefree.io](https://developers.beefree.io)
 - An API key for at least one LLM provider (Anthropic, OpenAI, or Google AI Studio)
-- *(Optional)* **Beefree SDK editor credentials** (`BEE_CLIENT_ID` / `BEE_CLIENT_SECRET`) — only needed for the in-editor pages (`/builder` and `/integration`)
+- *(Optional)* **Beefree SDK editor credentials** (`BEE_CLIENT_ID` / `BEE_CLIENT_SECRET`) — only needed for the in-editor page (`/builder`)
 
 ---
 
@@ -107,7 +106,7 @@ Open `.env` and set:
 BEE_API_KEY=your_csapi_key_here
 
 # Optional — Beefree SDK editor credentials. Required ONLY for the in-editor
-# pages (/builder and /integration), where the AI agent works alongside
+# page (/builder), where the AI agent works alongside
 # the embedded visual Beefree editor. Get them from developers.beefree.io.
 BEE_CLIENT_ID=your_client_id_here
 BEE_CLIENT_SECRET=your_client_secret_here
@@ -169,7 +168,7 @@ in `app/config.py`; key presence does not guarantee model access or valid creden
 #### Embedded editor (optional — in-editor experience)
 
 The headless modes (single, sequence, translate, palette, edit, code mode) only
-need `BEE_API_KEY`. The **in-editor pages** (`/builder` and `/integration`), where the AI
+need `BEE_API_KEY`. The **in-editor page** (`/builder`), where the AI
 agent edits the email live inside the embedded visual Beefree editor, additionally
 require editor credentials:
 
@@ -179,15 +178,13 @@ BEE_CLIENT_SECRET=your_client_secret_here
 ```
 
 These are used by the `/integration-auth` endpoint to mint a short-lived editor
-token (`auth.getbee.io/loginV2`). Both **Editor-Managed** and **API-Managed +
-co-editing** session models are demonstrated on `/integration`. If they are not set,
-the in-editor pages show a configuration error while every headless mode keeps
-working.
+token (`auth.getbee.io/loginV2`). The editor starts a fresh MCP session for each
+chat turn (`bee.startMcpSession()`). If they are not set, the builder shows a
+configuration error while every headless mode keeps working.
 
 Each browser gets its own random editor user ID (`demo-` followed by 32 hex
 characters), issued by `/integration-auth` and kept in `localStorage`. Visitors
-never share an editor user, so file manager uploads and co-editing sessions stay
-separate. Clearing site data, or a browser without storage, starts a new ID.
+never share an editor user, so file manager uploads stay separate. Clearing site data, or a browser without storage, starts a new ID.
 
 ---
 
@@ -214,8 +211,8 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 - **Health check:** `GET /healthcheck` returns `{"status": "ok"}` instantly, with no
   external calls. Point your platform's liveness or readiness probe at it.
 - **Several instances:** generation (Single email, Code Mode, On-brand email, Email
-  from reusable rows, Email sequence) and the chats (Edit an email, the builder, the
-  integration guide) work on any copy of the app. A chat session is a signed token
+  from reusable rows, Email sequence) and the chats (Edit an email, the builder) work
+  on any copy of the app. A chat session is a signed token
   naming the template, and the page sends the last 6 turns with each message. Bulk
   translations, Color palettes and Email from reusable rows create their templates in
   the form request itself, and a palette version corrected by the safety net is
@@ -279,9 +276,8 @@ The app keeps almost nothing between requests:
 │   ├── layouts.py       # Predefined campaign layouts
 │   └── guards.py        # Sequence layout checks
 ├── templates/
-│   ├── landing.html     # Home, /editor and /headless (one template, `section` variable)
-│   ├── builder.html     # /builder (renders integration.html in builder mode)
-│   ├── integration.html # /integration guide and the shared editor + chat workspace
+│   ├── landing.html     # Home and /headless (one template, `section` variable)
+│   ├── builder.html     # /builder: the editor, the agent chat and its settings
 │   ├── single.html      # Single email
 │   ├── codemode.html    # Code Mode
 │   ├── index.html       # Email sequence

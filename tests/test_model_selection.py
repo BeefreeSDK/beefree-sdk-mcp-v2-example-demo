@@ -211,7 +211,7 @@ class ModelSelectionTests(unittest.TestCase):
 
     def test_every_demo_includes_shared_selector(self):
         client = TestClient(routes.app)
-        for path in ["/", "/sequence", "/single", "/codemode", "/translate", "/palette", "/edit", "/integration", "/builder", "/editor", "/headless"]:
+        for path in ["/", "/sequence", "/single", "/codemode", "/translate", "/palette", "/edit", "/builder", "/headless"]:
             with self.subTest(path=path):
                 response = client.get(path)
                 self.assertEqual(response.status_code, 200)

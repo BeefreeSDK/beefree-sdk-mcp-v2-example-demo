@@ -84,7 +84,7 @@ templates.env.filters["urlencode"] = quote
 template_layouts = ExpiringStore()
 
 
-# Chat sessions (Edit an email, the builder, the integration guide) are signed
+# Chat sessions (Edit an email, the builder) are signed
 # tokens naming the template; the conversation travels with each message
 # (chat_history below). Nothing is kept between requests.
 CHAT_HISTORY_TURNS = 6
@@ -365,14 +365,6 @@ async def landing(request: Request):
     )
 
 
-@app.get("/editor", response_class=HTMLResponse)
-async def editor_modes(request: Request):
-    return templates.TemplateResponse(
-        "landing.html",
-        {"request": request, "section": "editor"},
-    )
-
-
 @app.get("/headless", response_class=HTMLResponse)
 async def headless_modes(request: Request):
     return templates.TemplateResponse(
@@ -385,14 +377,6 @@ async def headless_modes(request: Request):
 async def sequence(request: Request):
     return templates.TemplateResponse(
         "index.html",
-        {"request": request},
-    )
-
-
-@app.get("/integration", response_class=HTMLResponse)
-async def integration_page(request: Request):
-    return templates.TemplateResponse(
-        "integration.html",
         {"request": request},
     )
 
@@ -428,7 +412,7 @@ async def integration_auth(uid: str | None = None):
     """Return a fresh Beefree SDK auth token for the embedded editor.
 
     Each browser gets its own editor user ID, so visitors don't share Beefree's
-    per-user state (file manager uploads, co-editing presence). The browser keeps
+    per-user state (file manager uploads). The browser keeps
     the ID it was given and sends it back; anything else gets a new random one.
     """
     if not uid or not EDITOR_UID.match(uid):
@@ -457,18 +441,13 @@ async def integration_auth(uid: str | None = None):
 
 
 @app.post("/integration-start")
-async def integration_start(template_id: str | None = None):
-    """Create a chat session for the integration demo.
+async def integration_start(template_id: str):
+    """Create a chat session for the builder.
 
-    - Editor-managed: the editor already owns a template via ``startMcpSession()``;
-      pass its ``template_id`` so the agent edits that same template and the
-      editor reflects the changes.
-    - API-managed: omit ``template_id`` and the backend creates a fresh template
-      that the editor then joins via co-editing.
+    The editor owns the template (``startMcpSession()``); the chat session names
+    its ``template_id`` so the agent edits that same template and the editor
+    reflects the changes.
     """
-    settings = get_settings()
-    if not template_id:
-        template_id = await create_template(settings)
     return JSONResponse({"template_id": template_id,
                          "session_id": chat_session(template_id, chat_secret())})
 

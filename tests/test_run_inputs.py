@@ -86,7 +86,7 @@ class RunInputTests(unittest.TestCase):
         self.assertIsNone(unpack(bomb))
 
     def test_pages_do_not_put_text_in_stream_urls(self):
-        for path in ("/codemode", "/builder", "/integration"):
+        for path in ("/codemode", "/builder"):
             html = self.client.get(path).text
             self.assertNotIn("'&message=' + encodeURIComponent", html, path)
             self.assertNotIn("-stream?brief=", html, path)

@@ -1,2 +1,926 @@
-{% set simple_builder = true %}
-{% include "integration.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/static/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
+  <title>Beefree SDK MCP — Agent in the builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/agent-settings.css" />
+  <style>
+    /* The Beefree SDK needs a container with an explicit height: the editor div
+       fills its (sized) container instead of using a fixed pixel height. */
+    .demo-editor-panel .demo-editor-container { position: relative; }
+    .demo-bee-editor { position: absolute; inset: 0; }
+
+    .demo-editor-placeholder .inline-error { max-width: 420px; margin: 0; text-align: left; }
+    .edit-chat-form .inline-error { margin: 0 0 .6rem; }
+
+    .agent-working { display: inline-flex; align-items: center; gap: .55rem; color: var(--text-muted); font-size: .85rem; }
+    .edit-status-badge { white-space: nowrap; }
+    .chat-retry-btn { margin-top: .55rem; }
+    .chat-suggestions { display: flex; flex-direction: column; align-items: flex-start; gap: .4rem; }
+    .chat-suggestion {
+      max-width: 92%;
+      padding: .45rem .75rem;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: .8rem;
+      line-height: 1.4;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .chat-suggestion:hover { border-color: var(--primary); color: var(--primary-dk); }
+    .chat-error-details { margin-top: .4rem; font-size: .75rem; color: var(--text-muted); }
+
+    /* Selected editor element, sent along with the next message */
+    .selection-chip {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      margin-bottom: .5rem;
+      padding: .35rem .4rem .35rem .65rem;
+      border: 1px solid rgba(119,71,255,.35);
+      border-radius: 8px;
+      background: rgba(119,71,255,.07);
+      color: var(--primary-dk);
+      font-size: .8rem;
+      font-weight: 600;
+    }
+    .selection-chip[hidden] { display: none; }
+    .selection-chip-id { font-family: var(--mono); font-size: .72rem; font-weight: 500; color: var(--text-muted); }
+    .selection-chip-clear {
+      margin-left: auto;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px;
+      border: 0; border-radius: 6px; background: transparent;
+      color: var(--primary-dk); cursor: pointer;
+    }
+    .selection-chip-clear:hover { background: rgba(119,71,255,.12); }
+    .chat-selection-tag { margin-top: .3rem; font-size: .72rem; opacity: .8; }
+    .chat-error-details summary { cursor: pointer; }
+    .chat-error-details p { margin-top: .3rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+    /* Sticky header height, measured by JS */
+    .page-builder { --builder-header-h: 92px; }
+    /* Header content lines up with every other page (1200px container); only
+       the workspace below breaks out wider. */
+    .page-builder .site-header .container { max-width: 1200px; width: 100%; }
+
+    /* ── /builder: a workspace that fits the viewport ────────────────────── */
+    .page-builder main.container { flex: none; padding-top: .75rem; padding-bottom: 1rem; }
+    /* The breadcrumb row (about 1.15rem plus its .6rem gap) comes out of the workspace height */
+    .page-builder .breadcrumb { margin: 0 0 .6rem; }
+    .page-builder .demo-stage {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - var(--builder-header-h) - 3.5rem);
+      height: calc(100dvh - var(--builder-header-h) - 3.5rem);
+      min-height: 560px;
+      margin: 0;
+    }
+    .builder-narrow-note { display: none; }
+
+    .page-builder .demo-panel { flex: 1; min-height: 0; display: flex; }
+    .page-builder .demo-workspace { flex: 1; min-height: 0; flex-direction: row; }
+    .page-builder .demo-workspace .edit-chat-panel { width: 340px; min-height: 0; }
+    .page-builder .demo-workspace .edit-chat-messages { min-height: 0; max-height: none; overscroll-behavior: contain; }
+    .page-builder .demo-editor-panel { min-height: 0; }
+    .page-builder .demo-editor-panel .demo-editor-container,
+    .page-builder .demo-editor-placeholder { min-height: 0; }
+
+    @media (max-width: 1024px) {
+      .page-builder .demo-workspace .edit-chat-panel { width: 300px; }
+    }
+
+    /* Narrow screens: stack chat above the editor; each gets a usable height
+       and the page scrolls between them. */
+    @media (max-width: 899px) {
+      .page-builder .demo-stage { height: auto; min-height: 0; }
+      .page-builder .demo-workspace { flex-direction: column; gap: 1rem; }
+      .page-builder .demo-workspace .edit-chat-panel { width: 100%; height: min(440px, 58dvh); min-height: 320px; }
+      .page-builder .demo-editor-panel {
+        flex: none;
+        height: calc(100dvh - var(--builder-header-h) - 1.5rem);
+        min-height: 520px;
+      }
+      /* The Beefree editor has a minimum usable width; below it, let the user
+         pan sideways inside the editor area instead of clipping it. */
+      .page-builder .demo-editor-panel .demo-editor-container { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+      .page-builder .demo-bee-editor { right: auto; width: max(100%, 1000px); }
+      .builder-narrow-note {
+        display: block;
+        margin-bottom: .75rem;
+        padding: .6rem .8rem;
+        border-radius: 8px;
+        background: #F3F0FB;
+        color: var(--text-muted);
+        font-size: .8rem;
+        line-height: 1.45;
+      }
+    }
+  </style>
+  <script src="/static/model-selection.js"></script>
+  <script src="/static/tokens.js"></script>
+  <script src="/static/ui.js"></script>
+</head>
+<body class="page-builder">
+
+  <header class="site-header">
+    <div class="container">
+      <div class="header-left">
+        <div class="header-brand">
+          <a href="/" class="logo-link" aria-label="Beefree SDK MCP home">
+            <svg aria-hidden="true" width="144" height="28" viewBox="0 0 164 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g clip-path="url(#clip0_7680_11003)">
+                <path d="M33.4775 19.0436L33.4756 27.3739C33.4756 27.6679 33.3183 27.9382 33.0647 28.0857L26.4655 31.8891C25.915 32.2066 25.2278 31.8075 25.2318 31.1724L25.279 23.7721C25.2809 23.4762 25.1227 23.2009 24.8651 23.0545L17.4539 18.8156C17.1964 18.6681 17.0381 18.3938 17.0401 18.098L17.0932 9.74209C17.0951 9.44619 16.9379 9.17291 16.6813 9.02545L10.1106 5.2427C9.56208 4.92715 9.56208 4.1358 10.1106 3.81926L16.5486 0.110236C16.7992 -0.0342713 17.1089 -0.0362374 17.3615 0.105321L24.872 4.30685C25.1315 4.45234 25.2927 4.7266 25.2927 5.02348L25.2908 13.3469C25.2908 13.6399 25.4471 13.9102 25.6997 14.0576L33.0676 18.3339C33.3212 18.4813 33.4766 18.7517 33.4766 19.0446L33.4775 19.0436Z" fill="#7747FF"/>
+                <path d="M0.409929 19.2656L6.95797 23.0533C7.21357 23.2008 7.36987 23.475 7.3679 23.7699L7.3217 31.1723C7.31777 31.8073 8.00197 32.2064 8.5505 31.8889L15.1241 28.0855C15.3777 27.939 15.534 27.6677 15.534 27.3738V19.0523C15.536 18.7554 15.3758 18.4812 15.1172 18.3357L7.63431 14.1292C7.38265 13.9877 7.07496 13.9897 6.82428 14.1342L0.409929 17.8422C-0.136643 18.1587 -0.136643 18.9491 0.409929 19.2656Z" fill="#7747FF"/>
+                <path d="M42.2422 6.17285H45.0665V14.4383C45.8568 13.9123 47.1486 13.3638 48.6801 13.3638C52.3184 13.3638 54.2088 16.4211 54.2088 19.6464C54.2088 23.8745 50.9775 26.1198 47.412 26.1198C45.8568 26.1198 43.8219 25.6892 42.2422 24.6147V6.17285ZM45.0665 23.205C45.5688 23.5393 46.4545 23.7782 47.3638 23.7782C49.8047 23.7782 51.2174 22.106 51.2174 19.7172C51.2174 17.6155 50.1164 15.728 48.0579 15.728C46.8851 15.728 45.617 16.3493 45.0665 16.8988V23.205Z" fill="currentColor"/>
+                <path d="M67.7788 24.5184C67.1329 25.0915 65.2416 26.1188 62.6807 26.1188C58.6837 26.1188 56.0039 23.6346 56.0039 19.8125C56.0039 15.9905 58.5411 13.3628 62.3219 13.3628C66.1027 13.3628 68.2094 16.2775 68.2094 19.6218V20.7926H58.9235C59.0916 22.3449 60.5033 23.7791 63.1595 23.7791C65.0263 23.7791 66.2472 23.0143 66.8931 22.513L67.7788 24.5193V24.5184ZM65.2661 18.5228C65.1944 16.946 64.1415 15.5845 62.2747 15.5845C60.6232 15.5845 59.1634 16.6353 58.9481 18.5228H65.2661Z" fill="currentColor"/>
+                <path d="M81.7319 24.5184C81.0861 25.0915 79.1947 26.1188 76.6339 26.1188C72.6368 26.1188 69.957 23.6346 69.957 19.8125C69.957 15.9905 72.4943 13.3628 76.275 13.3628C80.0558 13.3628 82.1625 16.2775 82.1625 19.6218V20.7926H72.8767C73.0438 22.3449 74.4564 23.7791 77.1126 23.7791C78.9794 23.7791 80.2003 23.0143 80.8462 22.513L81.7319 24.5193V24.5184ZM79.2193 18.5228C79.1475 16.946 78.0947 15.5845 76.2279 15.5845C74.5764 15.5845 73.1165 16.6353 72.9012 18.5228H79.2193Z" fill="currentColor"/>
+                <path d="M85.5105 25.76V16.0141H83.4766V13.7207H85.5105V11.3555C85.5105 9.94579 85.8457 8.58428 86.6115 7.67693C87.4972 6.64965 88.9334 6.24365 90.2487 6.24365C91.9956 6.24365 93.2637 6.96029 93.4554 7.10381L92.3544 9.27732C92.091 9.08661 91.3488 8.63245 90.3923 8.63245C88.9806 8.63245 88.3102 9.63613 88.3102 11.3083V13.7207H91.3498V16.0141H88.3102V25.76H85.5105Z" fill="currentColor"/>
+                <path d="M93.3633 25.7599V13.697H96.1876V15.5599C96.451 14.9868 97.4085 13.3618 98.8201 13.3618C99.873 13.3618 100.52 13.6961 100.974 13.9595L99.9447 16.5872C99.6095 16.3483 99.0836 16.0141 98.3414 16.0141C96.9769 16.0141 96.1876 17.5427 96.1876 19.0477V25.7599H93.3633Z" fill="currentColor"/>
+                <path d="M113.345 24.5184C112.699 25.0915 110.808 26.1188 108.247 26.1188C104.25 26.1188 101.57 23.6346 101.57 19.8125C101.57 15.9905 104.108 13.3628 107.888 13.3628C111.669 13.3628 113.776 16.2775 113.776 19.6218V20.7926H104.49C104.658 22.3449 106.07 23.7791 108.726 23.7791C110.593 23.7791 111.814 23.0143 112.459 22.513L113.345 24.5193V24.5184ZM110.833 18.5228C110.761 16.946 109.708 15.5845 107.841 15.5845C106.19 15.5845 104.73 16.6353 104.515 18.5228H110.833Z" fill="currentColor"/>
+                <path d="M127.298 24.5184C126.652 25.0915 124.761 26.1188 122.2 26.1188C118.203 26.1188 115.523 23.6346 115.523 19.8125C115.523 15.9905 118.061 13.3628 121.841 13.3628C125.622 13.3628 127.729 16.2775 127.729 19.6218V20.7926H118.443C118.61 22.3449 120.023 23.7791 122.679 23.7791C124.546 23.7791 125.767 23.0143 126.413 22.513L127.298 24.5193V24.5184ZM124.786 18.5228C124.714 16.946 123.661 15.5845 121.794 15.5845C120.143 15.5845 118.683 16.6353 118.468 18.5228H124.786Z" fill="currentColor"/>
+                <path d="M133.224 23.5628C133.703 24.1201 134.676 24.9321 136.319 24.9321C137.755 24.9321 138.824 24.072 138.824 22.7183C138.824 19.2944 133.24 20.0906 133.24 16.5075C133.24 14.5168 134.915 13.4502 136.685 13.4502C138.217 13.4502 139.286 14.2622 139.653 14.6603L139.015 15.4723C138.505 14.9631 137.771 14.4853 136.702 14.4853C135.554 14.4853 134.437 15.1066 134.437 16.3964C134.437 19.2787 140.053 18.4185 140.053 22.7026C140.053 24.3433 138.665 25.983 136.224 25.983C134.549 25.983 133.049 25.0757 132.555 24.3905L133.225 23.5628H133.224Z" fill="currentColor"/>
+                <path d="M142.383 25.7596V13.7036H145.159C148.732 13.7036 151.684 15.7896 151.684 19.7395C151.684 23.4819 149.02 25.7596 145.191 25.7596H142.384H142.383ZM144.983 24.7245C148.157 24.7245 150.471 23.1477 150.471 19.6923C150.471 16.2369 148.046 14.7397 145.078 14.7397H143.531V24.7255H144.983V24.7245Z" fill="currentColor"/>
+                <path d="M161.304 25.7596L155.29 20.3765V25.7596H154.141V13.7036H155.29V19.1025L160.65 13.7036H162.198L156.231 19.6913L163.107 25.7587H161.304V25.7596Z" fill="currentColor"/>
+              </g>
+              <defs>
+                <clipPath id="clip0_7680_11003"><rect width="163.105" height="32" fill="white"/></clipPath>
+              </defs>
+            </svg>
+          </a>
+          <h1 class="brand-tag">Agent in the builder</h1>
+        </div>
+        <p class="header-sub">Design your email with an AI agent and watch it appear in the editor.</p>
+      </div>
+      <div class="header-tokens">
+        <div class="token-badge">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 4.5H15l-4 3 1.5 4.5L8 10.5 3.5 13 5 8.5 1 5.5h5z" fill="currentColor"/></svg>
+          <span id="token-total">0 tokens</span>
+          <button type="button" class="token-reset-btn" onclick="beeTokensReset()" title="Reset token counter" aria-label="Reset token counter">↺</button>
+        </div>
+        <div class="token-breakdown" id="token-breakdown"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    {% set crumbs = [["Home", "/"]] %}
+    {% set current %}Agent in the builder{% endset %}
+    {% include "partials/breadcrumb.html" %}
+
+    <!-- Full-bleed stage so the builder gets the width it needs -->
+    <div class="demo-stage">
+
+      <p class="builder-narrow-note" role="note">
+        The visual editor works best on a computer. On a small screen, chat with the agent here, then scroll down to the editor and swipe sideways to see all of it.
+      </p>
+
+      <div class="demo-panel" id="panel-editor-managed">
+        <div class="edit-workspace demo-workspace">
+
+          <!-- Left: chat -->
+          <div class="edit-chat-panel" id="em-chat-panel">
+            <!-- Collapsed, the chat shrinks to this round button -->
+            <button type="button" class="demo-chat-rail" id="em-chat-reopen" onclick="toggleChat('em')"
+                    aria-expanded="true" aria-controls="em-chat-panel" title="Show chat">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
+                      stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              </svg>
+              <span class="visually-hidden">Show chat</span>
+              <span class="demo-chat-rail-dot" aria-hidden="true"></span>
+              <span class="visually-hidden demo-chat-rail-unread">New reply</span>
+            </button>
+            <div class="edit-panel-header">
+              <h3 class="edit-panel-title">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0" aria-hidden="true">
+                  <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 2v-2H3a1 1 0 01-1-1V3z"
+                        stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                </svg>
+                Chat with the agent
+              </h3>
+              <div class="demo-header-actions">
+                <span class="edit-status-badge is-offline" id="em-status-badge">Not ready</span>
+
+                <button type="button" class="demo-icon-btn as-open-btn" id="as-open" onclick="beeAgentSettings.open()"
+                        title="Agent settings: brand rules, reusable rows, File Manager" aria-label="Agent settings" aria-haspopup="dialog">
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h8M14 12h0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <circle cx="11" cy="4" r="1.8" stroke="currentColor" stroke-width="1.5"/>
+                    <circle cx="6" cy="8" r="1.8" stroke="currentColor" stroke-width="1.5"/>
+                    <circle cx="12" cy="12" r="1.8" stroke="currentColor" stroke-width="1.5"/>
+                  </svg>
+                  <span class="as-dot" hidden></span>
+                </button>
+
+                <button type="button" class="demo-icon-btn demo-chat-collapse" id="em-chat-collapse" onclick="toggleChat('em')"
+                        title="Hide chat" aria-label="Hide chat" aria-expanded="true" aria-controls="em-chat-panel">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M10 3.5L5.5 8l4.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="as-strip" id="as-strip" role="group" aria-label="What the agent can use"></div>
+
+            <div class="edit-chat-messages" id="em-messages" role="log" aria-live="polite" aria-label="Conversation with the agent">
+              <div class="chat-bubble agent-bubble">
+                <div class="chat-bubble-content">
+                  <p>Getting the editor ready…</p>
+                </div>
+              </div>
+            </div>
+
+            <form class="edit-chat-form" onsubmit="sendDemoMessage(event)">
+              <div class="inline-error" id="em-error" role="alert" hidden></div>
+              <div class="selection-chip" id="em-selection" hidden>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2.5 2"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></svg>
+                <span class="selection-chip-label" id="em-selection-label"></span>
+                <code class="selection-chip-id" id="em-selection-id"></code>
+                <button type="button" class="selection-chip-clear" onclick="clearSelection('em')" aria-label="Clear selection" title="Clear selection">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+              <div class="edit-chat-input-row">
+                <textarea id="em-input" class="edit-chat-textarea" rows="2" aria-label="Message to the agent"
+                  placeholder="e.g. A spring sale email with a hero image and a big button" disabled></textarea>
+                <button type="submit" class="btn btn-primary edit-send-btn" id="em-send-btn" aria-label="Send message" title="Send message" disabled>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M2 8l12-6-6 12V9L2 8z" fill="currentColor"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="edit-chat-hint" id="em-hint" aria-live="polite">The chat opens as soon as the editor is ready.</p>
+            </form>
+          </div>
+
+          <!-- Right: live editor -->
+          <div class="edit-preview-panel demo-editor-panel">
+            <div class="edit-panel-header">
+              <h3 class="edit-panel-title">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0" aria-hidden="true">
+                  <rect x="1" y="2" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M6 15h4M8 13v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Your email
+              </h3>
+              <div class="demo-header-actions">
+
+                <button type="button" class="btn btn-primary demo-start-btn" id="em-start-btn" style="display:none;" onclick="startMcpSession()">
+                  Connect the agent
+                </button>
+              </div>
+            </div>
+            <div class="demo-editor-container" id="em-editor-container">
+              <div class="demo-editor-placeholder">
+                <svg width="40" height="40" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                  <rect x="3" y="5" width="26" height="20" rx="3" stroke="currentColor" stroke-width="2"/>
+                  <path d="M3 11h26M7 8.5h.01M10 8.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <p>Loading the editor…</p>
+                <div class="inline-error" id="em-editor-error" role="alert" hidden></div>
+                <button type="button" class="btn btn-primary" id="em-init-btn" onclick="initEditorManaged()" hidden>
+                  Try again
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /.demo-stage -->
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      Powered by <strong>Beefree SDK MCP</strong> &middot;
+      <strong>PydanticAI</strong> &middot; <strong>FastAPI</strong>
+    </div>
+  </footer>
+
+  <script>
+  // ── Collapse / reopen the AI chat side panel (gives the builder full width) ─
+  // Collapsed, the chat shrinks to a rail on the left; a dot on the rail marks
+  // agent replies that arrived while it was closed.
+  ['em'].forEach(function (prefix) {
+    var messages = document.getElementById(prefix + '-messages');
+    var rail = document.getElementById(prefix + '-chat-reopen');
+    if (!messages || !rail) return;
+    new MutationObserver(function (changes) {
+      var ws = rail.closest('.demo-workspace');
+      if (!ws || !ws.classList.contains('chat-collapsed')) return;
+      var reply = changes.some(function (c) {
+        return Array.prototype.some.call(c.addedNodes, function (n) {
+          return n.nodeType === 1 && n.classList.contains('agent-bubble');
+        });
+      });
+      if (reply) rail.classList.add('has-unread');
+    }).observe(messages, { childList: true });
+  });
+
+  function toggleChat(prefix) {
+    var ws = document.querySelector('#panel-editor-managed .demo-workspace');
+    if (!ws) return;
+    var collapsed = ws.classList.toggle('chat-collapsed');
+    var collapseBtn = document.getElementById(prefix + '-chat-collapse');
+    var reopenBtn = document.getElementById(prefix + '-chat-reopen');
+    if (!collapsed) reopenBtn.classList.remove('has-unread');
+    [collapseBtn, reopenBtn].forEach(function (b) {
+      if (b) b.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    });
+    // Keep keyboard focus on the control that is still visible
+    // (after the style change has applied, or the target may not be focusable yet)
+    var next = collapsed ? reopenBtn : collapseBtn;
+    if (next) setTimeout(function () { next.focus({ preventScroll: true }); }, 30);
+  }
+  </script>
+
+  {% include "partials/agent_settings.html" %}
+  <script src="/static/agent-settings.js"></script>
+
+  <!-- Beefree SDK -->
+  <script src="https://app-rsrc.getbee.io/plugin/BeePlugin.js"></script>
+
+  <script>
+  (function () {
+    // ── State ──────────────────────────────────────────────────────────────
+    var beeEditor = null;       // the Beefree editor
+    var emSessionId = null;     // signed chat session naming the template
+    var emTemplateId = null;    // MCP templateId from the editor's startMcpSession()
+
+    // ── Editor user ID ─────────────────────────────────────────────────────
+    // Each browser gets its own Beefree user ID from the server, so visitors
+    // never share an editor user. It's kept in localStorage so the same
+    // visitor keeps their uploads across reloads; without storage, a new one
+    // is issued per page load.
+    var UID_KEY = 'beefree-demo-editor-uid';
+    function editorAuthUrl() {
+      var uid = null;
+      try { uid = localStorage.getItem(UID_KEY); } catch (_) {}
+      return '/integration-auth' + (uid ? '?uid=' + encodeURIComponent(uid) : '');
+    }
+    function rememberEditorUid(uid) {
+      try { if (uid) localStorage.setItem(UID_KEY, uid); } catch (_) {}
+    }
+    var currentStreams = { em: null };
+    var ready = { em: false };   // chat connected to a session
+    var busy = { em: false };    // agent is working on a turn
+    var lastMessage = { em: '' };   // for "Try again"
+    // Recent [user, agent] turns. The server keeps nothing between requests, so
+    // each message carries the conversation the agent should remember.
+    var chatHistory = { em: [] };
+
+    // Badge labels; on a failed turn the error bubble explains what failed
+    var LABELS = { ready: 'Ready', working: 'Working…' };
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function $(id) { return document.getElementById(id); }
+
+    // ── Agent settings ─────────────────────────────────────────────────────
+    // Brand rules, reusable rows and File Manager access are attached when a
+    // session starts, so every startMcpSession() call passes the ones chosen
+    // in the settings dialog (static/agent-settings.js).
+    var agentSettings = window.beeAgentSettings;
+    function startEditorSession() {
+      var options = agentSettings.options();
+      return options ? beeEditor.startMcpSession(options) : beeEditor.startMcpSession();
+    }
+
+    // Why Beefree refused to start a session with the agent settings, in plain words.
+    function settingsFailure(err) {
+      var detail = (err && err.detail) || {};
+      if (!agentSettings.options()) return null;
+      if (detail.status === 403) {
+        return 'Your Beefree plan doesn’t include one of the agent settings. Brand rules need a Superpowers or Enterprise plan, reusable rows a Core plan or above. Turn it off in the settings and try again.';
+      }
+      if (detail.status === 400 || detail.status === 413) {
+        var list = Array.isArray(detail.details) ? detail.details.join('; ') : '';
+        return 'Beefree refused the agent settings' + (detail.error ? ' (' + detail.error + ')' : '') +
+          (list ? ': ' + list : '') + '. Change them in the settings and try again.';
+      }
+      return null;
+    }
+
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+
+    // The server HTML-escapes agent-error payloads; decode them safely to plain text.
+    function decodeEntities(str) {
+      var ta = document.createElement('textarea');
+      ta.innerHTML = str;
+      return ta.value;
+    }
+
+    // Show an inline error (role="alert") with an optional retry action.
+    function showError(id, message, retryLabel, retryFn) {
+      var box = $(id);
+      if (!box) return;
+      box.replaceChildren();
+      var p = document.createElement('p');
+      p.textContent = message;
+      box.appendChild(p);
+      if (retryFn) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn btn-primary';
+        b.textContent = retryLabel || 'Try again';
+        b.addEventListener('click', function () { hideError(id); retryFn(); });
+        box.appendChild(b);
+      }
+      box.hidden = false;
+    }
+
+    function hideError(id) {
+      var box = $(id);
+      if (box) { box.hidden = true; box.replaceChildren(); }
+    }
+
+    function setBadge(prefix, text, state) {
+      var badge = $(prefix + '-status-badge');
+      if (!badge) return;
+      badge.textContent = text;
+      badge.className = 'edit-status-badge is-' + state;
+    }
+
+    // Is the message list scrolled to (near) the bottom? If the user scrolled up
+    // to read history we leave them there instead of yanking them down.
+    function isPinned(list) {
+      return list.scrollHeight - list.scrollTop - list.clientHeight < 60;
+    }
+
+    function scrollToEnd(list) { list.scrollTop = list.scrollHeight; }
+
+    // Append a node to the chat log and keep it pinned to the newest message.
+    function appendToLog(prefix, node, force) {
+      var list = $(prefix + '-messages');
+      var pinned = force || isPinned(list);
+      list.appendChild(node);
+      if (pinned) scrollToEnd(list);
+    }
+
+    function agentBubble(text, extraClass) {
+      var div = document.createElement('div');
+      div.className = 'chat-bubble agent-bubble' + (extraClass ? ' ' + extraClass : '');
+      var inner = document.createElement('div');
+      inner.className = 'chat-bubble-content';
+      var p = document.createElement('p');
+      p.textContent = text;
+      inner.appendChild(p);
+      div.appendChild(inner);
+      return div;
+    }
+
+    function updateSendState(prefix) {
+      var input = $(prefix + '-input');
+      var sendBtn = $(prefix + '-send-btn');
+      sendBtn.disabled = !ready[prefix] || busy[prefix] || !input.value.trim();
+    }
+
+    // ── Composer: Enter sends, Shift+Enter adds a new line ─────────────────
+    ['em'].forEach(function (prefix) {
+      var input = $(prefix + '-input');
+      if (!input) return;
+      input.addEventListener('input', function () { updateSendState(prefix); });
+      input.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
+        e.preventDefault();
+        if (!$(prefix + '-send-btn').disabled) input.form.requestSubmit();
+      });
+    });
+
+    function composerHint(prefix) {
+      var hint = $(prefix + '-hint');
+      if (!hint) return;
+      hint.innerHTML = '<kbd>Enter</kbd> to send &middot; <kbd>Shift</kbd>+<kbd>Enter</kbd> for a new line';
+    }
+
+    // ── Helper: enable a chat panel ────────────────────────────────────────
+    function enableChat(prefix) {
+      var input = $(prefix + '-input');
+      ready[prefix] = true;
+      input.disabled = false;
+      updateSendState(prefix);
+      setBadge(prefix, LABELS.ready, 'active');
+      composerHint(prefix);
+      // Never scroll the page just to focus the composer
+      input.focus({ preventScroll: true });
+    }
+
+    var STARTER_IDEAS = [
+      {
+        label: 'A welcome email for new subscribers with a hero image and a button',
+        prompt: [
+          'Create a welcome email for new subscribers of Fernway, a sustainable houseplant shop.',
+          '',
+          'Style: calm, modern and airy. Colors: deep green #1F3D2B for the header and buttons, warm off-white #F7F4EE background, charcoal #2B2B2B text, sage #A3B18A for accents. Clean sans-serif font, bold headings, generous spacing.',
+          '',
+          'Layout, top to bottom:',
+          '1. Header: the brand name "FERNWAY", centered, on the deep green.',
+          '2. Hero: full-width image placeholder (600x300), the headline "Welcome to the Fernway family", one short sentence about bringing nature indoors, and a "Shop the collection" button.',
+          '3. Three benefits in three columns, each with an icon placeholder, a short title and one line of text: free delivery over $50, plant-care guides, 30-day happy-plant guarantee.',
+          '4. A highlighted box with the first-order code WELCOME10 for 10% off.',
+          '5. Footer: address, a short "You are receiving this because you signed up" line and an unsubscribe link.',
+          '',
+          'Keep paragraphs short, buttons at least 44px tall, and give every image alt text.'
+        ].join('\n')
+      },
+      {
+        label: 'A spring sale announcement with three featured products',
+        prompt: [
+          'Create a spring sale email for Haven, a home and living brand.',
+          '',
+          'Style: fresh and energetic but still premium. Colors: coral #E4572E for buttons and the sale banner, soft blush #FFF1EC background, navy #1D2D44 text, white product cards. Bold, large headline; clean sans-serif body.',
+          '',
+          'Layout, top to bottom:',
+          '1. Header with the brand name "HAVEN" on navy.',
+          '2. Sale banner in coral: "Spring sale: up to 40% off", with "Ends Sunday at midnight" underneath.',
+          '3. Hero: full-width image placeholder of a bright living room and a "Shop the sale" button.',
+          '4. Three featured products side by side, each card with a square image placeholder, the product name, the old price crossed out, the sale price in coral, and a "Shop now" button. Use: Linen throw ($89 → $59), Ceramic vase ($48 → $32), Oak side table ($240 → $165).',
+          '5. A short urgency strip: "Free shipping on all sale orders this week".',
+          '6. Footer with address and unsubscribe link.',
+          '',
+          'Buttons at least 44px tall, product cards evenly spaced, alt text on every image.'
+        ].join('\n')
+      },
+      {
+        label: 'A monthly newsletter with a short intro and two articles',
+        prompt: [
+          'Create the monthly newsletter "The Monthly Brief" from Northline, a design studio.',
+          '',
+          'Style: editorial and clean, like a well-designed magazine. Colors: indigo #312E81 for the masthead and links, white background, light grey #F4F4F7 for alternating sections, dark grey #1F2937 text. Large serif-style headings if available, sans-serif body.',
+          '',
+          'Layout, top to bottom:',
+          '1. Masthead: "The Monthly Brief" with "Issue 12, October" underneath, on indigo.',
+          '2. A short intro note from the editor (two or three friendly sentences) signed "Ana, Northline".',
+          '3. Two article blocks. Each has an image on the left and text on the right: a title, a two-line summary and a "Read more" link. Article 1: "Designing for slow attention". Article 2: "What we learned redesigning a museum website".',
+          '4. "Quick links": a short list of three useful links (a tool, a talk and a book) with one line each.',
+          '5. Footer with social icon placeholders, address and unsubscribe link.',
+          '',
+          'Keep it scannable, use plenty of white space and give every image alt text.'
+        ].join('\n')
+      }
+    ];
+
+    // Grow the composer with its content (up to a limit) so long briefs stay readable.
+    function autosize(input) {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight + 2, 240) + 'px';
+    }
+    ['em'].forEach(function (prefix) {
+      var input = $(prefix + '-input');
+      if (input) input.addEventListener('input', function () { autosize(input); });
+    });
+
+    // Starter ideas: a short label on the button; clicking fills the composer with
+    // a detailed brief (layout, colors, copy) that can be edited before sending.
+    function appendSuggestions(prefix, ideas) {
+      var wrap = document.createElement('div');
+      wrap.className = 'chat-suggestions';
+      wrap.setAttribute('role', 'group');
+      wrap.setAttribute('aria-label', 'Ideas to get started');
+      ideas.forEach(function (idea) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chat-suggestion';
+        b.textContent = idea.label;
+        b.addEventListener('click', function () {
+          var input = $(prefix + '-input');
+          input.value = idea.prompt;
+          autosize(input);
+          input.scrollTop = 0;
+          updateSendState(prefix);
+          input.focus({ preventScroll: true });
+          input.setSelectionRange(0, 0);
+        });
+        wrap.appendChild(b);
+      });
+      appendToLog(prefix, wrap, true);
+    }
+
+    function appendAgentNote(prefix, text) {
+      appendToLog(prefix, agentBubble(text), true);
+    }
+
+    // ── Load the editor ────────────────────────────────────────────────────
+    window.initEditorManaged = async function () {
+      var btn = $('em-init-btn');
+      hideError('em-editor-error');
+      btn.disabled = true;
+      btn.textContent = 'Loading…';
+      btn.hidden = true;
+
+      function fail(message) {
+        showError('em-editor-error', message);
+        btn.disabled = false;
+        btn.textContent = 'Try again';
+        btn.hidden = false;
+        setBadge('em', 'Not connected', 'offline');
+        $('em-hint').textContent = 'The chat opens as soon as the editor is ready.';
+      }
+
+      try {
+        var resp = await fetch(editorAuthUrl());
+        var data = await resp.json().catch(function () { return {}; });
+        if (!resp.ok || data.error) throw new Error(data.error || 'Editor authentication failed');
+        if (typeof BeePlugin === 'undefined') throw new Error('The Beefree SDK script did not load');
+
+        var container = $('em-editor-container');
+        // Height comes from the container (CSS), not a fixed pixel value
+        container.innerHTML = '<div id="em-bee-editor" class="demo-bee-editor"></div>';
+
+        rememberEditorUid(data.uid);
+        var beeConfig = {
+          uid: data.uid,
+          container: 'em-bee-editor',
+          onSelectElement: function (el) { setSelection('em', el); },
+          username: 'AI Demo User',
+          userHandle: 'ai-demo',
+          userColor: '#7747FF',
+          onLoad: function () { window.startMcpSession(); },
+          onError: function () {
+            showError('em-error', 'The editor ran into a problem. Reload the page to try again.',
+              'Reload page', function () { location.reload(); });
+          }
+        };
+
+        var template = {
+          page: {
+            body: { content: { style: { 'background-color': '#f4f4f4' } }, computedStyle: {} },
+            rows: [],
+            template: { name: 'Agent in the builder', type: 'page' }
+          }
+        };
+
+        BeePlugin.create(data.token, beeConfig, function (bee) {
+          beeEditor = bee;
+          bee.start(template);
+        });
+      } catch (e) {
+        fail('We couldn’t load the editor. Check your connection and try again.');
+      }
+    };
+
+    // ── Connect the agent: start an MCP session from the editor ────────────
+    window.startMcpSession = async function () {
+      if (!beeEditor) return;
+      var btn = $('em-start-btn');
+      hideError('em-error');
+      btn.disabled = true;
+      btn.textContent = 'Connecting…';
+
+      try {
+        var result = await startEditorSession();
+        emTemplateId = result.templateId;
+
+        // Bind the backend chat session to the editor's own templateId so the
+        // agent edits the SAME template the editor is showing (changes reflect live).
+        var resp = await fetch('/integration-start?template_id=' + encodeURIComponent(emTemplateId), { method: 'POST' });
+        var data = await resp.json().catch(function () { return {}; });
+        if (!resp.ok || !data.session_id) throw new Error(data.error || 'Could not connect the agent');
+        emSessionId = data.session_id;
+
+        btn.style.display = 'none';
+        $('em-messages').replaceChildren();
+        enableChat('em');
+        appendAgentNote('em', 'Describe the email you want, or ask for a change to the one in the editor.');
+        appendAgentNote('em', settingsNote(agentSettings.labels()) ||
+          'Tip: open the settings above to give me your brand rules, your saved rows and your File Manager.');
+        appendSuggestions('em', STARTER_IDEAS);
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = 'Connect the agent';
+        btn.style.display = '';
+        setBadge('em', 'Not connected', 'offline');
+        showError('em-error', settingsFailure(e) || 'We couldn’t connect the agent to the editor.', 'Try again', window.startMcpSession);
+      }
+    };
+
+    // ── Chat: send message to agent ────────────────────────────────────────
+    /* ── Editor selection ──
+       The Beefree editor calls onSelectElement({type: 'row'|'module', uuid})
+       when the user selects something. Show it above the composer and send it
+       with the next message, so "make this bigger" applies to that element. */
+    var selection = { em: null, am: null };
+    var SELECTION_NAMES = { row: 'Row', module: 'Block' };
+
+    function setSelection(prefix, el) {
+      if (!el || !el.uuid || !SELECTION_NAMES[el.type]) { clearSelection(prefix); return; }
+      selection[prefix] = { type: el.type, uuid: String(el.uuid) };
+      $(prefix + '-selection-label').textContent = 'Selected ' + SELECTION_NAMES[el.type].toLowerCase();
+      $(prefix + '-selection-id').textContent = selection[prefix].uuid.slice(0, 8);
+      $(prefix + '-selection-id').title = selection[prefix].uuid;
+      $(prefix + '-selection').hidden = false;
+    }
+
+    window.clearSelection = function (prefix) {
+      selection[prefix] = null;
+      $(prefix + '-selection').hidden = true;
+    };
+
+    window.sendDemoMessage = function (e, retryText) {
+      if (e) e.preventDefault();
+      var prefix = 'em';
+      var input = $(prefix + '-input');
+      var messages = $(prefix + '-messages');
+      var sendBtn = $(prefix + '-send-btn');
+      var sessionId = emSessionId;
+
+      var msg = (retryText || input.value).trim();
+      if (!msg || !sessionId || busy[prefix] || !ready[prefix]) return;
+      lastMessage[prefix] = msg;
+      hideError(prefix + '-error');
+      messages.querySelectorAll('.chat-suggestions').forEach(function (el) { el.remove(); });
+
+      // User bubble — the user just acted, so always jump to the newest message
+      var userDiv = document.createElement('div');
+      userDiv.className = 'chat-bubble user-bubble';
+      var sel = selection[prefix];
+      userDiv.innerHTML = '<div class="chat-bubble-content"><p>' + escapeHtml(msg) + '</p>' +
+        (sel ? '<p class="chat-selection-tag">About the selected ' + SELECTION_NAMES[sel.type].toLowerCase() +
+               ' ' + escapeHtml(sel.uuid.slice(0, 8)) + '</p>' : '') + '</div>';
+      appendToLog(prefix, userDiv, true);
+      if (!retryText) { input.value = ''; autosize(input); }
+
+      // Reflect the "working" state. Keep the textarea editable (so the user can
+      // draft the next message) but block sending until the turn finishes.
+      busy[prefix] = true;
+      updateSendState(prefix);
+      setBadge(prefix, LABELS.working, 'generating');
+      var hint = $(prefix + '-hint');
+      hint.textContent = 'The agent is working on your email…';
+
+      // Agent loading bubble
+      var agentDiv = document.createElement('div');
+      agentDiv.className = 'chat-bubble agent-bubble agent-loading';
+      var agentInner = document.createElement('div');
+      agentInner.className = 'chat-bubble-content';
+      agentInner.innerHTML = '<span class="agent-working"><span class="typing-dots" aria-hidden="true"><span></span><span></span><span></span></span> Agent is working…</span>';
+      agentDiv.appendChild(agentInner);
+      appendToLog(prefix, agentDiv, true);
+
+      function showFailure(message, detail) {
+        agentDiv.classList.remove('agent-loading');
+        agentInner.replaceChildren();
+        var p = document.createElement('p');
+        p.className = 'chat-error';
+        p.textContent = message;
+        agentInner.appendChild(p);
+        if (detail) {
+          var d = document.createElement('details');
+          d.className = 'chat-error-details';
+          var sum = document.createElement('summary');
+          sum.textContent = 'Details';
+          var pre = document.createElement('p');
+          pre.textContent = detail;
+          d.appendChild(sum);
+          d.appendChild(pre);
+          agentInner.appendChild(d);
+        }
+        var retry = document.createElement('button');
+        retry.type = 'button';
+        retry.className = 'btn-outline chat-retry-btn';
+        retry.textContent = 'Try again';
+        retry.addEventListener('click', function () {
+          retry.disabled = true;
+          window.sendDemoMessage(null, lastMessage[prefix]);
+        });
+        agentInner.appendChild(retry);
+        var list = $(prefix + '-messages');
+        if (isPinned(list)) scrollToEnd(list);
+      }
+
+      function restore() {
+        busy[prefix] = false;
+        updateSendState(prefix);
+        setBadge(prefix, LABELS.ready, 'active');
+        composerHint(prefix);
+        // Re-focus the composer without moving the page
+        input.focus({ preventScroll: true });
+      }
+
+      // Open the SSE stream for this turn
+      // The message is saved with a POST first; the stream URL only carries its id.
+      function openStream() {
+        if (currentStreams[prefix]) currentStreams[prefix].close();
+        var params = { session_id: sessionId };
+        if (sel) { params.selection_type = sel.type; params.selection_id = sel.uuid; }
+        var fields = { message: msg, history: chatHistory[prefix].slice(-6) };
+        fields.agent = agentSettings.flags();
+        window.beeStreamUrl('/edit-stream', fields, params).then(listen, function (err) {
+          showFailure('Your message couldn’t be sent.', err.message);
+          restore();
+        });
+      }
+
+      function listen(url) {
+        var es = new EventSource(url);
+        currentStreams[prefix] = es;
+
+        es.addEventListener('agent-error', function (ev) {
+          var detail = decodeEntities(ev.data || '');
+          showFailure('Sorry, the agent couldn’t finish that change.', detail);
+        });
+
+        es.addEventListener('agent-message', function (ev) {
+          var list = $(prefix + '-messages');
+          var pinned = isPinned(list);
+          agentDiv.classList.remove('agent-loading');
+          agentInner.innerHTML = ev.data;
+          if (pinned) scrollToEnd(list);
+          var reply = agentInner.textContent.trim();
+          if (reply) chatHistory[prefix] = chatHistory[prefix].concat([[msg, reply]]).slice(-6);
+        });
+
+        es.addEventListener('close', function () {
+          es.close();
+          currentStreams[prefix] = null;
+          if (agentDiv.classList.contains('agent-loading')) {
+            agentDiv.classList.remove('agent-loading');
+            agentInner.replaceChildren();
+            var p = document.createElement('p');
+            p.textContent = 'Done.';
+            agentInner.appendChild(p);
+          }
+          restore();
+        });
+
+        es.onerror = function () {
+          es.close();
+          currentStreams[prefix] = null;
+          if (agentDiv.classList.contains('agent-loading')) {
+            showFailure('We lost the connection to the agent.');
+            restore();
+          } else {
+            restore();
+          }
+        };
+      }
+
+      // Every chat interaction needs a fresh MCP session, or the editor stops
+      // reflecting the agent's changes after the first turn. Start a new
+      // session, repoint the backend at the returned templateId, then stream.
+      startEditorSession().then(function (result) {
+        emTemplateId = result.templateId;
+        return fetch('/integration-refresh?session_id=' + encodeURIComponent(sessionId) +
+                     '&template_id=' + encodeURIComponent(emTemplateId), { method: 'POST' });
+      }).then(function (response) {
+        if (!response.ok) throw new Error('Could not refresh editor session');
+        return response.json();
+      }).then(function (data) {
+        // The session token names the template, so it changes with it.
+        emSessionId = sessionId = data.session_id;
+        openStream();
+      }).catch(function (err) {
+        showFailure(settingsFailure(err) || 'We couldn’t reach the editor.');
+        restore();
+      });
+    };
+
+    // Say in the chat what the agent can use from the next message on.
+    function settingsNote(items) {
+      if (!items.length) return '';
+      return 'From your next message I’ll use: ' + items.map(function (i) { return i.text; }).join(', ') + '.';
+    }
+    agentSettings.onChange(function (items) {
+      if (!ready.em) return;
+      appendAgentNote('em', settingsNote(items) ||
+        'Settings cleared. From your next message I’ll work without brand rules, saved rows or your File Manager.');
+    });
+
+    // Measure the sticky header so the workspace fills exactly the space below it.
+    (function () {
+      var header = document.querySelector('.site-header');
+      function sync() {
+        if (header) document.documentElement.style.setProperty('--builder-header-h', header.offsetHeight + 'px');
+      }
+      sync();
+      if (header && window.ResizeObserver) new ResizeObserver(sync).observe(header);
+      window.addEventListener('resize', sync);
+    })();
+
+    window.initEditorManaged();
+
+  })();
+  </script>
+
+</body>
+</html>

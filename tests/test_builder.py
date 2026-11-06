@@ -6,30 +6,27 @@ from app.main import app
 
 
 class BuilderPageTests(unittest.TestCase):
-    def test_home_links_to_editor_and_headless_pages(self):
+    def test_home_links_to_builder_and_headless_pages(self):
         response = TestClient(app).get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn('href="/editor"', response.text)
+        self.assertIn('href="/builder"', response.text)
         self.assertIn('href="/headless"', response.text)
-        self.assertNotIn('id="editor-modes"', response.text)
+        self.assertNotIn('href="/editor"', response.text)
         self.assertNotIn('id="headless-modes"', response.text)
 
-    def test_editor_page_has_two_cards_in_requested_order(self):
-        response = TestClient(app).get("/editor")
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('id="editor-modes"', response.text)
-        self.assertNotIn('id="headless-modes"', response.text)
-        self.assertLess(response.text.index('href="/builder"'), response.text.index('href="/integration"'))
+    def test_integration_guide_and_editor_page_are_gone(self):
+        client = TestClient(app)
+        for path in ("/integration", "/editor"):
+            self.assertEqual(client.get(path).status_code, 404, path)
 
     def test_headless_page_lists_headless_modes(self):
         response = TestClient(app).get("/headless")
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="headless-modes"', response.text)
-        self.assertNotIn('id="editor-modes"', response.text)
         for path in ["/single", "/palette", "/translate", "/edit", "/codemode", "/sequence"]:
             self.assertIn(f'href="{path}"', response.text)
 
-    def test_simple_builder_reuses_editor_without_guide(self):
+    def test_builder_has_editor_and_chat_without_guide(self):
         response = TestClient(app).get("/builder")
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="em-editor-container"', response.text)
@@ -40,21 +37,16 @@ class BuilderPageTests(unittest.TestCase):
         self.assertNotIn('id="integration-guide"', response.text)
         self.assertNotIn('class="demo-tabs"', response.text)
         self.assertIn('src="/static/model-selection.js"', response.text)
-
-    def test_guide_keeps_both_session_demos(self):
-        response = TestClient(app).get("/integration")
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('id="panel-api-managed"', response.text)
-        self.assertIn('id="integration-guide"', response.text)
-        self.assertNotIn('window.initEditorManaged();', response.text)
+        self.assertNotIn('href="/integration"', response.text)
+        self.assertNotIn("createApiSession", response.text)
 
 
-class IntegrationTemplateUxTests(unittest.TestCase):
+class BuilderTemplateUxTests(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
 
-    def test_builder_and_guide_share_accessibility_basics(self):
-        for path in ("/builder", "/integration"):
+    def test_builder_accessibility_basics(self):
+        for path in ("/builder",):
             html = self.client.get(path).text
             self.assertEqual(html.count("<h1"), 1, path)
             self.assertNotIn("alert(", html, path)
@@ -65,7 +57,7 @@ class IntegrationTemplateUxTests(unittest.TestCase):
             self.assertIn('aria-expanded="true" aria-controls="em-chat-panel"', html, path)
             self.assertIn('class="inline-error" id="em-error" role="alert"', html, path)
             self.assertIn('<nav class="breadcrumb" aria-label="Breadcrumb">', html, path)
-            self.assertIn('<li><a href="/editor">In the editor</a></li>', html, path)
+            self.assertNotIn('href="/editor"', html, path)
             self.assertIn('class="logo-link"', html, path)
             self.assertNotIn('class="back-link"', html, path)
             self.assertIn('<script src="/static/ui.js"></script>', html, path)
@@ -73,22 +65,13 @@ class IntegrationTemplateUxTests(unittest.TestCase):
     def test_builder_title_and_plain_language(self):
         html = self.client.get("/builder").text
         self.assertIn("<title>Beefree SDK MCP — Agent in the builder</title>", html)
-        self.assertIn('class="page-integration page-builder"', html)
+        self.assertIn('<body class="page-builder">', html)
         self.assertIn('Design your email with an AI agent and watch it appear in the editor.', html)
         self.assertNotIn('class="builder-titlebar"', html)
         self.assertEqual(html.count('class="demo-chat-rail"'), 1)
         self.assertIn("Describe the email you want, or ask for a change to the one in the editor.", html)
         self.assertNotIn("Connecting to the editor...", html)
         self.assertIn("focus({ preventScroll: true })", html)
-
-    def test_guide_tabs_are_accessible(self):
-        html = self.client.get("/integration").text
-        self.assertIn("<title>Beefree SDK MCP — Integration guide</title>", html)
-        self.assertIn('role="tablist"', html)
-        self.assertIn('role="tab"', html)
-        self.assertIn('aria-controls="panel-api-managed"', html)
-        self.assertIn('role="tabpanel" aria-labelledby="tab-api-managed" hidden', html)
-        self.assertIn("if (!resp.ok || !data.session_id || !data.template_id)", html)
 
 
 class EditorSelectionTests(unittest.TestCase):
@@ -154,11 +137,6 @@ class BuilderAgentSettingsTests(unittest.TestCase):
         # Every session the editor starts carries the chosen settings
         self.assertIn("beeEditor.startMcpSession(options)", html)
         self.assertIn("fields.agent = agentSettings.flags()", html)
-
-    def test_integration_guide_has_no_agent_settings(self):
-        html = self.client.get("/integration").text
-        self.assertNotIn('id="as-dialog"', html)
-        self.assertNotIn('src="/static/agent-settings.js"', html)
 
     def test_agent_settings_are_sanitized(self):
         from app.main import agent_settings

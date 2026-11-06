@@ -45,8 +45,7 @@ class ChatSessionTests(unittest.TestCase):
         self.assertIsNone(chat_template(forged, "secret"))
 
     def test_integration_start_and_refresh(self):
-        with patch.object(main, "create_template", AsyncMock(return_value="tmpl-1")):
-            data = self.client.post("/integration-start").json()
+        data = self.client.post("/integration-start", params={"template_id": "tmpl-1"}).json()
         self.assertEqual(chat_template(data["session_id"], "test"), "tmpl-1")
         refreshed = self.client.post("/integration-refresh", params={
             "session_id": data["session_id"], "template_id": "tmpl-2"}).json()

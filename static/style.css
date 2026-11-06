@@ -1662,7 +1662,7 @@ textarea { resize: vertical; }
   .field.field-narrow { max-width: 100%; }
 }
 
-/* ─── Integration Guide page ───────────────────────────────────────────────── */
+/* ─── Guide sections (Code Mode page) ──────────────────────────────────────── */
 
 .guide-section {
   background: var(--surface);
@@ -1674,64 +1674,6 @@ textarea { resize: vertical; }
   box-shadow: var(--shadow);
 }
 
-.guide-heading {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: .35rem;
-}
-
-.guide-meta {
-  font-size: .8rem;
-  color: var(--text-muted);
-  margin-bottom: 1rem;
-}
-
-.guide-text {
-  font-size: .9rem;
-  color: var(--text);
-  line-height: 1.6;
-  margin-bottom: 1.2rem;
-}
-
-.guide-text code {
-  background: rgba(119,71,255,.08);
-  padding: .15em .4em;
-  border-radius: 4px;
-  font-family: var(--mono);
-  font-size: .82em;
-}
-
-.guide-link {
-  margin-top: 1rem;
-  font-size: .85rem;
-}
-
-.guide-link a {
-  color: var(--primary);
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.guide-link a:hover { text-decoration: underline; }
-
-.guide-links-list {
-  list-style: none;
-  padding: 0;
-}
-
-.guide-links-list li {
-  margin-bottom: .6rem;
-}
-
-.guide-links-list a {
-  color: var(--primary);
-  text-decoration: none;
-  font-weight: 500;
-  font-size: .9rem;
-}
-
-.guide-links-list a:hover { text-decoration: underline; }
 
 /* Code blocks */
 .code-block {
@@ -1741,15 +1683,6 @@ textarea { resize: vertical; }
   overflow: hidden;
 }
 
-.code-label {
-  background: rgba(119,71,255,.2);
-  padding: .4rem .8rem;
-  font-size: .72rem;
-  font-weight: 600;
-  color: #d6c8ff;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-}
 
 .code-block pre {
   padding: 1rem;
@@ -1764,45 +1697,16 @@ textarea { resize: vertical; }
   line-height: 1.6;
 }
 
-/* Demo tabs */
-.demo-tabs {
-  display: flex;
-  gap: .5rem;
-  margin-bottom: 1.2rem;
-}
 
-.demo-tab {
-  padding: .5rem 1.2rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text-muted);
-  font-size: .82rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all .15s;
-}
-
-.demo-tab:hover { border-color: var(--primary-lt); color: var(--primary); }
-
-.demo-tab-active {
-  background: var(--primary);
-  color: #fff;
-  border-color: var(--primary);
-}
-
-.demo-tab-active:hover { color: #fff; }
-
-/* ─── Integration live demo — side-by-side workspace ───────────────────────── */
+/* ─── Agent in the builder — side-by-side workspace ────────────────────────── */
 /* The Beefree builder is a full IDE-style UI, so it needs real width: the demo
    breaks out of the article column to (near) full bleed, the editor flexes to
    fill, and the chat is a fixed-width, collapsible side panel.               */
 
-.demo-panel { }
 
-/* Integration page only — keep the header bar full-bleed, but widen its content
-   to line up with the demo stage box below */
-.page-integration .site-header .container {
+/* Keep the header bar full-bleed, but widen its content to line up with the
+   stage box below */
+.page-builder .site-header .container {
   max-width: 1640px;
   width: 96vw;
 }
@@ -1816,8 +1720,8 @@ textarea { resize: vertical; }
   max-width: 1640px;
   margin: 0 0 1.5rem;
 }
-/* On the editor pages the breadcrumb spans the same width as the stage below it */
-.page-integration .breadcrumb {
+/* The breadcrumb spans the same width as the stage below it */
+.page-builder .breadcrumb {
   position: relative;
   left: 50%;
   transform: translateX(-50%);
@@ -1926,13 +1830,7 @@ textarea { resize: vertical; }
 
 .demo-editor-placeholder svg { opacity: .35; }
 
-/* Header buttons (Start MCP session, chat toggle) */
-.demo-action-btn {
-  padding: .4rem .9rem;
-  font-size: .78rem;
-}
-
-/* Prominent "Start MCP session" button + attention arrow */
+/* Prominent "Connect the agent" button, shown when connecting failed */
 .demo-start-btn {
   padding: .65rem 1.4rem;
   font-size: .95rem;
@@ -1943,18 +1841,6 @@ textarea { resize: vertical; }
 @keyframes start-btn-pulse {
   0%, 100% { box-shadow: 0 2px 8px rgba(119,71,255,.35); }
   50%      { box-shadow: 0 6px 22px rgba(119,71,255,.6); }
-}
-
-.start-arrow {
-  display: inline-flex;
-  align-items: center;
-  color: var(--primary);
-  animation: arrow-nudge 1s ease-in-out infinite;
-}
-
-@keyframes arrow-nudge {
-  0%, 100% { transform: translateX(0); }
-  50%      { transform: translateX(7px); }
 }
 
 .demo-header-actions {
@@ -1995,115 +1881,14 @@ textarea { resize: vertical; }
 
 @media (max-width: 1024px) {
   .demo-stage { width: 100%; left: 0; transform: none; }
-  .page-integration .breadcrumb { width: 100%; left: 0; transform: none; }
+  .page-builder .breadcrumb { width: 100%; left: 0; transform: none; }
   .demo-workspace { flex-direction: column; min-height: 0; }
   .demo-workspace .edit-chat-panel { width: 100%; }
   .demo-editor-panel .demo-editor-container,
   .demo-editor-placeholder { min-height: 520px; }
 }
 
-/* Live-demo hero (intro + CTA pointing down to the integration docs) */
-.demo-intro .demo-lead {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
-  margin-bottom: 1.25rem;
-}
-
-.demo-lead-text { flex: 1; min-width: 0; }
-
-.demo-lead-text h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: .4rem;
-}
-
-.demo-doc-cta {
-  flex-shrink: 0;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-}
-
-@media (max-width: 700px) {
-  .demo-intro .demo-lead { flex-direction: column; gap: .85rem; }
-  .demo-doc-cta { align-self: flex-start; }
-}
-
 html { scroll-behavior: smooth; }
-#integration-guide,
-#editor-managed,
-#api-managed { scroll-margin-top: 1.25rem; }
-
-/* "Which one is for you?" decision cards */
-.choose-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-top: 1.1rem;
-}
-
-.choose-card {
-  display: block;
-  padding: 1.25rem 1.35rem;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  text-decoration: none;
-  color: var(--text);
-  transition: border-color .15s, box-shadow .15s, transform .15s;
-}
-
-.choose-card:hover {
-  border-color: var(--primary-lt);
-  box-shadow: var(--shadow);
-  transform: translateY(-2px);
-}
-
-.choose-badge {
-  display: inline-block;
-  font-size: .68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  color: var(--primary);
-  background: rgba(119,71,255,.1);
-  padding: .22rem .6rem;
-  border-radius: 99px;
-  margin-bottom: .65rem;
-}
-
-.choose-card h3 {
-  font-size: 1.02rem;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: .4rem;
-}
-
-.choose-card p {
-  font-size: .85rem;
-  color: var(--text-muted);
-  line-height: 1.55;
-  margin-bottom: .75rem;
-}
-
-.choose-link {
-  font-size: .82rem;
-  font-weight: 600;
-  color: var(--primary);
-}
-
-/* Co-editing option — green accent to set it apart */
-.choose-card-coedit:hover { border-color: var(--accent-dk); }
-.choose-card-coedit .choose-badge { color: #1a7a40; background: rgba(130,237,168,.25); }
-.choose-card-coedit .choose-link { color: #1a7a40; }
-
-@media (max-width: 700px) {
-  .choose-grid { grid-template-columns: 1fr; }
-}
 
 /* ─── Code Mode panels ─────────────────────────────────────────────────────── */
 

@@ -6,7 +6,7 @@
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="/static/favicon-32.png" type="image/png" sizes="32x32" />
   <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
-  <title>Beefree SDK MCP — {% if section == 'editor' %}In the editor{% elif section == 'headless' %}Headless{% else %}Demo{% endif %}</title>
+  <title>Beefree SDK MCP — {% if section == 'headless' %}Headless{% else %}Demo{% endif %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -61,16 +61,11 @@
 
     {% if section %}
     {% set crumbs = [["Home", "/"]] %}
-    {% set current %}{% if section == 'editor' %}In the editor{% else %}Headless{% endif %}{% endset %}
+    {% set current %}Headless{% endset %}
     {% include "partials/breadcrumb.html" %}
     {% endif %}
 
-    {% if section == 'editor' %}
-    <div class="landing-hero">
-      <h1 class="landing-title">In the editor</h1>
-      <p class="landing-sub">The AI agent works live inside the Beefree editor — pick an experience.</p>
-    </div>
-    {% elif section == 'headless' %}
+    {% if section == 'headless' %}
     <div class="landing-hero landing-hero-compact">
       <h1 class="landing-title">Headless</h1>
       <p class="landing-sub">Pick a mode and let AI handle the rest.</p>
@@ -85,22 +80,22 @@
     <!-- ═══════ Step 1: choose the path ═══════ -->
     <div class="path-chooser">
 
-      <!-- In the editor → editor experiences page -->
-      <a href="/editor" class="path-card path-card-editor">
+      <!-- In the editor → the agent in the builder -->
+      <a href="/builder" class="path-card path-card-editor">
         <div class="path-icon" style="background:rgba(119,71,255,.12);color:#7747FF;">
           <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
             <rect x="4" y="5" width="24" height="17" rx="3" stroke="currentColor" stroke-width="2"/>
             <path d="M12 27h8M16 22v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </div>
-        <span class="path-tag" style="background:rgba(119,71,255,.12);color:#7747FF;">Visual · co-editing</span>
+        <span class="path-tag" style="background:rgba(119,71,255,.12);color:#7747FF;">Visual · live agent</span>
         <h2 class="path-title">In the editor</h2>
         <p class="path-desc">
           The AI agent works live inside the Beefree editor — you and the agent build together,
           with every change synced in real time.
         </p>
         <span class="path-cta">
-          Choose an editor experience
+          Open the builder
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -115,7 +110,7 @@
             <path d="M9 13l4 3-4 3M16 19h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
-        <span class="path-tag" style="background:rgba(16,185,129,.12);color:#059669;">Background · no UI</span>
+        <span class="path-tag" style="background:rgba(16,185,129,.12);color:#059669;">Background · no Editor open</span>
         <h2 class="path-title">Headless</h2>
         <p class="path-desc">
           No editor open — agents build and edit emails entirely in the background via MCP.
@@ -129,32 +124,6 @@
         </span>
       </a>
 
-    </div>
-    {% endif %}
-
-    {% if section == 'editor' %}
-    <div class="cluster" id="editor-modes">
-      <div class="mode-grid">
-        <a href="/builder" class="mode-card">
-          <div class="mode-icon mode-icon-single">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <rect x="4" y="6" width="24" height="20" rx="4" stroke="currentColor" stroke-width="2"/>
-              <path d="M4 10l12 8 12-8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="mode-badge">Live agent</div>
-          <h2 class="mode-title">Agent in the Builder</h2>
-          <p class="mode-desc">Create and refine an email alongside an AI agent in the visual builder.</p>
-          <span class="mode-cta">Open the builder &rarr;</span>
-        </a>
-        <a href="/integration" class="mode-card">
-          <div class="mode-icon mode-icon-translate" aria-hidden="true">&lt;/&gt;</div>
-          <div class="mode-badge">Developer guide</div>
-          <h2 class="mode-title">Integration guide</h2>
-          <p class="mode-desc">Explore editor-managed and API-managed sessions with working demos and implementation examples.</p>
-          <span class="mode-cta">Explore the guide &rarr;</span>
-        </a>
-      </div>
     </div>
     {% endif %}
 

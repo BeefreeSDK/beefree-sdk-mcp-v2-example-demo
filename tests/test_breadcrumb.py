@@ -9,7 +9,8 @@ from app.config import Settings
 
 
 class BreadcrumbTests(unittest.TestCase):
-    """A breadcrumb under the header shows where each page sits: Home › section › page."""
+    """A breadcrumb under the header shows where each page sits: Home › section › page
+    (the builder sits right under Home)."""
 
     PAGES = {
         "/single": ("Headless", "Single email"),
@@ -20,8 +21,7 @@ class BreadcrumbTests(unittest.TestCase):
         "/edit": ("Headless", "Edit an email"),
         "/translate": ("Headless", "Bulk translations"),
         "/palette": ("Headless", "Color palettes"),
-        "/builder": ("In the editor", "Agent in the builder"),
-        "/integration": ("In the editor", "Integration guide"),
+        "/builder": (None, "Agent in the builder"),
     }
 
     def setUp(self):
@@ -40,9 +40,11 @@ class BreadcrumbTests(unittest.TestCase):
             with self.subTest(path=path):
                 html = self.client.get(path).text
                 trail = self.trail(html)
-                href = "/headless" if section == "Headless" else "/editor"
                 self.assertIn('<li><a href="/">Home</a></li>', trail)
-                self.assertIn(f'<li><a href="{href}">{section}</a></li>', trail)
+                if section:
+                    self.assertIn(f'<li><a href="/headless">{section}</a></li>', trail)
+                else:
+                    self.assertEqual(trail.count("<li>"), 2)
                 self.assertIn(f'<li><span aria-current="page">{page}</span></li>', trail)
                 # Under the header, not inside it; the header keeps the page tag.
                 self.assertGreater(html.index('class="breadcrumb"'), html.index('</header>'))
@@ -50,7 +52,7 @@ class BreadcrumbTests(unittest.TestCase):
                 self.assertNotIn('class="back-link"', html)
 
     def test_section_pages_and_home(self):
-        for path, section in (("/editor", "In the editor"), ("/headless", "Headless")):
+        for path, section in (("/headless", "Headless"),):
             trail = self.trail(self.client.get(path).text)
             self.assertIn('<li><a href="/">Home</a></li>', trail)
             self.assertIn(f'<li><span aria-current="page">{section}</span></li>', trail)
