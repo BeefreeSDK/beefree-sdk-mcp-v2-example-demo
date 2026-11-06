@@ -127,3 +127,76 @@ class EditorSelectionTests(unittest.TestCase):
         self.assertIn("onSelectElement", response.text)
         self.assertIn('id="em-selection"', response.text)
         self.assertIn("params.selection_id = sel.uuid", response.text)
+
+
+class BuilderAgentSettingsTests(unittest.TestCase):
+    """The builder's agent settings: brand rules, reusable rows and File Manager access."""
+
+    def setUp(self):
+        self.client = TestClient(app)
+
+    def test_builder_offers_the_headless_examples(self):
+        import json
+        from app.brand import PRESETS
+        from app.files import PRESETS as FILE_PRESETS
+        html = self.client.get("/builder").text
+        self.assertIn('id="as-dialog"', html)
+        self.assertIn('id="as-open"', html)
+        self.assertIn('id="as-strip"', html)
+        self.assertIn('src="/static/agent-settings.js"', html)
+        for preset in PRESETS:
+            self.assertIn(f'data-value="{preset["id"]}"', html)
+        for preset in FILE_PRESETS:
+            self.assertIn(f'data-value="{preset["id"]}"', html)
+        data = json.loads(html.split('<script type="application/json" id="as-data">', 1)[1].split("</script>", 1)[0])
+        self.assertEqual(len(data["sampleLibrary"]["entries"]), 4)
+        self.assertEqual([p["id"] for p in data["brandPresets"]], [p["id"] for p in PRESETS])
+        # Every session the editor starts carries the chosen settings
+        self.assertIn("beeEditor.startMcpSession(options)", html)
+        self.assertIn("fields.agent = agentSettings.flags()", html)
+
+    def test_integration_guide_has_no_agent_settings(self):
+        html = self.client.get("/integration").text
+        self.assertNotIn('id="as-dialog"', html)
+        self.assertNotIn('src="/static/agent-settings.js"', html)
+
+    def test_agent_settings_are_sanitized(self):
+        from app.main import agent_settings
+        self.assertEqual(agent_settings(None), {"brand": False, "reusable_rows": False, "file_access": None})
+        self.assertEqual(
+            agent_settings({"brand": True, "rows": True, "files": {"readPaths": ["/"], "uid": "x", "extra": 1}}),
+            {"brand": True, "reusable_rows": True, "file_access": {"readPaths": ["/"]}},
+        )
+        self.assertIsNone(agent_settings({"files": {"readPaths": ["no-slash"]}})["file_access"])
+        self.assertFalse(agent_settings({"brand": "yes"})["brand"])
+
+    def test_edit_stream_passes_agent_settings(self):
+        from unittest.mock import patch
+        from app import main as routes
+        captured = {}
+
+        async def fake_executor(**kwargs):
+            captured.update(kwargs)
+            yield {"event": "close", "data": ""}
+
+        token = self.client.post("/run-input", json={
+            "message": "Add a footer", "history": [],
+            "agent": {"brand": True, "rows": True, "files": {"readPaths": ["/Brand"], "uploadPaths": []}},
+        }).json()["input_id"]
+        with patch.object(routes, "stream_edit_executor", fake_executor):
+            self.client.get("/edit-stream", params={
+                "session_id": routes.chat_session("t1", routes.chat_secret()), "input_id": token,
+            })
+        self.assertTrue(captured["brand"])
+        self.assertTrue(captured["reusable_rows"])
+        self.assertEqual(captured["file_access"], {"readPaths": ["/Brand"], "uploadPaths": []})
+
+    def test_run_input_rejects_agent_without_a_message(self):
+        self.assertEqual(self.client.post("/run-input", json={"agent": {"brand": True}}).status_code, 400)
+        self.assertEqual(self.client.post("/run-input", json={"message": "hi", "agent": "on"}).status_code, 400)
+
+    def test_edit_agent_prompt_follows_the_settings(self):
+        from app import agent
+        self.assertIn("/Brand", agent.file_manager_instructions({"readPaths": ["/Brand"]}, chat=True))
+        self.assertIn("whenever a change needs an image", agent.file_manager_instructions({}, chat=True))
+        self.assertNotIn("whenever a change needs an image", agent.file_manager_instructions({}))

@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
+  {% if simple_builder %}<link rel="stylesheet" href="/static/agent-settings.css" />{% endif %}
   <style>
     /* ── Shared by /integration and /builder ─────────────────────────────── */
     /* Header content lines up with every other page (1200px container); only
@@ -295,7 +296,19 @@
                 Chat with the agent
               </h3>
               <div class="demo-header-actions">
-                <span class="edit-status-badge is-offline" id="em-status-badge">{% if simple_builder %}Getting ready…{% else %}Offline{% endif %}</span>
+                <span class="edit-status-badge is-offline" id="em-status-badge">{% if simple_builder %}Not ready{% else %}Offline{% endif %}</span>
+                {% if simple_builder %}
+                <button type="button" class="demo-icon-btn as-open-btn" id="as-open" onclick="beeAgentSettings.open()"
+                        title="Agent settings: brand rules, reusable rows, File Manager" aria-label="Agent settings" aria-haspopup="dialog">
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h8M14 12h0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <circle cx="11" cy="4" r="1.8" stroke="currentColor" stroke-width="1.5"/>
+                    <circle cx="6" cy="8" r="1.8" stroke="currentColor" stroke-width="1.5"/>
+                    <circle cx="12" cy="12" r="1.8" stroke="currentColor" stroke-width="1.5"/>
+                  </svg>
+                  <span class="as-dot" hidden></span>
+                </button>
+                {% endif %}
                 <button type="button" class="demo-icon-btn demo-chat-collapse" id="em-chat-collapse" onclick="toggleChat('em')"
                         title="Hide chat" aria-label="Hide chat" aria-expanded="true" aria-controls="em-chat-panel">
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -305,6 +318,9 @@
               </div>
             </div>
 
+            {% if simple_builder %}
+            <div class="as-strip" id="as-strip" role="group" aria-label="What the agent can use"></div>
+            {% endif %}
             <div class="edit-chat-messages" id="em-messages" role="log" aria-live="polite" aria-label="Conversation with the agent">
               <div class="chat-bubble agent-bubble">
                 <div class="chat-bubble-content">
@@ -713,6 +729,11 @@ final_template = resp.json()</code></pre>
   }
   </script>
 
+  {% if simple_builder %}
+  {% include "partials/agent_settings.html" %}
+  <script src="/static/agent-settings.js"></script>
+  {% endif %}
+
   <!-- Beefree SDK -->
   <script src="https://app-rsrc.getbee.io/plugin/BeePlugin.js"></script>
 
@@ -757,6 +778,31 @@ final_template = resp.json()</code></pre>
 
     // ── Helpers ────────────────────────────────────────────────────────────
     function $(id) { return document.getElementById(id); }
+
+    // ── Agent settings (builder only) ──────────────────────────────────────
+    // Brand rules, reusable rows and File Manager access are attached when a
+    // session starts, so every startMcpSession() call passes the ones chosen
+    // in the settings dialog (static/agent-settings.js).
+    var agentSettings = SIMPLE ? window.beeAgentSettings : null;
+    function startEditorSession() {
+      var options = agentSettings && agentSettings.options();
+      return options ? beeEditor.startMcpSession(options) : beeEditor.startMcpSession();
+    }
+
+    // Why Beefree refused to start a session with the agent settings, in plain words.
+    function settingsFailure(err) {
+      var detail = (err && err.detail) || {};
+      if (!agentSettings || !agentSettings.options()) return null;
+      if (detail.status === 403) {
+        return 'Your Beefree plan doesn’t include one of the agent settings. Brand rules need a Superpowers or Enterprise plan, reusable rows a Core plan or above. Turn it off in the settings and try again.';
+      }
+      if (detail.status === 400 || detail.status === 413) {
+        var list = Array.isArray(detail.details) ? detail.details.join('; ') : '';
+        return 'Beefree refused the agent settings' + (detail.error ? ' (' + detail.error + ')' : '') +
+          (list ? ': ' + list : '') + '. Change them in the settings and try again.';
+      }
+      return null;
+    }
 
     function escapeHtml(str) {
       var div = document.createElement('div');
@@ -1013,7 +1059,6 @@ final_template = resp.json()</code></pre>
           userColor: '#7747FF',
           onLoad: function () {
             if (SIMPLE) {
-              setBadge('em', 'Connecting…', 'offline');
               window.startMcpSession();
             } else {
               $('em-start-btn').style.display = '';
@@ -1060,7 +1105,7 @@ final_template = resp.json()</code></pre>
       btn.textContent = SIMPLE ? 'Connecting…' : 'Starting…';
 
       try {
-        var result = await beeEditor.startMcpSession();
+        var result = await startEditorSession();
         emTemplateId = result.templateId;
 
         // Bind the backend chat session to the editor's own templateId so the
@@ -1077,6 +1122,8 @@ final_template = resp.json()</code></pre>
           $('em-messages').replaceChildren();
           enableChat('em');
           appendAgentNote('em', 'Describe the email you want, or ask for a change to the one in the editor.');
+          appendAgentNote('em', settingsNote(agentSettings.labels()) ||
+            'Tip: open the settings above to give me your brand rules, your saved rows and your File Manager.');
           appendSuggestions('em', STARTER_IDEAS);
         } else {
           enableChat('em', 'MCP session active');
@@ -1088,7 +1135,7 @@ final_template = resp.json()</code></pre>
         btn.style.display = '';
         if (SIMPLE) {
           setBadge('em', 'Not connected', 'offline');
-          showError('em-error', 'We couldn’t connect the agent to the editor.', 'Try again', window.startMcpSession);
+          showError('em-error', settingsFailure(e) || 'We couldn’t connect the agent to the editor.', 'Try again', window.startMcpSession);
         } else {
           showError('em-error', 'Failed to start MCP session: ' + e.message);
         }
@@ -1267,7 +1314,9 @@ final_template = resp.json()</code></pre>
         if (currentStreams[prefix]) currentStreams[prefix].close();
         var params = { session_id: sessionId };
         if (sel) { params.selection_type = sel.type; params.selection_id = sel.uuid; }
-        window.beeStreamUrl('/edit-stream', { message: msg, history: chatHistory[prefix].slice(-6) }, params).then(listen, function (err) {
+        var fields = { message: msg, history: chatHistory[prefix].slice(-6) };
+        if (prefix === 'em' && agentSettings) fields.agent = agentSettings.flags();
+        window.beeStreamUrl('/edit-stream', fields, params).then(listen, function (err) {
           showFailure(SIMPLE ? 'Your message couldn’t be sent.' : 'Could not send the message.', err.message);
           restore(true);
         });
@@ -1323,7 +1372,7 @@ final_template = resp.json()</code></pre>
       // editor stops reflecting the agent's changes after the first turn. Start a
       // new session, repoint the backend at the returned templateId, then stream.
       if (mode === 'editor-managed' && beeEditor) {
-        beeEditor.startMcpSession().then(function (result) {
+        startEditorSession().then(function (result) {
           emTemplateId = result.templateId;
           return fetch('/integration-refresh?session_id=' + encodeURIComponent(sessionId) +
                        '&template_id=' + encodeURIComponent(emTemplateId), { method: 'POST' });
@@ -1334,14 +1383,27 @@ final_template = resp.json()</code></pre>
           // The session token names the template, so it changes with it.
           emSessionId = sessionId = data.session_id;
           openStream();
-        }).catch(function () {
-          showFailure(SIMPLE ? 'We couldn’t reach the editor.' : 'Could not refresh the editor session.');
+        }).catch(function (err) {
+          showFailure(settingsFailure(err) || (SIMPLE ? 'We couldn’t reach the editor.' : 'Could not refresh the editor session.'));
           restore(true);
         });
       } else {
         openStream();
       }
     };
+
+    // Say in the chat what the agent can use from the next message on.
+    function settingsNote(items) {
+      if (!items.length) return '';
+      return 'From your next message I’ll use: ' + items.map(function (i) { return i.text; }).join(', ') + '.';
+    }
+    if (agentSettings) {
+      agentSettings.onChange(function (items) {
+        if (!ready.em) return;
+        appendAgentNote('em', settingsNote(items) ||
+          'Settings cleared. From your next message I’ll work without brand rules, saved rows or your File Manager.');
+      });
+    }
 
     // Measure the sticky header so the workspace fills exactly the space below it.
     (function () {

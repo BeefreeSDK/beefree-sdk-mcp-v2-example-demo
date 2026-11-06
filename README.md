@@ -16,6 +16,11 @@ Both need the editor credentials `BEE_CLIENT_ID` / `BEE_CLIENT_SECRET`.
   - **Starter ideas:** three short buttons. Each fills the composer with a detailed brief (brand, colors, layout, copy) that can be edited before sending.
   - **Selection-aware chat:** selecting a row or block in the editor shows a "Selected row/block" chip above the composer. The selection is sent with the next message, so "make this bigger" applies to that element. This uses the SDK's `onSelectElement` callback.
   - **Plain-language replies:** the agent is instructed to answer without code, JSON or element IDs, and `clean_reply()` strips any that slip through.
+  - **Agent settings:** the settings button in the chat header opens a dialog to give the agent [Brand Rules](https://docs.beefree.io/beefree-sdk/ai-and-mcp/brand-rules-for-ai), [Reusable Rows](https://docs.beefree.io/beefree-sdk/ai-and-mcp/reusable-rows-for-ai) and [File Manager](https://docs.beefree.io/beefree-sdk/ai-and-mcp/file-manager-for-ai) access. Each can be switched on separately.
+    - It offers the headless pages' examples (the three brand presets, the sample row library, the three File Manager access presets) or your own JSON. The File Manager tab shows `/Brand` and `/AI Generated Images` and can add the sample files.
+    - Saving checks each setting with the same endpoints as the headless pages (`/brand-rules`, `/rows-library`, `/files-access`).
+    - Every chat turn passes the settings to `bee.startMcpSession({ brandRules, reusableRows, fileManager })`, so each turn's session carries them. The editor adds its own `uid` to the File Manager access. The message tells the server which settings are on, so the agent's prompt explains how to use them.
+    - A strip under the chat header shows what the agent can use. The choice is remembered in this browser (`localStorage`).
 - **Integration guide** (`/integration`): the developer page. It runs live demos of both session models, **Editor-managed** (a fresh MCP session per chat turn) and **API-managed + co-editing** (a persistent shared session), with implementation code for each.
 
 ### Headless

@@ -1,0 +1,158 @@
+{# Agent settings for /builder: brand rules, reusable rows and File Manager access.
+   The examples are the headless pages' ones (app/brand.py, app/rows.py, app/files.py).
+   static/agent-settings.js validates them with the same endpoints and hands them to
+   bee.startMcpSession() on every chat turn. #}
+<dialog class="as-dialog" id="as-dialog" aria-labelledby="as-title" aria-describedby="as-lead">
+  <div class="as-head">
+    <div>
+      <h2 class="as-title" id="as-title">Agent settings</h2>
+      <p class="as-lead" id="as-lead">Give the agent your brand, your saved rows and your images. They apply from your next message.</p>
+    </div>
+    <button type="button" class="demo-icon-btn" id="as-close" aria-label="Close settings" title="Close">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <div class="as-tabs" role="tablist" aria-label="Settings">
+    <button type="button" role="tab" id="as-tab-brand" aria-controls="as-panel-brand" aria-selected="true" data-section="brand">
+      Brand rules <span class="as-state" data-state-for="brand">Off</span>
+    </button>
+    <button type="button" role="tab" id="as-tab-rows" aria-controls="as-panel-rows" aria-selected="false" tabindex="-1" data-section="rows">
+      Reusable rows <span class="as-state" data-state-for="rows">Off</span>
+    </button>
+    <button type="button" role="tab" id="as-tab-files" aria-controls="as-panel-files" aria-selected="false" tabindex="-1" data-section="files">
+      File Manager <span class="as-state" data-state-for="files">Off</span>
+    </button>
+  </div>
+
+  <div class="as-body">
+    <!-- ── Brand rules ── -->
+    <section class="as-panel" role="tabpanel" id="as-panel-brand" aria-labelledby="as-tab-brand">
+      <label class="as-switch">
+        <input type="checkbox" role="switch" id="as-brand-on" />
+        <span class="as-switch-track" aria-hidden="true"></span>
+        <span class="as-switch-label">Use brand rules</span>
+      </label>
+      <p class="as-intro">
+        The agent styles everything with your approved styles, and Beefree refuses changes that break the rules
+        (forbidden blocks, too many sections or buttons). Needs a Superpowers or Enterprise plan.
+      </p>
+      <div class="as-fields" data-fields-for="brand">
+        <div class="as-choices" role="radiogroup" aria-label="Brand rules">
+          {% for p in brand_presets %}
+          <button type="button" class="as-choice" role="radio" aria-checked="false" data-group="brand" data-value="{{ p.id }}">
+            <span class="as-swatches" aria-hidden="true">{% for c in p.swatches %}<span style="background:{{ c }}"></span>{% endfor %}</span>
+            <span class="as-choice-name">{{ p.name }}</span>
+            <span class="as-choice-text">{{ p.tagline }}</span>
+          </button>
+          {% endfor %}
+          <button type="button" class="as-choice" role="radio" aria-checked="false" data-group="brand" data-value="json">
+            <span class="as-choice-name">Your own JSON</span>
+            <span class="as-choice-text">Paste a <code>brandRules</code> object.</span>
+          </button>
+        </div>
+        <div class="as-json" data-json-for="brand" hidden>
+          <label class="field-label" for="as-brand-json">brandRules JSON</label>
+          <textarea id="as-brand-json" rows="10" spellcheck="false"></textarea>
+          <p class="as-note">Starts from the rules you picked last. To build rules step by step, use the guided setup on <a href="/brand">On-brand email</a>, then paste its JSON here.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Reusable rows ── -->
+    <section class="as-panel" role="tabpanel" id="as-panel-rows" aria-labelledby="as-tab-rows" hidden>
+      <label class="as-switch">
+        <input type="checkbox" role="switch" id="as-rows-on" />
+        <span class="as-switch-track" aria-hidden="true"></span>
+        <span class="as-switch-label">Use reusable rows</span>
+      </label>
+      <p class="as-intro">
+        When you ask for a new email or section, the agent searches your saved rows and places a matching one
+        instead of building it. Synced rows are placed as they are. Needs a Core plan or above.
+      </p>
+      <div class="as-fields" data-fields-for="rows">
+        <div class="as-choices" role="radiogroup" aria-label="Row library">
+          <button type="button" class="as-choice" role="radio" aria-checked="false" data-group="rows" data-value="sample">
+            <span class="as-choice-name">Sample library</span>
+            <span class="as-choice-text">{{ sample_rows | length }} rows from Fieldnote, a fictional stationery store.</span>
+          </button>
+          <button type="button" class="as-choice" role="radio" aria-checked="false" data-group="rows" data-value="json">
+            <span class="as-choice-name">Your own JSON</span>
+            <span class="as-choice-text">Paste a <code>reusableRows</code> library, like <code>{"entries": [...]}</code>.</span>
+          </button>
+        </div>
+        <ul class="as-rows" data-sample-for="rows">
+          {% for row in sample_rows %}
+          <li class="as-row">
+            {% if row.preview %}<div class="as-row-preview"><img src="{{ row.preview }}" alt="" loading="lazy" /></div>{% endif %}
+            <p class="as-row-name">{{ row.name }}{% if row.synced %} <span class="as-badge">Synced</span>{% endif %}</p>
+            <p class="as-row-text">{{ row.description }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+        <div class="as-json" data-json-for="rows" hidden>
+          <label class="field-label" for="as-rows-json">reusableRows JSON</label>
+          <textarea id="as-rows-json" rows="10" spellcheck="false" placeholder='{"entries": [ ...rows saved with onSaveRow... ]}'></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── File Manager ── -->
+    <section class="as-panel" role="tabpanel" id="as-panel-files" aria-labelledby="as-tab-files" hidden>
+      <label class="as-switch">
+        <input type="checkbox" role="switch" id="as-files-on" />
+        <span class="as-switch-track" aria-hidden="true"></span>
+        <span class="as-switch-label">Use your File Manager</span>
+      </label>
+      <p class="as-intro">
+        The agent finds and reuses the images in your File Manager, the one the editor's image picker opens,
+        and saves the new ones there. Choose which folders it can read, save to and delete from.
+      </p>
+      <div class="as-fields" data-fields-for="files">
+        <div class="as-choices" role="radiogroup" aria-label="File Manager access">
+          {% for p in file_presets %}
+          <button type="button" class="as-choice" role="radio" aria-checked="false" data-group="files" data-value="{{ p.id }}">
+            <span class="as-choice-tag">{{ p.tag }}</span>
+            <span class="as-choice-name">{{ p.name }}</span>
+            <span class="as-choice-text">{{ p.description }}</span>
+          </button>
+          {% endfor %}
+          <button type="button" class="as-choice" role="radio" aria-checked="false" data-group="files" data-value="json">
+            <span class="as-choice-tag">Custom</span>
+            <span class="as-choice-name">Your own JSON</span>
+            <span class="as-choice-text">Paste a <code>fileManager</code> object. The editor adds your user.</span>
+          </button>
+        </div>
+        <div class="as-json" data-json-for="files" hidden>
+          <label class="field-label" for="as-files-json">fileManager JSON</label>
+          <textarea id="as-files-json" rows="6" spellcheck="false"></textarea>
+        </div>
+
+        <div class="as-fm" aria-labelledby="as-fm-title">
+          <div class="as-fm-head">
+            <p class="as-fm-title" id="as-fm-title">Your File Manager</p>
+            <div class="as-fm-actions">
+              <button type="button" class="btn btn-outline as-small-btn" id="as-fm-samples">
+                Add sample files <span class="spinner" id="as-fm-spinner" hidden></span>
+              </button>
+              <button type="button" class="btn-link" id="as-fm-refresh">Refresh</button>
+            </div>
+          </div>
+          <ul class="as-fm-folders" id="as-fm-folders" aria-live="polite"></ul>
+          <p class="as-note" id="as-fm-status" role="status"></p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="as-foot">
+    <div class="as-errors" id="as-errors" role="alert" hidden></div>
+    <div class="as-actions">
+      <button type="button" class="btn-link" id="as-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="as-save">
+        Save settings <span class="spinner" id="as-save-spinner" hidden></span>
+      </button>
+    </div>
+  </div>
+</dialog>
+<script type="application/json" id="as-data">{{ settings_json | safe }}</script>

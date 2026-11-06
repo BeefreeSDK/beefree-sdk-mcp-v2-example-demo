@@ -122,7 +122,7 @@ def chat_history(turns) -> list:
 # Stream inputs (briefs, chat messages, campaign plans, brand rules) travel as
 # compressed tokens in the stream URL (app/payload.py), not in server memory, so
 # any copy of the app behind a load balancer can run them.
-RUN_INPUT_FIELDS = {"brief", "message", "history"}
+RUN_INPUT_FIELDS = {"brief", "message", "history", "agent"}
 MAX_RUN_INPUT_CHARS = 20_000
 BAD_INPUT = "This request could not be read. Reload the page and try again."
 
@@ -399,7 +399,19 @@ async def integration_page(request: Request):
 
 @app.get("/builder", response_class=HTMLResponse)
 async def builder_page(request: Request):
-    return templates.TemplateResponse("builder.html", {"request": request})
+    """The builder, with agent settings that reuse the headless pages' examples."""
+    return templates.TemplateResponse(
+        "builder.html",
+        {
+            "request": request, "brand_presets": PRESETS, "sample_rows": library_cards(SAMPLE_LIBRARY),
+            "file_presets": FILE_PRESETS, "sample_folder": SAMPLE_FOLDER, "upload_folder": UPLOAD_FOLDER,
+            "settings_json": json.dumps({
+                "brandPresets": [{k: p[k] for k in ("id", "name", "swatches", "rules")} for p in PRESETS],
+                "sampleLibrary": SAMPLE_LIBRARY,
+                "filePresets": FILE_PRESETS,
+            }).replace("</", "<\\/"),
+        },
+    )
 
 
 @app.get("/sample-template")
@@ -536,9 +548,11 @@ async def run_input(request: Request):
     except ValueError:
         return JSONResponse({"error": "The request was not valid JSON."}, status_code=400)
     fields = body if isinstance(body, dict) else {}
-    texts = [v for k, v in fields.items() if k != "history"]
+    texts = [v for k, v in fields.items() if k not in ("history", "agent")]
     if (not texts or set(fields) - RUN_INPUT_FIELDS or not all(isinstance(v, str) for v in texts)
             or not isinstance(fields.get("history", []), list)):
+        return JSONResponse({"error": "Send a brief or a message."}, status_code=400)
+    if not isinstance(fields.get("agent", {}), dict):
         return JSONResponse({"error": "Send a brief or a message."}, status_code=400)
     if fields.get("history"):
         # Only the recent turns are used; trim them here so the token stays short.
@@ -1321,6 +1335,25 @@ async def edit_start(request: Request, template_json: str = Form(...)):
 SELECTION_ID = re.compile(r"^[A-Za-z0-9-]{1,64}$")
 
 
+def agent_settings(raw) -> dict:
+    """What the builder's agent settings attached to this turn's session.
+
+    The editor sends the settings themselves to Beefree (``startMcpSession``);
+    the chat only says which are on, and the File Manager folders, so the agent's
+    prompt explains how to use them. Anything malformed counts as off.
+    """
+    raw = raw if isinstance(raw, dict) else {}
+    files = raw.get("files")
+    if not isinstance(files, dict) or access_shape_errors(files):
+        files = None
+    return {
+        "brand": raw.get("brand") is True,
+        "reusable_rows": raw.get("rows") is True,
+        "file_access": {k: files[k] for k in ("readPaths", "uploadPaths", "deletePaths") if k in files}
+        if files is not None else None,
+    }
+
+
 def with_selection(message: str, selection_type: str | None, selection_id: str | None) -> str:
     """Tell the agent which editor element the user has selected, if any.
 
@@ -1347,9 +1380,11 @@ async def edit_stream_route(
 ):
     """SSE: run one edit-agent turn, stream previews + the agent's reply."""
     turns = None
+    extras = agent_settings(None)
     if input_id:
         saved = unpack(input_id) or {}
         message, turns = saved.get("message"), saved.get("history")
+        extras = agent_settings(saved.get("agent"))
     if not message:
         async def _missing():
             yield {"event": "agent-error", "data": html_lib.escape(
@@ -1369,6 +1404,7 @@ async def edit_stream_route(
             message=with_selection(message, selection_type, selection_id),
             settings=settings,
             message_history=chat_history(turns),
+            **extras,
         ):
             yield event
 

@@ -421,11 +421,83 @@ Rules:
 """
 
 
-def file_manager_instructions(access: dict) -> str:
-    """The File Manager instructions, naming the folders this session allows."""
+CHAT_REUSABLE_ROWS_INSTRUCTIONS = """
+
+YOUR USER'S REUSABLE ROWS: this session has their library of saved rows, their
+real, approved content (headers, footers with legal text and unsubscribe links,
+recurring sections). The script API has four functions for it:
+searchReusableRows, getReusableRowsFacets, getReusableRowsDetails and
+addReusableRow, documented in the beefree_execute description. If that
+description does not list them, the plan does not include reusable rows: build
+sections yourself and say so.
+
+How to work:
+- When the user asks for a new email or a new section (header, footer, hero,
+  offer...), first search the library with their own words, for example
+  text: "footer", and place a matching row with addReusableRow instead of
+  building one. A saved header, footer or legal footer always beats one you build.
+- When the user asks to change something already in the email, just change it:
+  don't search the library.
+
+Rules:
+- On an empty search, read its explanation (unknownValues, didYouMean,
+  closestNames) and retry once with the suggested words before building.
+- Never invent a reusableRowId: only use ids returned by searchReusableRows in
+  this session.
+- addReusableRow always inserts a NEW section at `position` (appended when
+  omitted), counted against the sections the email has when the script runs.
+- A placed row's ids only exist once its script ends: to edit blocks inside it,
+  read the content hierarchy in a later script.
+- Synced rows (synced: true) are shared across the user's emails: place them as
+  they are and never edit, restyle or delete their content.
+- Keep reusable rows as they are and match the sections you build to their style.
+- In your reply, name the saved rows you used.
+"""
+
+
+CHAT_FILE_MANAGER_INSTRUCTIONS = """
+
+YOUR USER'S FILE MANAGER: this session can use the File Manager of the person
+you design for, the images they already have and the ones you save for them.
+The script API has up to four functions for it: listFiles, searchFiles,
+uploadFile and removeFile, documented in the beefree_execute description. Each
+is defined only when this session allows that operation; if the description
+lists none, use stock images and say so.
+
+The folders this session allows:
+- read (listFiles, searchFiles): {read}
+- save to (uploadFile): {upload}
+- delete from (removeFile): {delete}
+
+How to work, whenever a change needs an image (a new email, a new section, a
+replaced picture, a logo):
+1. Search the File Manager first, using the user's own words, and prefer their
+   images: place a file you found with its returned url.
+2. For an image the File Manager doesn't have, find a stock image, save it with
+   uploadFile into a folder you can save to, then place it with the url the
+   upload returns, never the stock URL. If you can save nowhere, place the
+   stock image directly.
+
+Rules:
+- Never invent a file path or url: use only the ones these functions return.
+- Give saved files short, descriptive names with the right extension, such as
+  "/AI Generated Images/spring-sale-hero.jpg".
+- Delete a file only when the user asks for it.
+- A refused call says why and which folders are allowed: follow it, don't retry
+  the same call.
+- In your reply, say which images came from the File Manager and which you saved.
+"""
+
+
+def file_manager_instructions(access: dict, *, chat: bool = False) -> str:
+    """The File Manager instructions, naming the folders this session allows.
+
+    ``chat`` gives the version for a conversation in the builder, where most
+    turns change an email instead of building one."""
     folders = access_summary(access)
     named = {key: ", ".join(paths) if paths else "none" for key, paths in folders.items()}
-    return FILE_MANAGER_INSTRUCTIONS.format(
+    text = CHAT_FILE_MANAGER_INSTRUCTIONS if chat else FILE_MANAGER_INSTRUCTIONS
+    return text.format(
         read=named["readPaths"], upload=named["uploadPaths"], delete=named["deletePaths"],
     )
 
@@ -1003,8 +1075,16 @@ async def stream_edit_executor(
     settings: Settings,
     message_history=None,
     out_messages: list | None = None,
+    *,
+    brand: bool = False,
+    reusable_rows: bool = False,
+    file_access: dict | None = None,
 ) -> AsyncIterator[dict]:
     """Run one edit-agent turn and yield SSE events.
+
+    The flags say what the session carries (the builder's agent settings), so the
+    agent is told how to use it: ``brand`` (brand rules), ``reusable_rows`` (a
+    library of saved rows) and ``file_access`` (the File Manager folders allowed).
 
     Emits:
     - "preview" events: rendered email HTML in an iframe
@@ -1014,11 +1094,18 @@ async def stream_edit_executor(
     If *out_messages* (a mutable list) is supplied, it is populated with the full
     conversation history after the run so the caller can persist it for the next turn.
     """
-    mcp = create_code_mode_mcp(template_id, settings)
+    mcp = create_code_mode_mcp(template_id, settings, max_retries=6 if brand else 3)
+    system_prompt = EDIT_AGENT_SYSTEM_PROMPT + CODE_MODE_INSTRUCTIONS
+    if brand:
+        system_prompt += BRAND_RULES_INSTRUCTIONS
+    if reusable_rows:
+        system_prompt += CHAT_REUSABLE_ROWS_INSTRUCTIONS
+    if file_access is not None:
+        system_prompt += file_manager_instructions(file_access, chat=True)
     agent: Agent[None, str] = Agent(
         model=settings.agent_model,
         toolsets=[mcp],
-        system_prompt=EDIT_AGENT_SYSTEM_PROMPT + CODE_MODE_INSTRUCTIONS,
+        system_prompt=system_prompt,
         model_settings=_CACHE_SETTINGS,
         retries=2,
     )
