@@ -47,6 +47,10 @@ class RowEventTests(unittest.TestCase):
 
 
 class LibraryTests(unittest.TestCase):
+    def test_a_row_without_a_screenshot_has_no_preview(self):
+        self.assertEqual([library_cards({"entries": [{"metadata": {"name": "x", "slug": slug}}]})[0]["preview"]
+                          for slug in ("unknown", "../rows/cart-reminder", None)], [None, None, None])
+
     def test_tags_may_be_an_array_or_a_comma_separated_string(self):
         self.assertEqual(tags_of(["promo", "blue"]), ["promo", "blue"])
         self.assertEqual(tags_of(" promo, , blue ,"), ["promo", "blue"])
@@ -58,6 +62,7 @@ class LibraryTests(unittest.TestCase):
         self.assertTrue(all(isinstance(row["metadata"]["tags"], list) for row in SAMPLE_LIBRARY["entries"]))
         self.assertTrue(any(card["synced"] for card in cards))
         self.assertTrue(all(card["description"] for card in cards))
+        self.assertTrue(all(card["preview"] for card in cards))
         self.assertEqual(shape_errors(SAMPLE_LIBRARY), [])
 
     def test_sample_library_has_no_private_host(self):

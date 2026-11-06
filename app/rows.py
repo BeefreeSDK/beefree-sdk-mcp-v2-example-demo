@@ -18,6 +18,9 @@ SAMPLE_LIBRARY = {
     "entries": json.loads((Path(__file__).parent / "data" / "sample-reusable-rows.json").read_text()),
 }
 
+# A screenshot of each sample row, named after its slug.
+PREVIEWS = Path(__file__).parent.parent / "static" / "img" / "rows"
+
 BLOCK_NAMES = {
     "text": "text", "paragraph": "text", "heading": "title", "title": "title", "list": "list",
     "image": "image", "button": "button", "social": "social", "icons": "icons",
@@ -53,6 +56,12 @@ def _blocks(row: dict) -> list[str]:
     return seen
 
 
+def _preview(slug) -> str | None:
+    if not isinstance(slug, str) or not slug or "/" in slug or slug.startswith("."):
+        return None
+    return f"/static/img/rows/{slug}.png" if (PREVIEWS / f"{slug}.png").is_file() else None
+
+
 def library_cards(library: dict) -> list[dict]:
     """What the page shows for each row of a library."""
     cards = []
@@ -65,6 +74,7 @@ def library_cards(library: dict) -> list[dict]:
             "tags": tags_of(metadata.get("tags")),
             "synced": row.get("synced") is True,
             "blocks": _blocks(row),
+            "preview": _preview(metadata.get("slug")),
         })
     return cards
 
