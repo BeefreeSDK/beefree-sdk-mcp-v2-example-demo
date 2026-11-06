@@ -17,7 +17,7 @@
   <script src="/static/tokens.js"></script>
   <script src="/static/ui.js"></script>
   <link rel="stylesheet" href="/static/brand.css" />
-  <link rel="stylesheet" href="/static/rows.css" />
+  <link rel="stylesheet" href="/static/rows.css?v=3" />
 </head>
 <body>
 
@@ -108,6 +108,7 @@
             <ul class="rw-rows" aria-label="Rows in the sample library">
               {% for row in sample_rows %}
               <li class="rw-row">
+                {% if row.preview %}<div class="rw-preview"><img src="{{ row.preview }}" alt="Preview of the {{ row.name }} row" loading="lazy" /></div>{% endif %}
                 <p class="rw-row-name">
                   {{ row.name }}
                   {% if row.synced %}<span class="rw-badge" title="Placed as it is, never edited">Synced</span>{% endif %}

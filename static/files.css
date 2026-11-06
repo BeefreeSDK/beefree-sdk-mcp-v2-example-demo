@@ -1,0 +1,57 @@
+/* Email with your File Manager (/files). Shares the tabs, errors and summary styles
+   of brand.css and the card grid of rows.css. */
+
+.fm-box {
+  border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem;
+  background: var(--surface); margin: 0 0 1.1rem;
+}
+.fm-box-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.fm-box-title { margin: 0; font-size: .9rem; font-weight: 700; }
+.fm-uid { font-size: .74rem; color: var(--text-muted); margin: .2rem 0 0; }
+.fm-uid code { font-size: .72rem; }
+.fm-box-actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+
+.fm-folders { list-style: none; margin: .8rem 0 0; padding: 0; display: grid; gap: .7rem; }
+.fm-folder-name { margin: 0 0 .35rem; font-size: .8rem; font-weight: 600; }
+.fm-folder-name span { font-weight: 400; color: var(--text-muted); }
+.fm-files { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+.fm-file { width: 92px; display: flex; flex-direction: column; gap: .2rem; position: relative; }
+.fm-file.is-deleting { opacity: .45; }
+.fm-file-delete {
+  position: absolute; top: -7px; right: -7px; width: 22px; height: 22px; padding: 0;
+  display: grid; place-items: center; border-radius: 50%; border: 2px solid #fff;
+  background: #DC2626; color: #fff; font-size: .95rem; font-weight: 700; line-height: 1;
+  cursor: pointer; box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+}
+.fm-file-delete:hover, .fm-file-delete:focus-visible { background: #991B1B; }
+.fm-file-delete:disabled { cursor: progress; }
+
+.fm-dialog {
+  position: fixed; inset: 0; margin: auto; height: fit-content;
+  width: min(380px, calc(100vw - 32px)); padding: 1.25rem; border: 1px solid var(--border);
+  border-radius: 12px; background: var(--surface); color: var(--text);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .25);
+}
+.fm-dialog::backdrop { background: rgba(15, 23, 42, .45); }
+.fm-dialog-title { margin: 0 0 .4rem; font-size: 1rem; font-weight: 700; overflow-wrap: anywhere; }
+.fm-dialog-text { margin: 0 0 1.1rem; font-size: .85rem; color: var(--text-muted); }
+.fm-dialog-actions { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; }
+.fm-dialog .btn { padding: .5rem 1.2rem; }
+.btn-danger { background: #DC2626; color: #fff; }
+.btn-danger:hover { background: #991B1B; }
+.fm-file a { display: block; }
+.fm-file img {
+  width: 92px; height: 64px; object-fit: cover; border-radius: 6px;
+  border: 1px solid var(--border); background: #fff; display: block;
+}
+.fm-file span {
+  font-size: .68rem; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fm-empty { margin: 0; font-size: .76rem; color: var(--text-muted); }
+.fm-status { font-size: .76rem; color: var(--text-muted); margin: .6rem 0 0; }
+.fm-status.is-error { color: #B91C1C; }
+
+.fm-presets { margin: 0 0 1rem; }
+.fm-ops { display: grid; gap: .1rem; margin-top: .55rem; font-size: .74rem; color: var(--text-muted); }
+.fm-ops b { color: var(--text); font-weight: 600; }

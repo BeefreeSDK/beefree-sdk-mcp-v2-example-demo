@@ -2386,10 +2386,8 @@ html { scroll-behavior: smooth; }
 /* One visible keyboard focus style everywhere */
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .site-header :focus-visible { outline-color: var(--accent); }
-textarea:focus-visible, select:focus-visible, input:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 0;
-}
+/* Fields already show focus with their border and ring */
+textarea:focus-visible, select:focus-visible, input:focus-visible { outline: none; }
 
 .visually-hidden {
   position: absolute !important;

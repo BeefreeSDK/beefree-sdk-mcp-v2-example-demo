@@ -24,6 +24,10 @@ from .config import Settings
 from .guards import validate_sequence
 from .pricing import request_cost
 from .rows import events_from_result as row_events_from_result, placed_rows
+from .files import (
+    changes as file_changes, events_from_result as file_events_from_result, file_entry,
+    folders_to_watch, image_sources, summary as access_summary,
+)
 
 
 CODE_MODE_INSTRUCTIONS = """
@@ -377,6 +381,120 @@ Rules:
 - In your final message, name the reusable rows you used and the sections you
   built yourself.
 """
+
+
+FILE_MANAGER_INSTRUCTIONS = """
+
+YOUR USER'S FILE MANAGER: this session can use the File Manager of the person
+you design for, the images they already have and the ones you save for them.
+The script API has up to four functions for it: listFiles, searchFiles,
+uploadFile and removeFile, documented in the beefree_execute description. Each
+is defined only when this session allows that operation; if the description
+lists none, build with stock images and say so.
+
+The folders this session allows:
+- read (listFiles, searchFiles): {read}
+- save to (uploadFile): {upload}
+- delete from (removeFile): {delete}
+
+How to work:
+1. In your first script, before building anything, search the File Manager for
+   every image the brief needs (logo, product, hero...), using the brief's own
+   words, and list the folders the brief names.
+2. Prefer your user's images: place a file you found with its returned url.
+3. For an image the File Manager doesn't have, find a stock image, save it with
+   uploadFile into a folder you can save to, then place it with the url the
+   upload returns, never the stock URL. If you can save nowhere, place the
+   stock image directly.
+
+Rules:
+- Never invent a file path or url: use only the ones these functions return.
+- Paths are case-sensitive and every file is addressed by its full path.
+- Give saved files short, descriptive names with the right extension, such as
+  "/AI Generated Images/back-to-school-hero.jpg".
+- Delete a file only when the brief asks for it, and only one you saved in this
+  run or the brief names.
+- A refused call says why and which folders are allowed: follow it, don't retry
+  the same call.
+- In your final message, name the images you reused from the File Manager and
+  the ones you saved, with their folder.
+"""
+
+
+def file_manager_instructions(access: dict) -> str:
+    """The File Manager instructions, naming the folders this session allows."""
+    folders = access_summary(access)
+    named = {key: ", ".join(paths) if paths else "none" for key, paths in folders.items()}
+    return FILE_MANAGER_INSTRUCTIONS.format(
+        read=named["readPaths"], upload=named["uploadPaths"], delete=named["deletePaths"],
+    )
+
+
+def _file_events(request) -> list[dict]:
+    """File Manager calls (lists, searches, uploads, deletions) in the tool results
+    the agent is about to read."""
+    events = []
+    for part in request.parts:
+        if getattr(part, "part_kind", "") == "tool-return":
+            events.extend(file_events_from_result(part.content))
+    return events
+
+
+MAX_WATCHED_FOLDERS = 25
+
+
+async def _file_snapshot(settings: Settings, uid: str, access: dict) -> list[dict]:
+    """The files in the folders a run may change or read, and in the folders right inside them."""
+    from .beefree import list_folder
+
+    folders = folders_to_watch(access)
+    files, queue = [], list(folders)
+    seen = set(queue)
+    while queue:
+        listings = await asyncio.gather(
+            *(list_folder(settings, uid, folder) for folder in queue), return_exceptions=True,
+        )
+        nested = []
+        for folder, items in zip(queue, listings):
+            if isinstance(items, Exception):
+                log.warning("Could not list %s: %s", folder, items)
+                continue
+            for item in items:
+                entry = file_entry(item)
+                if entry:
+                    files.append(entry)
+                elif folder in folders:
+                    sub = str(item.get("path") or "").rstrip("/")
+                    if sub and sub not in seen and len(seen) < MAX_WATCHED_FOLDERS:
+                        seen.add(sub)
+                        nested.append(sub)
+        queue = nested
+    return files
+
+
+async def _files_summary_event(
+    template_id: str, settings: Settings, file_manager: dict, before: list[dict] | None,
+) -> dict | None:
+    """A "files" event with the files the run saved and removed, and how many of the
+    email's images come from the File Manager."""
+    from .beefree import get_template
+
+    try:
+        after = await _file_snapshot(settings, file_manager["uid"], file_manager["access"])
+        template_data = await get_template(template_id, settings)
+        sources = image_sources(template_data.get("template", template_data))
+    except Exception as exc:
+        log.warning("Could not summarize the File Manager of %s: %s", template_id, exc)
+        return None
+    changed = file_changes(before, after) if before is not None else {"saved": [], "removed": []}
+    known = {f["url"] for f in [*(before or []), *after] if f["url"]}
+    return {"event": "files", "data": _json.dumps({
+        "kind": "summary",
+        "saved": [{"name": f["name"], "path": f["path"], "thumbnail": f["thumbnail"]} for f in changed["saved"]],
+        "removed": [{"name": f["name"], "path": f["path"]} for f in changed["removed"]],
+        "images": len(sources),
+        "fromFileManager": sum(1 for src in sources if src in known),
+    })}
 
 
 def _row_events(request) -> list[dict]:
@@ -966,6 +1084,7 @@ async def stream_single_executor(
     progressive: bool = False,
     brand: bool = False,
     reusable_rows: bool = False,
+    file_manager: dict | None = None,
 ) -> AsyncIterator[dict]:
     """Run one single-email agent and yield SSE events.
 
@@ -978,6 +1097,10 @@ async def stream_single_executor(
     With ``reusable_rows`` (the session carries a reusable rows library) the agent is told
     how to use it, and the stream adds "rows" events for each search and placement,
     then one naming the reusable rows the finished email contains.
+
+    With ``file_manager`` (``{"uid", "access"}``: the session carries that File Manager
+    access) the agent is told which folders it may use, the stream adds "files" events
+    for each call, then one with the files the run saved and removed.
 
     Emits:
     - "preview" events: rendered email HTML in an iframe (same as other executors)
@@ -993,6 +1116,13 @@ async def stream_single_executor(
         system_prompt += BRAND_RULES_INSTRUCTIONS
     if reusable_rows:
         system_prompt += REUSABLE_ROWS_INSTRUCTIONS
+    files_before = None
+    if file_manager:
+        system_prompt += file_manager_instructions(file_manager["access"])
+        try:
+            files_before = await _file_snapshot(settings, file_manager["uid"], file_manager["access"])
+        except Exception as exc:
+            log.warning("Could not read the File Manager before %s: %s", template_id, exc)
     agent: Agent[None, str] = Agent(
         model=settings.agent_model,
         toolsets=[mcp],
@@ -1031,6 +1161,9 @@ async def stream_single_executor(
                         if reusable_rows:
                             for event in _row_events(node.request):
                                 yield {"event": "rows", "data": _json.dumps(event)}
+                        if file_manager:
+                            for event in _file_events(node.request):
+                                yield {"event": "files", "data": _json.dumps(event)}
                         has_tool_returns = any(
                             getattr(p, "part_kind", "") == "tool-return"
                             for p in node.request.parts
@@ -1055,6 +1188,11 @@ async def stream_single_executor(
 
     if reusable_rows:
         summary = await _placed_rows_event(template_id, settings)
+        if summary:
+            yield summary
+
+    if file_manager:
+        summary = await _files_summary_event(template_id, settings, file_manager, files_before)
         if summary:
             yield summary
 

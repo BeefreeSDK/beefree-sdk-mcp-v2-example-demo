@@ -44,6 +44,13 @@ These only need `BEE_API_KEY`.
   - The template is created with the library when the brief is sent, so the stream URL only carries its id and the brief, whatever the size of the library.
   - The generation uses the Single email result view. The template session carries the library, the toolbar counts searches and placed rows, and the Activity log ends with the reusable rows the email contains.
   - Reusable Rows require a Core plan or above.
+- **Email with your File Manager** (`/files`): attach a [File Manager access](https://docs.beefree.io/beefree-sdk/ai-and-mcp/file-manager-for-ai), then generate an email that reuses your images and saves new ones.
+  - The agent works in this browser's own File Manager: the `uid` is the one the editor pages give each browser, so the editor on `/builder` shows the same files.
+  - **Your File Manager** shows `/Brand` and `/AI Generated Images`, read with the Content Services API (`GET /v1/file/{path}/`). **Add sample files** stores four Fieldnote brand images in `/Brand`, the same ones the sample reusable rows use.
+  - Three access presets (read everything and save to one folder; also clean up that folder; `/Brand` only, read-only) or pasting your own `fileManager` JSON. The `uid` is always the browser's.
+  - Beefree validates the access before it is used (`POST /v2/sdk/mcp/template/validate`); its error list is shown as is.
+  - The generation uses the Single email result view. The agent's prompt names the allowed folders, the toolbar counts saved files, searches and deletions, and the Activity log ends with the files the run saved and removed, and how many of the email's images come from the File Manager. The page then shows the File Manager as it is after the run.
+  - Files the agent saves are real files in that File Manager, with public URLs.
 
 **Change an existing template.** Each of these has a **Use a sample template** button (served by `/sample-template`), so they can be tried without bringing your own Beefree JSON.
 - **Edit an email** (`/edit`): chat with an agent to refine a template.
@@ -259,6 +266,7 @@ The app keeps almost nothing between requests:
 │   ├── samples.py       # Sample template for the template-based demos
 │   ├── brand.py         # Brand rule presets and Code Mode result → brand event parsing
 │   ├── rows.py          # Sample row library, shape check and Code Mode result → rows event parsing
+│   ├── files.py         # File Manager access presets, sample files, Code Mode result → files events, before/after diff
 │   ├── data/            # sample-reusable-rows.json: the sample reusable rows
 │   ├── sessions.py      # In-memory stores that expire after an hour of inactivity
 │   ├── payload.py       # Compressed tokens that carry stream inputs in the URL
@@ -277,12 +285,14 @@ The app keeps almost nothing between requests:
 │   ├── edit.html        # Edit an email
 │   ├── brand.html       # On-brand email
 │   ├── rows.html        # Email from reusable rows
+│   ├── files.html       # Email with your File Manager
 │   └── partials/        # htmx partials: loading states and results views
 ├── static/
 │   ├── style.css        # Site styles
 │   ├── results.css      # Shared styles for the sequence, palette and translation results
 │   ├── brand.css        # On-brand email page
 │   ├── rows.css         # Email from reusable rows page
+│   ├── files.css        # Email with your File Manager page
 │   ├── ui.js            # Shared UI: inline server errors, collapse state, sample loader
 │   ├── model-selection.js  # Provider/model picker
 │   ├── tokens.js        # Header token counter (sessionStorage)
@@ -343,6 +353,17 @@ to edit a synced row. Each call is listed in the script result's `completed`, wh
 `app/rows.py` turns into `rows` events. A placed row keeps its `metadata`, while the
 sections the agent builds have none, so the rows of the finished email that have a
 `metadata.name` are the saved ones.
+
+File Manager sessions (`/files`) send a `fileManager` object (`uid` plus `readPaths`,
+`uploadPaths` and `deletePaths`) in the body of `POST /v2/sdk/mcp/template`. Beefree
+then adds `listFiles`, `searchFiles`, `uploadFile` and `removeFile` to the
+`beefree_execute` description, one for each operation with at least one folder. The
+agent isn't told the folders by Beefree, so `file_manager_instructions()` names them in
+its prompt and tells it to reuse the user's images first and to save a stock image
+before placing it. `completed` names each file call but keeps no file data, so
+`app/files.py` turns the calls into `files` events, and the stream compares the
+File Manager before and after the run (Content Services API listings of the read and
+upload folders and the folders right inside them) to name the files saved and removed.
 
 Long-running streams emit status events and poll previews while scripts execute.
 Agents are instructed to split work into meaningful phases. Streams distinguish
@@ -405,6 +426,7 @@ Browser → FastAPI (app/main.py)
 | `app/recolor.py` | Color plan for palette runs, plus the safety net that applies missed changes |
 | `app/samples.py` | Sample template served at `/sample-template` |
 | `app/rows.py` | The sample row library, a local shape check, the parser that turns reusable rows calls in Code Mode results into `rows` SSE events, and the lookup that names the reusable rows a template contains |
+| `app/files.py` | File Manager access presets and sample files, a local shape check, the parser that turns file calls in Code Mode results into `files` SSE events, and the helpers that compare the File Manager before and after a run |
 | `app/brand.py` | Brand rule presets, a local shape check, and the parser that turns `presetApplication` results and refusals into `brand` SSE events |
 | `app/sessions.py` | `ExpiringStore`: in-memory stores that forget entries after an hour of inactivity |
 | `templates/` | Jinja2 HTML templates for the web UI |

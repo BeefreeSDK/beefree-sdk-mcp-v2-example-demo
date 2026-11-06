@@ -11,6 +11,12 @@
   background: var(--surface); display: flex; flex-direction: column; gap: .4rem;
 }
 .rw-row p { margin: 0; }
+/* As tall as the shortest screenshot (the footer, 2:1), so none is enlarged; taller ones are cut at the bottom. */
+.rw-preview {
+  aspect-ratio: 2 / 1; overflow: hidden; margin-bottom: .2rem;
+  border: 1px solid var(--border); border-radius: 8px; background: #fff;
+}
+.rw-preview img { display: block; width: 100%; height: auto; }
 .rw-row-name { font-weight: 700; font-size: .9rem; display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
 .rw-row-desc { font-size: .8rem; color: var(--text); }
 .rw-row-meta { font-size: .74rem; color: var(--text-muted); }
