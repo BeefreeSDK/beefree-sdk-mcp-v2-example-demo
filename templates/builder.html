@@ -25,8 +25,10 @@
     .edit-status-badge { white-space: nowrap; }
     .chat-retry-btn { margin-top: .55rem; }
     /* Starter ideas: cards that fill the composer with a detailed brief */
-    .chat-suggestions { display: flex; flex-direction: column; gap: .45rem; margin-top: .15rem; }
-    .chat-suggestions-label { margin: 0 0 .1rem .1rem; font-size: .72rem; font-weight: 600; color: var(--text-muted); }
+    /* Until the first message: the ideas sit in the middle of the empty chat,
+       the welcome message under them, next to the composer. */
+    .chat-suggestions { display: flex; flex-direction: column; gap: .45rem; margin-block: auto; padding: .5rem 0; }
+    .chat-suggestions-label { margin: 0 0 .2rem; font-size: .74rem; font-weight: 600; color: var(--text-muted); text-align: center; }
     .chat-suggestion {
       display: grid; grid-template-columns: 34px minmax(0, 1fr) 14px; align-items: center; gap: .65rem;
       width: 100%; padding: .55rem .65rem .55rem .55rem;
@@ -77,6 +79,58 @@
     }
     .selection-chip-clear:hover { background: rgba(119,71,255,.12); }
     .chat-selection-tag { margin-top: .3rem; font-size: .72rem; opacity: .8; }
+
+    /* ── Messages: who said what at a glance ──
+       Agent: avatar + name on the first of a run of replies, a light card.
+       You: a gradient bubble; long briefs fold with "Show more".
+       Status (settings changes): a small centered note, not a reply. */
+    .page-builder .edit-chat-messages { gap: .7rem; padding: 1rem .9rem; }
+    .page-builder .chat-bubble { max-width: 90%; }
+    .page-builder .agent-bubble { position: relative; padding-left: 30px; padding-top: 1.1rem; max-width: calc(90% + 30px); }
+    .page-builder .agent-bubble::before {
+      content: ""; position: absolute; left: 0; top: 1.1rem; width: 22px; height: 22px; border-radius: 50%;
+      background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M8 2.2v2' stroke='%23fff' stroke-width='1.4' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='1.9' r='1' fill='%23fff'/%3E%3Crect x='2.6' y='4.6' width='10.8' height='8.4' rx='2.6' stroke='%23fff' stroke-width='1.4'/%3E%3Ccircle cx='6.1' cy='8.8' r='1.05' fill='%23fff'/%3E%3Ccircle cx='9.9' cy='8.8' r='1.05' fill='%23fff'/%3E%3C/svg%3E") center / 13px no-repeat,
+        linear-gradient(135deg, #9B7BFF, #5C2FE6);
+      box-shadow: 0 1px 4px rgba(92,47,230,.3);
+    }
+    .page-builder .agent-bubble::after {
+      content: "Agent"; position: absolute; left: 30px; top: 0;
+      font-size: .7rem; font-weight: 700; letter-spacing: .02em; color: var(--text-muted);
+    }
+    /* Follow-up replies sit under the first one without repeating who is talking */
+    .page-builder .agent-bubble + .agent-bubble { padding-top: 0; margin-top: -.3rem; }
+    .page-builder .agent-bubble + .agent-bubble::before,
+    .page-builder .agent-bubble + .agent-bubble::after { display: none; }
+    .page-builder .agent-bubble .chat-bubble-content {
+      background: var(--surface); color: var(--dark);
+      border: 1px solid var(--border); border-radius: 14px; border-top-left-radius: 4px;
+      box-shadow: 0 1px 3px rgba(38,4,93,.06);
+    }
+    .page-builder .agent-bubble.agent-loading .chat-bubble-content { background: #FBFAFF; }
+
+    .page-builder .user-bubble .chat-bubble-content {
+      background: linear-gradient(135deg, #8A5CFF 0%, #6A3BF5 55%, #5C2FE6 100%);
+      border-radius: 14px; border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 14px rgba(92,47,230,.25);
+    }
+    .page-builder .user-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .page-builder .user-bubble.is-long:not(.is-open) .user-text {
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; overflow: hidden;
+    }
+    .page-builder .user-more {
+      margin-top: .4rem; padding: 0; border: 0; background: none;
+      font: inherit; font-size: .74rem; font-weight: 700; color: #fff; opacity: .85; text-decoration: underline; cursor: pointer;
+    }
+    .page-builder .user-more:hover { opacity: 1; }
+    .page-builder .user-more:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 2px; }
+
+    .chat-status {
+      align-self: center; display: inline-flex; align-items: center; gap: .4rem; max-width: 92%;
+      padding: .35rem .75rem; border-radius: 12px; background: #F3F0FB;
+      font-size: .72rem; line-height: 1.4; color: var(--text-muted); text-align: center;
+    }
+    .chat-status svg { flex: none; color: var(--primary); }
     .chat-error-details summary { cursor: pointer; }
     .chat-error-details p { margin-top: .3rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 
@@ -619,7 +673,7 @@
       var label = document.createElement('p');
       label.className = 'chat-suggestions-label';
       label.id = prefix + '-ideas-label';
-      label.textContent = 'Or start from an idea: you can edit the brief before sending';
+      label.textContent = 'Start from an idea: you can edit the brief before sending';
       wrap.appendChild(label);
       ideas.forEach(function (idea) {
         var b = document.createElement('button');
@@ -653,6 +707,35 @@
 
     function appendAgentNote(prefix, text) {
       appendToLog(prefix, agentBubble(text), true);
+    }
+
+    // A change of state (not a reply): a small centered note.
+    function appendStatus(prefix, text) {
+      var note = document.createElement('p');
+      note.className = 'chat-status';
+      note.setAttribute('role', 'status');
+      note.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">' +
+        '<path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+        '<circle cx="11" cy="4" r="1.8" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="8" r="1.8" stroke="currentColor" stroke-width="1.5"/></svg>';
+      note.appendChild(document.createTextNode(text));
+      appendToLog(prefix, note, true);
+    }
+
+    // A long message (a starter brief, say) folds to a few lines with a toggle.
+    function foldLongMessage(bubble, text) {
+      if (text.length < 280 && text.split('\n').length <= 6) return;
+      bubble.classList.add('is-long');
+      var more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'user-more';
+      more.textContent = 'Show more';
+      more.setAttribute('aria-expanded', 'false');
+      more.addEventListener('click', function () {
+        var open = bubble.classList.toggle('is-open');
+        more.textContent = open ? 'Show less' : 'Show more';
+        more.setAttribute('aria-expanded', String(open));
+      });
+      bubble.querySelector('.user-text').after(more);
     }
 
     // The first message: what to do, and what the agent can use (or how to add it).
@@ -757,8 +840,8 @@
         btn.style.display = 'none';
         $('em-messages').replaceChildren();
         enableChat('em');
-        appendWelcome('em');
         appendSuggestions('em', STARTER_IDEAS);
+        appendWelcome('em');
       } catch (e) {
         btn.disabled = false;
         btn.textContent = 'Connect the agent';
@@ -808,9 +891,10 @@
       var userDiv = document.createElement('div');
       userDiv.className = 'chat-bubble user-bubble';
       var sel = selection[prefix];
-      userDiv.innerHTML = '<div class="chat-bubble-content"><p>' + escapeHtml(msg) + '</p>' +
+      userDiv.innerHTML = '<div class="chat-bubble-content"><p class="user-text">' + escapeHtml(msg) + '</p>' +
         (sel ? '<p class="chat-selection-tag">About the selected ' + SELECTION_NAMES[sel.type].toLowerCase() +
                ' ' + escapeHtml(sel.uuid.slice(0, 8)) + '</p>' : '') + '</div>';
+      foldLongMessage(userDiv, msg);
       appendToLog(prefix, userDiv, true);
       if (!retryText) { input.value = ''; autosize(input); }
 
@@ -956,8 +1040,9 @@
     }
     agentSettings.onChange(function (items) {
       if (!ready.em) return;
-      appendAgentNote('em', settingsNote(items) ||
-        'Settings cleared. From your next message I’ll work without Brand Rules, saved rows or your File Manager.');
+      appendStatus('em', items.length
+        ? 'Agent settings updated. From your next message the agent uses: ' + items.map(function (i) { return i.text; }).join(', ') + '.'
+        : 'Agent settings cleared. Your next message runs without Brand Rules, saved rows or your File Manager.');
     });
 
     // Measure the sticky header so the workspace fills exactly the space below it.
