@@ -37,7 +37,7 @@ These only need `BEE_API_KEY`.
   - Each of the 3 presets (streaming onboarding, SaaS trial nurture, Black Friday fashion) has 3 predefined variations, selected randomly.
   - Planning and the shared layout need no LLM calls.
 - **On-brand email** (`/brand`): set [Brand Rules](https://docs.beefree.io/beefree-sdk/ai-and-mcp/brand-rules-for-ai), then generate an email inside them.
-  - Three ways to get the rules: a preset (Harbor Bank, Bloom & Co., Voltage, in `app/brand.py`), a four-step guided setup (colors, type, buttons, guardrails), or pasting your own `brandRules` JSON.
+  - Three ways to get the rules: a preset (Harbor Bank, Bloom & Co., Voltage, in `app/brand.py`), a four-step guided setup (colors, type, blocks, guardrails: a style for any of the 11 block types, and per-type caps), or pasting your own `brandRules` JSON.
   - A live preview, a plain-language summary and the JSON update as the rules change.
   - Beefree validates the rules before they are used (`POST /brand-rules`); its error list is shown as is.
   - The generation uses the Single email result view. The template session carries the rules, and the toolbar counts presets used, values corrected and calls refused. Each correction and refusal appears in the Activity log.
@@ -223,7 +223,7 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 - **Streaming responses:** results stream over Server-Sent Events. Make sure your
   proxy or gateway doesn't buffer them and allows connections of several minutes.
 - **Stream inputs as tokens:** briefs, chat messages, campaign plans, per-email
-  prompts and brand rules travel in the stream URL as compressed tokens
+  prompts and Brand Rules travel in the stream URL as compressed tokens
   (`app/payload.py`), not in server memory. A 6 KB plan becomes under 3 KB, well
   within proxy URL limits (no 414), and any copy of the app can run it.
 - **Shared limits:** every visitor's agents use your LLM and Beefree API keys, so many
@@ -266,7 +266,7 @@ The app keeps almost nothing between requests:
 │   ├── pricing.py       # Per-model token prices for the cost readout
 │   ├── recolor.py       # Color plan for palette changes (plus the safety net)
 │   ├── samples.py       # Sample template for the template-based demos
-│   ├── brand.py         # Brand rule presets and Code Mode result → brand event parsing
+│   ├── brand.py         # Brand Rules presets and Code Mode result → brand event parsing
 │   ├── rows.py          # Sample row library, shape check and Code Mode result → rows event parsing
 │   ├── files.py         # File Manager access presets, sample files, Code Mode result → files events, before/after diff
 │   ├── data/            # sample-reusable-rows.json: the sample reusable rows
@@ -408,7 +408,7 @@ Browser → FastAPI (app/main.py)
               │
               └─ Beefree REST API  (api.getbee.io)
                     ├─ POST /v2/sdk/mcp/template   — create / seed a template session
-                    ├─ POST /v2/sdk/mcp/template/validate — check brand rules / a reusable rows library
+                    ├─ POST /v2/sdk/mcp/template/validate — check Brand Rules / a reusable rows library
                     ├─ GET  /v2/sdk/mcp/template/:id — read current template JSON
                     └─ POST /v1/message/html         — render template to email HTML
 ```
@@ -428,7 +428,7 @@ Browser → FastAPI (app/main.py)
 | `app/samples.py` | Sample template served at `/sample-template` |
 | `app/rows.py` | The sample row library, a local shape check, the parser that turns reusable rows calls in Code Mode results into `rows` SSE events, and the lookup that names the reusable rows a template contains |
 | `app/files.py` | File Manager access presets and sample files, a local shape check, the parser that turns file calls in Code Mode results into `files` SSE events, and the helpers that compare the File Manager before and after a run |
-| `app/brand.py` | Brand rule presets, a local shape check, and the parser that turns `presetApplication` results and refusals into `brand` SSE events |
+| `app/brand.py` | Brand Rules presets, a local shape check, and the parser that turns `presetApplication` results and refusals into `brand` SSE events |
 | `app/sessions.py` | `ExpiringStore`: in-memory stores that forget entries after an hour of inactivity |
 | `templates/` | Jinja2 HTML templates for the web UI |
 | `static/` | CSS and JS assets (including `tokens.js` for live token tracking) |

@@ -1,4 +1,4 @@
-{# Agent settings for /builder: brand rules, reusable rows and File Manager access.
+{# Agent settings for /builder: Brand Rules, reusable rows and File Manager access.
    The examples are the headless pages' ones (app/brand.py, app/rows.py, app/files.py).
    static/agent-settings.js validates them with the same endpoints and hands them to
    bee.startMcpSession() on every chat turn. #}
@@ -15,7 +15,7 @@
 
   <div class="as-tabs" role="tablist" aria-label="Settings">
     <button type="button" role="tab" id="as-tab-brand" aria-controls="as-panel-brand" aria-selected="true" data-section="brand">
-      Brand rules <span class="as-state" data-state-for="brand">Off</span>
+      Brand Rules <span class="as-state" data-state-for="brand">Off</span>
     </button>
     <button type="button" role="tab" id="as-tab-rows" aria-controls="as-panel-rows" aria-selected="false" tabindex="-1" data-section="rows">
       Reusable rows <span class="as-state" data-state-for="rows">Off</span>
@@ -26,19 +26,20 @@
   </div>
 
   <div class="as-body">
-    <!-- ── Brand rules ── -->
+    <!-- ── Brand Rules ── -->
     <section class="as-panel" role="tabpanel" id="as-panel-brand" aria-labelledby="as-tab-brand">
       <label class="as-switch">
         <input type="checkbox" role="switch" id="as-brand-on" />
         <span class="as-switch-track" aria-hidden="true"></span>
-        <span class="as-switch-label">Use brand rules</span>
+        <span class="as-switch-label">Use Brand Rules</span>
       </label>
       <p class="as-intro">
-        The agent styles everything with your approved styles, and Beefree refuses changes that break the rules
-        (forbidden blocks, too many sections or buttons). Needs a Superpowers or Enterprise plan.
+        The agent styles everything with your approved styles: colors, fonts, buttons and sections. Beefree applies
+        them on every change, whatever the agent asks for. Needs a Superpowers or Enterprise plan.
       </p>
+      <p class="as-deep">Deep dive: <a href="/brand" target="_blank" rel="noopener">On-brand email <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 3h7v7M13 3 4 12" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden"> (opens in a new tab)</span></a></p>
       <div class="as-fields" data-fields-for="brand">
-        <div class="as-choices" role="radiogroup" aria-label="Brand rules">
+        <div class="as-choices" role="radiogroup" aria-label="Brand Rules">
           {% for p in brand_presets %}
           <button type="button" class="as-choice" role="radio" aria-checked="false" data-group="brand" data-value="{{ p.id }}">
             <span class="as-swatches" aria-hidden="true">{% for c in p.swatches %}<span style="background:{{ c }}"></span>{% endfor %}</span>
@@ -54,7 +55,7 @@
         <div class="as-json" data-json-for="brand" hidden>
           <label class="field-label" for="as-brand-json">brandRules JSON</label>
           <textarea id="as-brand-json" rows="10" spellcheck="false"></textarea>
-          <p class="as-note">Starts from the rules you picked last. To build rules step by step, use the guided setup on <a href="/brand">On-brand email</a>, then paste its JSON here.</p>
+          <p class="as-note">Starts from the Brand Rules you picked last. To build them step by step, use the guided setup on <a href="/brand">On-brand email</a>, then paste its JSON here.</p>
         </div>
       </div>
     </section>
@@ -70,6 +71,7 @@
         When you ask for a new email or section, the agent searches your saved rows and places a matching one
         instead of building it. Synced rows are placed as they are. Needs a Core plan or above.
       </p>
+      <p class="as-deep">Deep dive: <a href="/rows" target="_blank" rel="noopener">Email from reusable rows <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 3h7v7M13 3 4 12" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden"> (opens in a new tab)</span></a></p>
       <div class="as-fields" data-fields-for="rows">
         <div class="as-choices" role="radiogroup" aria-label="Row library">
           <button type="button" class="as-choice" role="radio" aria-checked="false" data-group="rows" data-value="sample">
@@ -108,6 +110,7 @@
         The agent finds and reuses the images in your File Manager, the one the editor's image picker opens,
         and saves the new ones there. Choose which folders it can read, save to and delete from.
       </p>
+      <p class="as-deep">Deep dive: <a href="/files" target="_blank" rel="noopener">Email with your File Manager <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 3h7v7M13 3 4 12" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden"> (opens in a new tab)</span></a></p>
       <div class="as-fields" data-fields-for="files">
         <div class="as-choices" role="radiogroup" aria-label="File Manager access">
           {% for p in file_presets %}

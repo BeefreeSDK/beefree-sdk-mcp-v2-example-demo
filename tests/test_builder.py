@@ -19,6 +19,19 @@ class BuilderPageTests(unittest.TestCase):
         for path in ("/integration", "/editor"):
             self.assertEqual(client.get(path).status_code, 404, path)
 
+    def test_feature_pages_link_their_docs_at_the_top(self):
+        client = TestClient(app)
+        for page, docs in [
+            ("/brand", "https://docs.beefree.io/beefree-sdk/ai-and-mcp/brand-rules"),
+            ("/rows", "https://docs.beefree.io/beefree-sdk/ai-and-mcp/reusable-rows-for-ai"),
+            ("/files", "https://docs.beefree.io/beefree-sdk/ai-and-mcp/file-manager-for-ai"),
+        ]:
+            html = client.get(page).text
+            link = html.index(f'<a href="{docs}" target="_blank" rel="noopener">')
+            self.assertGreater(link, html.index('class="breadcrumb"'), page)
+            self.assertLess(link, html.index('<section class="card'), page)
+        self.assertNotIn("docs.beefree.io", client.get("/headless").text)
+
     def test_headless_page_lists_headless_modes(self):
         response = TestClient(app).get("/headless")
         self.assertEqual(response.status_code, 200)
@@ -113,7 +126,7 @@ class EditorSelectionTests(unittest.TestCase):
 
 
 class BuilderAgentSettingsTests(unittest.TestCase):
-    """The builder's agent settings: brand rules, reusable rows and File Manager access."""
+    """The builder's agent settings: Brand Rules, reusable rows and File Manager access."""
 
     def setUp(self):
         self.client = TestClient(app)
@@ -134,6 +147,9 @@ class BuilderAgentSettingsTests(unittest.TestCase):
         data = json.loads(html.split('<script type="application/json" id="as-data">', 1)[1].split("</script>", 1)[0])
         self.assertEqual(len(data["sampleLibrary"]["entries"]), 4)
         self.assertEqual([p["id"] for p in data["brandPresets"]], [p["id"] for p in PRESETS])
+        # Each tab links to its headless deep dive, in a new tab so the chat is kept
+        for page in ("/brand", "/rows", "/files"):
+            self.assertIn(f'<p class="as-deep">Deep dive: <a href="{page}" target="_blank" rel="noopener">', html)
         # Every session the editor starts carries the chosen settings
         self.assertIn("beeEditor.startMcpSession(options)", html)
         self.assertIn("fields.agent = agentSettings.flags()", html)

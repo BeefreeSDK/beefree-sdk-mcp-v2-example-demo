@@ -149,7 +149,7 @@
 .se-log small { display: block; color: var(--text-muted); font-size: .72rem; }
 .se-log li[data-kind="done"]  span { color: #1a7a40; font-weight: 600; }
 
-/* ── Brand rules: counter in the toolbar, corrections in the activity log ── */
+/* ── Brand Rules: counter in the toolbar, corrections in the activity log ── */
 .se-brand {
   display: inline-flex; align-items: center; gap: .45rem;
   font-size: .76rem; color: var(--text-muted);
@@ -305,9 +305,9 @@
       <span id="se-status-text" role="status">Building</span>
       <span class="se-elapsed" id="se-elapsed">0:00</span>
     </span>
-    <span class="se-brand" id="se-brand" hidden title="What the brand rules did during this run">
+    <span class="se-brand" id="se-brand" hidden title="What the Brand Rules did during this run">
       <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5 2.5 3.8v3.9c0 3.2 2.3 6 5.5 6.8 3.2-.8 5.5-3.6 5.5-6.8V3.8L8 1.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m5.6 8 1.7 1.7 3.2-3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Brand rules:
+      Brand Rules:
       <span><b id="se-brand-applied">0</b> presets used</span>
       <span><b id="se-brand-fixed">0</b> values corrected</span>
       <span><b id="se-brand-blocked">0</b> refused</span>
@@ -659,7 +659,7 @@
   var brandId = {{ (brand_id or '') | tojson }};
   var withRows = {{ 'true' if rows else 'false' }};
   var withFiles = {{ 'true' if files else 'false' }};
-  // The brief (and brand rules id) were saved by the POST; the URL only carries their id.
+  // The brief (and Brand Rules id) were saved by the POST; the URL only carries their id.
   var es = new EventSource('/generate-stream?input_id=' + encodeURIComponent({{ input_id | tojson }}));
   if (brandId) document.getElementById('se-brand').hidden = false;
   if (withRows) document.getElementById('se-rows').hidden = false;
@@ -688,7 +688,7 @@
     else usage.unpriced = true;
     renderUsage();
   });
-  /* ── Brand rules at work ── */
+  /* ── Brand Rules at work ── */
   var brandCount = { applied: 0, fixed: 0, blocked: 0 };
   var PROPERTY_NAMES = {
     backgroundColor: 'background', color: 'text color', fontFamily: 'font',

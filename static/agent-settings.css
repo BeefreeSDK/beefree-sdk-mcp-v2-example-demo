@@ -74,6 +74,10 @@
 .as-panel[hidden] { display: none; }
 .as-intro { margin: .6rem 0 1rem; font-size: .84rem; color: var(--text-muted); max-width: 70ch; }
 .as-note { margin: .4rem 0 0; font-size: .78rem; color: var(--text-muted); }
+/* Link to the headless page that shows the setting in depth */
+.as-deep { margin: -.4rem 0 1rem; font-size: .8rem; color: var(--text-muted); }
+.as-deep a { display: inline-flex; align-items: center; gap: .25rem; font-weight: 600; color: var(--primary); text-decoration: none; }
+.as-deep a:hover { text-decoration: underline; }
 .as-fields.is-off { opacity: .45; pointer-events: none; }
 
 /* Switch */

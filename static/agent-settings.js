@@ -1,4 +1,4 @@
-/* Agent settings on /builder: brand rules, reusable rows and File Manager access.
+/* Agent settings on /builder: Brand Rules, reusable rows and File Manager access.
 
    The dialog (templates/partials/agent_settings.html) offers the headless pages'
    examples, or your own JSON, and checks the choice with the same endpoints
@@ -89,7 +89,7 @@
     var out = [];
     if (applied.brand.on) {
       var preset = byId(DATA.brandPresets, applied.brand.choice);
-      out.push({ section: 'brand', text: 'Brand: ' + (preset ? preset.name : 'your rules') });
+      out.push({ section: 'brand', text: 'Brand: ' + (preset ? preset.name : 'your Brand Rules') });
     }
     if (applied.rows.on) {
       var n = 0;
@@ -295,7 +295,7 @@
     if (!resp.ok) throw (data.errors && data.errors.length ? data.errors : ['The server could not check this (status ' + resp.status + ').']);
   }
 
-  var TITLES = { brand: 'Brand rules', rows: 'Reusable rows', files: 'File Manager' };
+  var TITLES = { brand: 'Brand Rules', rows: 'Reusable rows', files: 'File Manager' };
 
   async function saveDraft() {
     hideErrors();
@@ -367,7 +367,7 @@
     if (!items.length) {
       var empty = document.createElement('span');
       empty.className = 'as-strip-empty';
-      empty.textContent = 'No brand rules, saved rows or files yet.';
+      empty.textContent = 'No Brand Rules, saved rows or files yet.';
       strip.appendChild(empty);
     }
     items.forEach(function (item) {

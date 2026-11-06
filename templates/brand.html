@@ -48,7 +48,7 @@
           <h1 class="brand-tag">On-brand email</h1>
         </div>
         <p class="header-sub">
-          Set brand rules, then watch the agent design an email that follows them.
+          Set Brand Rules, then watch the agent design an email that follows them.
         </p>
       </div>
       <div class="header-tokens">
@@ -67,11 +67,13 @@
     {% set crumbs = [["Home", "/"], ["Headless", "/headless"]] %}
     {% set current %}On-brand email{% endset %}
     {% include "partials/breadcrumb.html" %}
+    {% set docs_url = "https://docs.beefree.io/beefree-sdk/ai-and-mcp/brand-rules" %}{% set docs_name = "Brand Rules for AI" %}
+    {% include "partials/docs_link.html" %}
 
-    <!-- ── Step 1: brand rules ── -->
+    <!-- ── Step 1: Brand Rules ── -->
     <section class="card form-card br-card" id="rules-section" aria-labelledby="rules-title">
       <div class="card-header-row">
-        <h2 class="card-title" id="rules-title">1. Choose your brand rules</h2>
+        <h2 class="card-title" id="rules-title">1. Choose your Brand Rules</h2>
         <button class="collapse-btn" onclick="toggleCard(this.closest('.card'))" aria-label="Toggle section">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -86,19 +88,19 @@
           <p class="br-summary-name" id="rules-summary-name"></p>
           <p class="br-summary-facts" id="rules-summary-facts"></p>
         </div>
-        <button type="button" class="btn-link" id="rules-change">Change rules</button>
+        <button type="button" class="btn-link" id="rules-change">Change Brand Rules</button>
       </div>
 
       <div class="card-body">
         <div>
           <p class="br-intro">
-            Brand rules travel with the email session. Beefree enforces them on every change the agent makes:
+            Brand Rules travel with the email session. Beefree enforces them on every change the agent makes:
             approved styles replace the agent's own choices, blocked elements are refused, and size limits are capped.
           </p>
 
           <div class="br-layout">
             <div class="br-main">
-              <div class="br-tabs" role="tablist" aria-label="How to set the brand rules">
+              <div class="br-tabs" role="tablist" aria-label="How to set the Brand Rules">
                 <button type="button" role="tab" id="tab-preset" aria-controls="panel-preset" aria-selected="true">Use a preset</button>
                 <button type="button" role="tab" id="tab-guided" aria-controls="panel-guided" aria-selected="false" tabindex="-1">Create step by step</button>
                 <button type="button" role="tab" id="tab-paste" aria-controls="panel-paste" aria-selected="false" tabindex="-1">Paste your own JSON</button>
@@ -138,7 +140,7 @@
                 <ol class="br-steps" aria-label="Steps">
                   <li><button type="button" data-step="0" aria-current="step"><span>1</span> Colors</button></li>
                   <li><button type="button" data-step="1"><span>2</span> Type</button></li>
-                  <li><button type="button" data-step="2"><span>3</span> Buttons</button></li>
+                  <li><button type="button" data-step="2"><span>3</span> Blocks</button></li>
                   <li><button type="button" data-step="3"><span>4</span> Guardrails</button></li>
                 </ol>
 
@@ -182,30 +184,15 @@
                   </fieldset>
 
                   <fieldset class="br-step" data-step="2" hidden>
-                    <legend>What do buttons look like?</legend>
-                    <div class="field">
-                      <span class="field-label" id="w-shape-label">Corners</span>
-                      <div class="br-choice" role="radiogroup" aria-labelledby="w-shape-label">
-                        <label><input type="radio" name="shape" value="0px" /> Square</label>
-                        <label><input type="radio" name="shape" value="6px" checked /> Rounded</label>
-                        <label><input type="radio" name="shape" value="30px" /> Pill</label>
-                      </div>
-                    </div>
-                    <label class="br-check"><input type="checkbox" name="secondary" checked /> Add an outlined secondary button for actions like "Learn more"</label>
+                    <legend>How should each element look?</legend>
+                    <p class="br-note">Turn on the elements to style, and add as many styles as each one needs. Every style becomes a preset: the agent picks one by its description, and its values replace the agent's own. Values start from your colors and fonts; leave a field empty to let the agent choose.</p>
                     <label class="br-check"><input type="checkbox" name="highlight" checked /> Allow a tinted section to make an offer or quote stand out</label>
+                    <div class="br-blocks" id="w-blocks"></div>
                   </fieldset>
 
                   <fieldset class="br-step" data-step="3" hidden>
                     <legend>What can the agent not do?</legend>
-                    <div class="field">
-                      <span class="field-label" id="w-noadd-label">Never add these elements</span>
-                      <div class="br-blocks" role="group" aria-labelledby="w-noadd-label">
-                        {% for b in block_types %}
-                        <label><input type="checkbox" name="noAdd" value="{{ b }}" {{ 'checked' if b in ('video', 'menu') }} /> {{ b | capitalize }}</label>
-                        {% endfor %}
-                      </div>
-                    </div>
-                    <div class="br-row br-row-3">
+                    <div class="br-row">
                       <div class="field">
                         <label for="w-rows">Most sections</label>
                         <input type="number" id="w-rows" name="maxRows" min="3" max="20" value="9" />
@@ -214,11 +201,23 @@
                         <label for="w-cols">Most columns per section</label>
                         <input type="number" id="w-cols" name="maxColumns" min="1" max="4" value="3" />
                       </div>
-                      <div class="field">
-                        <label for="w-buttons">Most buttons</label>
-                        <input type="number" id="w-buttons" name="maxButtons" min="1" max="6" value="3" />
-                      </div>
                     </div>
+                    <table class="br-limits">
+                      <caption>Each element <span>Leave "Most per email" empty for no limit.</span></caption>
+                      <thead>
+                        <tr><th scope="col">Element</th><th scope="col">Never add</th><th scope="col">Most per email</th></tr>
+                      </thead>
+                      <tbody>
+                        {% for b in block_types %}
+                        <tr>
+                          <th scope="row">{{ b | capitalize }}</th>
+                          <td><input type="checkbox" name="noAdd" value="{{ b }}" aria-label="Never add {{ b }}" {{ 'checked' if b == 'menu' }} /></td>
+                          <td><input type="number" name="maxPerType" data-block="{{ b }}" min="0" max="20" placeholder="No limit"
+                                     aria-label="Most {{ b }} blocks per email" {{ 'value=3' if b == 'button' }} {{ 'disabled' if b == 'menu' }} /></td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
                   </fieldset>
 
                   <div class="br-wizard-nav">
@@ -231,7 +230,7 @@
               <!-- Paste JSON -->
               <div class="br-panel" role="tabpanel" id="panel-paste" aria-labelledby="tab-paste" hidden>
                 <div class="field">
-                  <label for="paste-json">Brand rules JSON</label>
+                  <label for="paste-json">Brand Rules JSON</label>
                   <textarea id="paste-json" rows="14" spellcheck="false"
                     placeholder='{ "presets": { … }, "permissions": { … }, "limits": { … } }'></textarea>
                 </div>
@@ -242,7 +241,7 @@
             </div>
 
             <aside class="br-preview" aria-labelledby="br-preview-title">
-              <p class="field-label" id="br-preview-title">Preview of the rules</p>
+              <p class="field-label" id="br-preview-title">Preview of the Brand Rules</p>
               <div class="br-sample" id="br-sample" aria-hidden="true"></div>
               <ul class="br-chips" id="br-chips"></ul>
               <details class="br-json">
@@ -257,10 +256,10 @@
 
           <div class="field actions">
             <button type="button" class="btn btn-primary" id="rules-submit">
-              Use these rules
+              Use these Brand Rules
               <span class="spinner" id="rules-spinner" hidden></span>
             </button>
-            <span class="action-hint" id="rules-hint">Beefree checks the rules before they are used.</span>
+            <span class="action-hint" id="rules-hint">Beefree checks the Brand Rules before they are used.</span>
           </div>
         </div>
       </div>
@@ -285,7 +284,7 @@
 
       <div class="card-body">
         <div>
-        <p class="br-waiting" id="brief-waiting">Choose brand rules first. The brief describes the content; the rules decide how it looks.</p>
+        <p class="br-waiting" id="brief-waiting">Choose Brand Rules first. The brief describes the content; the Brand Rules decide how it looks.</p>
         <form
           hx-post="/brand-generate"
           hx-disabled-elt="find button[type=submit]"
@@ -304,7 +303,7 @@
             <p class="field-label" id="preset-heading">Start from an idea <span class="label-count" id="preset-label"></span></p>
             <div class="seq-prompt-grid" role="group" aria-labelledby="preset-heading">
               <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectPreset(this)"
-                data-prompt="Goal: Announce our new mobile app&#10;Audience: Existing customers of {brand}&#10;Primary CTA: &quot;Download the app&quot; → https://example.com/app&#10;Include: a header with the brand name, a hero headline with a short intro, three key features with one line each, a highlighted section with a short customer quote, the main button, a secondary &quot;See what's new&quot; link, and a footer with address and unsubscribe link&#10;Notes: keep the copy short and confident. Leave colors, fonts and button styles to the brand rules.">
+                data-prompt="Goal: Announce our new mobile app&#10;Audience: Existing customers of {brand}&#10;Primary CTA: &quot;Download the app&quot; → https://example.com/app&#10;Include: a header with the brand name, a hero headline with a short intro, three key features with one line each, a highlighted section with a short customer quote, the main button, a secondary &quot;See what's new&quot; link, and a footer with address and unsubscribe link&#10;Notes: keep the copy short and confident. Leave colors, fonts and button styles to the Brand Rules.">
                 <span class="seq-prompt-header">
                   <span class="seq-prompt-tag">Launch</span>
                   <span class="seq-prompt-check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -313,7 +312,7 @@
                 <span class="seq-prompt-desc">Hero, three features, a quote and a clear download button.</span>
               </button>
               <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectPreset(this)"
-                data-prompt="Goal: Monthly newsletter&#10;Audience: Subscribers of {brand}&#10;Primary CTA: &quot;Read the full story&quot; → https://example.com/story&#10;Include: a header with the brand name, a short welcome note, one featured story with an image placeholder, two shorter stories side by side with &quot;Read more&quot; links, a highlighted tip of the month, and a footer with address and unsubscribe link&#10;Notes: friendly and helpful tone; scannable sections. Leave colors, fonts and button styles to the brand rules.">
+                data-prompt="Goal: Monthly newsletter&#10;Audience: Subscribers of {brand}&#10;Primary CTA: &quot;Read the full story&quot; → https://example.com/story&#10;Include: a header with the brand name, a short welcome note, one featured story with an image placeholder, two shorter stories side by side with &quot;Read more&quot; links, a highlighted tip of the month, and a footer with address and unsubscribe link&#10;Notes: friendly and helpful tone; scannable sections. Leave colors, fonts and button styles to the Brand Rules.">
                 <span class="seq-prompt-header">
                   <span class="seq-prompt-tag">Newsletter</span>
                   <span class="seq-prompt-check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -322,7 +321,7 @@
                 <span class="seq-prompt-desc">A featured story, two short ones and a tip of the month.</span>
               </button>
               <button type="button" class="seq-prompt-card" aria-pressed="false" onclick="selectPreset(this)"
-                data-prompt="Goal: Invite customers to a live online event&#10;Audience: Customers and prospects of {brand}&#10;Event: &quot;What's next for 2027&quot;, a 45-minute live session on Thursday, November 12 at 5pm CET&#10;Primary CTA: &quot;Save my seat&quot; → https://example.com/event&#10;Include: a header with the brand name, a headline with the date and time, three things attendees will learn, a short host introduction with a portrait placeholder, the main button, an &quot;Add to calendar&quot; secondary link, and a footer with address and unsubscribe link&#10;Notes: make the date and button easy to find. Leave colors, fonts and button styles to the brand rules.">
+                data-prompt="Goal: Invite customers to a live online event&#10;Audience: Customers and prospects of {brand}&#10;Event: &quot;What's next for 2027&quot;, a 45-minute live session on Thursday, November 12 at 5pm CET&#10;Primary CTA: &quot;Save my seat&quot; → https://example.com/event&#10;Include: a header with the brand name, a headline with the date and time, three things attendees will learn, a short host introduction with a portrait placeholder, the main button, an &quot;Add to calendar&quot; secondary link, and a footer with address and unsubscribe link&#10;Notes: make the date and button easy to find. Leave colors, fonts and button styles to the Brand Rules.">
                 <span class="seq-prompt-header">
                   <span class="seq-prompt-tag">Event</span>
                   <span class="seq-prompt-check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -336,7 +335,7 @@
           <div class="field full" style="margin-top:.25rem;">
             <label for="custom-brief">Or write your own brief</label>
             <textarea id="custom-brief" rows="7" style="resize:vertical;" oninput="onCustomInput(this)"
-              placeholder="Goal: …&#10;Audience: …&#10;Primary CTA: &quot;Button label&quot; → https://…&#10;Include: header, sections, footer…&#10;Colors and fonts come from the brand rules."></textarea>
+              placeholder="Goal: …&#10;Audience: …&#10;Primary CTA: &quot;Button label&quot; → https://…&#10;Include: header, sections, footer…&#10;Colors and fonts come from the Brand Rules."></textarea>
           </div>
 
           <div class="field full actions">
@@ -344,7 +343,7 @@
               Generate on-brand email
               <span id="spinner" class="htmx-indicator spinner"></span>
             </button>
-            <span class="action-hint" id="single-hint">Choose brand rules first.</span>
+            <span class="action-hint" id="single-hint">Choose Brand Rules first.</span>
           </div>
         </form>
         </div>
@@ -356,7 +355,7 @@
         <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
         <path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
       </svg>
-      Output quality varies across AI providers and models. Brand rules are enforced by Beefree whatever the model; how well the agent plans around them depends on the model. Brand Rules require a Superpowers or Enterprise plan.
+      Output quality varies across AI providers and models. Brand Rules are enforced by Beefree whatever the model; how well the agent plans around them depends on the model. Brand Rules require a Superpowers or Enterprise plan.
     </p>
 
     <div id="workspace"></div>
@@ -422,23 +421,328 @@
     $('w-heading-font').value = FONTS[2][1];
     $('w-body-font').value = FONTS[0][1];
 
-    function wizardRules() {
+    /* ── Blocks step: the styles (presets) of each element ──
+       Property names are the ones the Code Mode add and update functions accept.
+       An element can have several styles; each has a name and a description the
+       agent reads to pick one. Fields start from the colors and fonts of the
+       first two steps and follow them until edited. An empty field is left out. */
+    function wizardCtx() {
       var f = wizard.elements;
       var c = {
         primary: hex(f.primary.value) || '#1F4E5F', accent: hex(f.accent.value) || '#E9A23B',
         text: hex(f.text.value) || '#2B2B2B', page: hex(f.page.value) || '#F5F1EA',
         content: hex(f.content.value) || '#FFFFFF'
       };
-      var body = f.bodyFont.value, heading = f.headingFont.value;
-      var radius = wizard.querySelector('[name=shape]:checked').value;
-      var size = wizard.querySelector('[name=size]:checked').value;
-      var muted = mix(c.text, c.content, 0.6);
-      var button = function (bg, fg, outline, description) {
-        var p = { backgroundColor: bg, color: fg, borderRadius: radius, fontFamily: body,
-                  fontWeight: '700', fontSize: '16px', padding: '12px 28px' };
-        if (outline) ['Top', 'Right', 'Bottom', 'Left'].forEach(function (s) { p['border' + s] = '2px solid ' + outline; });
-        return { description: description, properties: p };
+      return {
+        c: c, body: f.bodyFont.value, heading: f.headingFont.value,
+        size: wizard.querySelector('[name=size]:checked').value,
+        muted: mix(c.text, c.content, 0.6), line: mix(c.text, c.content, 0.2), tint: mix(c.accent, c.content, 0.12)
       };
+    }
+    var WEIGHTS = [['Regular', '400'], ['Bold', '700'], ['Black', '900']];
+    var ALIGN = [['Left', 'left'], ['Center', 'center'], ['Right', 'right']];
+    function k(v) { return function () { return v; }; }
+    // Each element: its fields (with defaults) and the styles it starts with.
+    // A starting style's `defs` replace field defaults for that style only.
+    var BLOCK_SPECS = [
+      { type: 'title', label: 'Title', on: true, hint: 'Headlines and section headings.', fields: [
+        { p: 'color', label: 'Color', type: 'color', def: function (x) { return x.c.primary; } },
+        { p: 'fontFamily', label: 'Font', type: 'font', def: function (x) { return x.heading; } },
+        { p: 'fontWeight', label: 'Weight', type: 'select', options: WEIGHTS, def: k('700') },
+        { p: 'fontSize', label: 'Size', type: 'text', placeholder: 'Agent decides', def: k('') },
+        { p: 'lineHeight', label: 'Line height', type: 'text', def: k('120%') },
+        { p: 'textAlign', label: 'Alignment', type: 'select', options: [['Agent decides', '']].concat(ALIGN), def: k('') }
+      ], styles: [
+        { name: 'headline', description: 'Main headline and section headings.' }
+      ] },
+      { type: 'paragraph', label: 'Paragraph', on: true, hint: 'Body copy and small print.', fields: [
+        { p: 'color', label: 'Color', type: 'color', def: function (x) { return x.c.text; } },
+        { p: 'linkColor', label: 'Link color', type: 'color', def: function (x) { return x.c.accent; } },
+        { p: 'fontFamily', label: 'Font', type: 'font', def: function (x) { return x.body; } },
+        { p: 'fontSize', label: 'Size', type: 'text', def: function (x) { return x.size; } },
+        { p: 'lineHeight', label: 'Line height', type: 'text', def: k('160%') }
+      ], styles: [
+        { name: 'body', description: 'Body copy.' },
+        { name: 'finePrint', description: 'Footer, legal text and small notes.', defs: {
+          color: function (x) { return x.muted; }, linkColor: function (x) { return x.muted; },
+          fontSize: k('12px'), lineHeight: k('150%') } }
+      ] },
+      { type: 'button', label: 'Button', on: true, hint: 'Calls to action.', fields: [
+        { p: 'backgroundColor', label: 'Background', type: 'color', def: function (x) { return x.c.primary; } },
+        { p: 'color', label: 'Text color', type: 'color', def: function (x) { return onColor(x.c.primary); } },
+        { p: 'borderRadius', label: 'Corners', type: 'select', options: [['Square', '0px'], ['Rounded', '6px'], ['Pill', '30px']], def: k('6px') },
+        { p: 'border', label: 'Border', type: 'text', placeholder: 'None', def: k(''),
+          sides: ['borderTop', 'borderRight', 'borderBottom', 'borderLeft'] },
+        { p: 'fontFamily', label: 'Font', type: 'font', def: function (x) { return x.body; } },
+        { p: 'fontWeight', label: 'Weight', type: 'select', options: WEIGHTS, def: k('700') },
+        { p: 'fontSize', label: 'Size', type: 'text', def: k('16px') },
+        { p: 'padding', label: 'Padding', type: 'text', def: k('12px 28px') }
+      ], styles: [
+        { name: 'primary', description: 'The main call to action. One per email.' },
+        { name: 'secondary', description: "Secondary actions such as 'Learn more'.", defs: {
+          backgroundColor: function (x) { return x.c.content; }, color: function (x) { return x.c.primary; },
+          border: function (x) { return '2px solid ' + x.c.primary; } } }
+      ] },
+      { type: 'list', label: 'List', hint: 'Bulleted and numbered lists.', fields: [
+        { p: 'color', label: 'Color', type: 'color', def: function (x) { return x.c.text; } },
+        { p: 'linkColor', label: 'Link color', type: 'color', def: function (x) { return x.c.accent; } },
+        { p: 'fontFamily', label: 'Font', type: 'font', def: function (x) { return x.body; } },
+        { p: 'fontSize', label: 'Size', type: 'text', def: function (x) { return x.size; } },
+        { p: 'lineHeight', label: 'Line height', type: 'text', def: k('160%') },
+        { p: 'liSpacing', label: 'Space between items', type: 'text', def: k('8px') }
+      ], styles: [{ name: 'standard', description: 'Bulleted and numbered lists.' }] },
+      { type: 'image', label: 'Image', hint: 'Photos, product shots and logos.', fields: [
+        { p: 'borderRadius', label: 'Corners', type: 'text', def: k('0px') },
+        { p: 'align', label: 'Alignment', type: 'select', options: ALIGN, def: k('center') }
+      ], styles: [{ name: 'standard', description: 'Photos, product shots and logos.' }] },
+      { type: 'social', label: 'Social', hint: 'Social media icons.', fields: [
+        { p: 'iconSize', label: 'Icon size (px)', type: 'number', min: 16, max: 64, def: k('32') },
+        { p: 'iconSpacing', label: 'Spacing', type: 'select', options: [['5px', '5px'], ['10px', '10px'], ['15px', '15px'], ['20px', '20px']], def: k('10px') },
+        { p: 'align', label: 'Alignment', type: 'select', options: ALIGN, def: k('center') }
+      ], styles: [{ name: 'standard', description: 'Social media icons, usually in the footer.' }] },
+      { type: 'icon', label: 'Icon', hint: 'Icons with a short label.', fields: [
+        { p: 'color', label: 'Label color', type: 'color', def: function (x) { return x.c.text; } },
+        { p: 'fontFamily', label: 'Font', type: 'font', def: function (x) { return x.body; } },
+        { p: 'fontSize', label: 'Label size', type: 'text', def: k('14px') },
+        { p: 'iconHeight', label: 'Icon height', type: 'text', def: k('32px') }
+      ], styles: [{ name: 'standard', description: 'Icons with a short label, such as benefits or features.' }] },
+      { type: 'spacer', label: 'Spacer', hint: 'Vertical space between blocks.', fields: [
+        { p: 'height', label: 'Height', type: 'text', def: k('24px') }
+      ], styles: [{ name: 'standard', description: 'Vertical space between blocks.' }] },
+      { type: 'divider', label: 'Divider', hint: 'A horizontal line between blocks.', fields: [
+        { p: 'line', label: 'Line', type: 'text', def: function (x) { return '1px solid ' + x.line; } },
+        { p: 'width', label: 'Width', type: 'text', def: k('100%') },
+        { p: 'align', label: 'Alignment', type: 'select', options: ALIGN, def: k('center') }
+      ], styles: [{ name: 'standard', description: 'A horizontal line between blocks.' }] },
+      { type: 'table', label: 'Table', hint: 'Tables of data.', fields: [
+        { p: 'color', label: 'Text color', type: 'color', def: function (x) { return x.c.text; } },
+        { p: 'headersBackgroundColor', label: 'Header background', type: 'color', def: function (x) { return x.c.primary; } },
+        { p: 'headersColor', label: 'Header text', type: 'color', def: function (x) { return onColor(x.c.primary); } },
+        { p: 'alternateRowBackgroundColor', label: 'Alternate rows', type: 'color', def: function (x) { return x.tint; } },
+        { p: 'fontFamily', label: 'Font', type: 'font', def: function (x) { return x.body; } },
+        { p: 'fontSize', label: 'Size', type: 'text', def: k('14px') },
+        { p: 'border', label: 'Border', type: 'text', def: function (x) { return '1px solid ' + x.line; } }
+      ], styles: [{ name: 'standard', description: 'Tables of data, such as prices or order details.' }] },
+      { type: 'menu', label: 'Menu', hint: 'Navigation links.', fields: [
+        { p: 'linkColor', label: 'Link color', type: 'color', def: function (x) { return x.c.primary; } },
+        { p: 'fontFamily', label: 'Font', type: 'font', def: function (x) { return x.body; } },
+        { p: 'fontSize', label: 'Size', type: 'text', def: k('14px') },
+        { p: 'fontWeight', label: 'Weight', type: 'select', options: WEIGHTS, def: k('700') },
+        { p: 'textAlign', label: 'Alignment', type: 'select', options: ALIGN, def: k('center') }
+      ], styles: [{ name: 'standard', description: 'A row of navigation links, usually under the header.' }] }
+    ];
+
+    var styleCount = 0;
+    // One style of an element: its name, what it is for, and its fields.
+    function addStyle(spec, list, seed) {
+      var n = ++styleCount;
+      var x = wizardCtx();
+      var defs = (seed && seed.defs) || {};
+      var box = el('div');
+      box.className = 'br-style';
+      box.defaults = {};
+      spec.fields.forEach(function (fd) { box.defaults[fd.p] = defs[fd.p] || fd.def; });
+
+      var head = el('div');
+      head.className = 'br-style-head';
+      [['name', 'Style name', seed ? seed.name : spec.type + (list.children.length + 1), 'e.g. primary'],
+       ['description', 'When the agent uses it', seed ? seed.description : '', 'e.g. Secondary actions such as "Learn more"']]
+        .forEach(function (meta) {
+          var wrap = el('div');
+          wrap.className = 'br-block-field br-style-' + meta[0];
+          var id = 'wb-' + n + '-' + meta[0];
+          var label = el('label', meta[1]);
+          label.htmlFor = id;
+          var input = el('input');
+          input.type = 'text';
+          input.id = id;
+          input.value = meta[2];
+          input.placeholder = meta[3];
+          input.maxLength = meta[0] === 'name' ? 64 : 200;
+          input.autocomplete = 'off';
+          input.dataset.meta = meta[0];
+          wrap.appendChild(label);
+          wrap.appendChild(input);
+          head.appendChild(wrap);
+        });
+      var remove = el('button', 'Remove');
+      remove.type = 'button';
+      remove.className = 'btn-link br-style-remove';
+      remove.setAttribute('aria-label', 'Remove this ' + spec.label.toLowerCase() + ' style');
+      remove.addEventListener('click', function () {
+        box.remove();
+        updateRemoveButtons(list);
+        refresh();
+      });
+      head.appendChild(remove);
+      box.appendChild(head);
+
+      var fields = el('div');
+      fields.className = 'br-block-fields';
+      spec.fields.forEach(function (fd) {
+        var id = 'wb-' + n + '-' + fd.p;
+        var wrap = el('div');
+        wrap.className = 'br-block-field';
+        var label = el('label', fd.label);
+        label.htmlFor = id;
+        wrap.appendChild(label);
+        var input;
+        if (fd.type === 'color') {
+          var pair = el('span');
+          pair.className = 'br-color-input';
+          input = el('input');
+          input.type = 'color';
+          var txt = el('input');
+          txt.type = 'text';
+          txt.maxLength = 7;
+          txt.dataset.for = id;
+          txt.setAttribute('aria-label', fd.label + ' hex value');
+          pair.appendChild(input);
+          pair.appendChild(txt);
+          wrap.appendChild(pair);
+          bindColor(input, txt);
+        } else if (fd.type === 'select' || fd.type === 'font') {
+          input = el('select');
+          (fd.type === 'font' ? FONTS : fd.options).forEach(function (o) {
+            var opt = el('option', o[0]);
+            opt.value = o[1];
+            input.appendChild(opt);
+          });
+          wrap.appendChild(input);
+        } else {
+          input = el('input');
+          input.type = fd.type === 'number' ? 'number' : 'text';
+          if (fd.min != null) { input.min = fd.min; input.max = fd.max; }
+          if (fd.placeholder) input.placeholder = fd.placeholder;
+          input.autocomplete = 'off';
+          wrap.appendChild(input);
+        }
+        input.id = id;
+        input.dataset.prop = fd.p;
+        fields.appendChild(wrap);
+      });
+      box.appendChild(fields);
+      list.appendChild(box);
+      syncStyle(box, x);
+      updateRemoveButtons(list);
+      return box;
+    }
+    // The last style of an element can't be removed: turn the element off instead.
+    function updateRemoveButtons(list) {
+      var only = list.children.length === 1;
+      list.querySelectorAll('.br-style-remove').forEach(function (b) { b.hidden = only; });
+    }
+
+    function renderBlocks() {
+      var root = $('w-blocks');
+      BLOCK_SPECS.forEach(function (spec) {
+        var card = el('div');
+        card.className = 'br-block';
+        card.dataset.block = spec.type;
+        var head = el('label');
+        head.className = 'br-block-head';
+        var on = el('input');
+        on.type = 'checkbox';
+        on.checked = !!spec.on;
+        on.dataset.blockOn = spec.type;
+        head.appendChild(on);
+        head.appendChild(el('span', spec.label)).className = 'br-block-name';
+        head.appendChild(el('small', spec.hint));
+        card.appendChild(head);
+        var body = el('div');
+        body.className = 'br-block-body';
+        body.hidden = !spec.on;
+        var list = el('div');
+        list.className = 'br-styles';
+        body.appendChild(list);
+        spec.styles.forEach(function (seed) { addStyle(spec, list, seed); });
+        var add = el('button', '+ Add another ' + spec.label.toLowerCase() + ' style');
+        add.type = 'button';
+        add.className = 'btn-link br-style-add';
+        add.addEventListener('click', function () {
+          var box = addStyle(spec, list, null);
+          box.querySelector('[data-meta=name]').select();
+          box.querySelector('[data-meta=name]').focus();
+          refresh();
+        });
+        body.appendChild(add);
+        card.appendChild(body);
+        on.addEventListener('change', function () { body.hidden = !on.checked; });
+        root.appendChild(card);
+      });
+      // An edited field keeps its value; the others follow the colors and fonts.
+      root.addEventListener('input', function (e) {
+        var t = e.target.dataset.for ? $(e.target.dataset.for) : e.target;
+        if (t && t.dataset.prop) t.dataset.touched = '1';
+      });
+      root.addEventListener('change', function (e) { if (e.target.dataset.prop) e.target.dataset.touched = '1'; });
+    }
+
+    // A block color picker and its hex field stay in sync.
+    function bindColor(picker, text) {
+      picker.addEventListener('input', function () { text.value = picker.value.toUpperCase(); });
+      text.addEventListener('input', function () {
+        var v = text.value.trim();
+        if (v && v[0] !== '#') v = '#' + v;
+        if (hex(v)) picker.value = v.toLowerCase();
+      });
+    }
+    function setField(input, value) {
+      if (input.type === 'color') {
+        input.value = (value || '#000000').toLowerCase();
+        var txt = wizard.querySelector('[data-for="' + input.id + '"]');
+        if (txt) txt.value = value;
+      } else {
+        input.value = value;
+      }
+    }
+    function syncStyle(box, x) {
+      box.querySelectorAll('[data-prop]').forEach(function (input) {
+        if (!input.dataset.touched) setField(input, box.defaults[input.dataset.prop](x));
+      });
+    }
+    function syncBlocks(x) {
+      wizard.querySelectorAll('.br-style').forEach(function (box) { syncStyle(box, x); });
+    }
+
+    // Preset names are 1–64 characters with no spaces, unique within an element.
+    function presetName(raw, taken, fallback) {
+      var name = String(raw || '').trim().replace(/\s+/g, '-').slice(0, 64) || fallback;
+      var base = name, i = 2;
+      while (taken[name]) name = base.slice(0, 60) + '-' + i++;
+      taken[name] = true;
+      return name;
+    }
+    function blockPresets() {
+      var blocks = {};
+      BLOCK_SPECS.forEach(function (spec) {
+        var card = wizard.querySelector('.br-block[data-block="' + spec.type + '"]');
+        if (!card.querySelector('[data-block-on]').checked) return;
+        var group = {}, taken = {};
+        card.querySelectorAll('.br-style').forEach(function (box, i) {
+          var props = {};
+          spec.fields.forEach(function (fd) {
+            var input = box.querySelector('[data-prop="' + fd.p + '"]');
+            var v = fd.type === 'color' ? hex(wizard.querySelector('[data-for="' + input.id + '"]').value) : input.value.trim();
+            if (!v) return;
+            if (fd.type === 'number') v = Math.min(fd.max, Math.max(fd.min, parseInt(v, 10) || fd.min));
+            if (fd.sides) fd.sides.forEach(function (side) { props[side] = v; });
+            else props[fd.p] = v;
+          });
+          var name = presetName(box.querySelector('[data-meta=name]').value, taken, spec.type + (i + 1));
+          var description = box.querySelector('[data-meta=description]').value.trim() || spec.hint;
+          group[name] = { description: description, properties: props };
+        });
+        if (Object.keys(group).length) blocks[spec.type] = group;
+      });
+      return blocks;
+    }
+
+    function wizardRules() {
+      var f = wizard.elements;
+      var x = wizardCtx();
+      var c = x.c, body = x.body;
+      syncBlocks(x);
       var rows = {
         standard: { description: 'Default section for header, body content and footer.',
                     properties: { rowBackgroundColor: c.page, contentAreaBackgroundColor: c.content, contentAreaPadding: '24px' } }
@@ -447,31 +751,27 @@
         rows.highlight = { description: 'Tinted section to make one block of content stand out (an offer, a quote, key benefits). At most one or two per email.',
                            properties: { rowBackgroundColor: c.page, contentAreaBackgroundColor: mix(c.accent, c.content, 0.16), contentAreaPadding: '32px' } };
       }
-      var buttons = { primary: button(c.primary, onColor(c.primary), null, 'The main call to action. One per email.') };
-      if (f.secondary.checked) buttons.secondary = button(c.content, c.primary, c.primary, "Secondary actions such as 'Learn more'.");
       var noAdd = Array.prototype.filter.call(f.noAdd, function (b) { return b.checked; }).map(function (b) { return b.value; });
       var clamp = function (el, lo, hi) { var n = parseInt(el.value, 10); return Math.min(hi, Math.max(lo, isNaN(n) ? lo : n)); };
+      // A cap for each element that has one; an element that is never added needs none.
+      var maxPerType = {};
+      wizard.querySelectorAll('[name=maxPerType]').forEach(function (el) {
+        if (el.disabled || el.value.trim() === '') return;
+        maxPerType[el.dataset.block] = clamp(el, 0, 20);
+      });
       var rules = {
         presets: {
           settings: { base: { description: 'Email defaults. Use for setEmailDefaultStyles.',
             properties: { backgroundColor: c.page, contentAreaBackgroundColor: c.content, contentAreaWidth: '600px', fontFamily: body, linkColor: c.accent } } },
           rows: rows,
-          blocks: {
-            title: { headline: { description: 'Main headline and section headings.',
-              properties: { color: c.primary, fontFamily: heading, fontWeight: '700', lineHeight: '120%' } } },
-            paragraph: {
-              body: { description: 'Body copy.', properties: { color: c.text, fontFamily: body, fontSize: size, lineHeight: '160%', linkColor: c.accent } },
-              finePrint: { description: 'Footer, legal text and small notes.', properties: { color: muted, fontFamily: body, fontSize: '12px', lineHeight: '150%', linkColor: muted } }
-            },
-            button: buttons
-          }
+          blocks: blockPresets()
         },
         limits: {
           rows: { max: clamp(f.maxRows, 3, 20) },
-          columns: { maxPerRow: clamp(f.maxColumns, 1, 4) },
-          blocks: { maxPerType: { button: clamp(f.maxButtons, 1, 6) } }
+          columns: { maxPerRow: clamp(f.maxColumns, 1, 4) }
         }
       };
+      if (Object.keys(maxPerType).length) rules.limits.blocks = { maxPerType: maxPerType };
       if (noAdd.length) rules.permissions = { blocks: { noAdd: noAdd } };
       return rules;
     }
@@ -554,7 +854,7 @@
 
     /* ── Plain-language facts about the rules ── */
     var GROUP_NAMES = { title: 'Headlines', paragraph: 'Text', button: 'Buttons', list: 'Lists', image: 'Images',
-      social: 'Social', icon: 'Icons', spacer: 'Spacers', divider: 'Dividers', table: 'Tables', menu: 'Menus', video: 'Video' };
+      social: 'Social', icon: 'Icons', spacer: 'Spacers', divider: 'Dividers', table: 'Tables', menu: 'Menus' };
     function facts(rules) {
       var out = [];
       if (!rules) return out;
@@ -571,7 +871,10 @@
       if (lim.rows && lim.rows.max != null) out.push('Up to ' + lim.rows.max + ' sections');
       if (lim.columns && lim.columns.maxPerRow != null) out.push('Up to ' + lim.columns.maxPerRow + ' columns per section');
       var per = (lim.blocks || {}).maxPerType || {};
-      Object.keys(per).forEach(function (k) { out.push('Up to ' + per[k] + ' ' + k + (per[k] === 1 ? '' : 's')); });
+      Object.keys(per).forEach(function (k) {
+        var name = k === 'social' ? 'social block' : k;
+        out.push('Up to ' + per[k] + ' ' + name + (per[k] === 1 ? '' : 's'));
+      });
       if ((lim.blocks || {}).max != null) out.push('Up to ' + lim.blocks.max + ' blocks');
       return out;
     }
@@ -595,7 +898,7 @@
       facts(rules).forEach(function (f) { chips.appendChild(el('li', f)); });
       $('br-json').textContent = rules ? JSON.stringify(rules, null, 2) : '';
       $('rules-submit').disabled = !rules;
-      $('rules-hint').textContent = rules ? 'Beefree checks the rules before they are used.' : 'Paste valid JSON to continue.';
+      $('rules-hint').textContent = rules ? 'Beefree checks the Brand Rules before they are used.' : 'Paste valid JSON to continue.';
       $('rules-errors').hidden = true;
     }
 
@@ -631,9 +934,11 @@
       });
     });
 
+    renderBlocks();
+
     /* ── Wizard steps ── */
     var step = 0;
-    var STEP_NAMES = ['Colors', 'Type', 'Buttons', 'Guardrails'];
+    var STEP_NAMES = ['Colors', 'Type', 'Blocks', 'Guardrails'];
     function showStep(n) {
       step = Math.max(0, Math.min(3, n));
       wizard.querySelectorAll('.br-step').forEach(function (fs) { fs.hidden = Number(fs.dataset.step) !== step; });
@@ -664,6 +969,13 @@
       });
     });
     wizard.addEventListener('input', function (e) { if (e.target.type !== 'color' && !e.target.dataset.for) refresh(); });
+    // An element that is never added can't have a cap
+    wizard.querySelectorAll('[name=noAdd]').forEach(function (box) {
+      box.addEventListener('change', function () {
+        wizard.querySelector('[name=maxPerType][data-block="' + box.value + '"]').disabled = box.checked;
+        refresh();
+      });
+    });
     wizard.addEventListener('change', refresh);
 
     /* ── Paste ── */
@@ -679,7 +991,7 @@
         if (obj && typeof obj === 'object' && !Array.isArray(obj) && obj.brandRules) obj = obj.brandRules;
         if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('expected an object');
         pasted = obj;
-        pasteStatus.textContent = 'Valid JSON. Use these rules to have Beefree check the schema.';
+        pasteStatus.textContent = 'Valid JSON. Use these Brand Rules to have Beefree check the schema.';
       } catch (err) {
         pasteStatus.textContent = 'Not valid JSON yet: ' + err.message;
         pasteStatus.classList.add('is-error');
@@ -713,13 +1025,13 @@
         });
         var data = await resp.json().catch(function () { return {}; });
         if (!resp.ok || !data.brand_id) {
-          var list = data.errors || ['Beefree could not check these rules right now. Try again in a moment.'];
-          errors.replaceChildren(el('p', list.length > 1 ? 'Beefree found ' + list.length + ' problems in these rules:' : 'Beefree found a problem in these rules:'));
+          var list = data.errors || ['Beefree could not check these Brand Rules right now. Try again in a moment.'];
+          errors.replaceChildren(el('p', list.length > 1 ? 'Beefree found ' + list.length + ' problems in these Brand Rules:' : 'Beefree found a problem in these Brand Rules:'));
           var ul = el('ul');
           list.forEach(function (m) { ul.appendChild(el('li', m)); });
           errors.appendChild(ul);
           errors.hidden = false;
-          $('rules-hint').textContent = 'Fix the rules and try again.';
+          $('rules-hint').textContent = 'Fix the Brand Rules and try again.';
           return;
         }
         brandName = currentName();
@@ -810,7 +1122,7 @@
       var hasRules = !!$('brand-id').value;
       var hasBrief = !!$('brief').value.trim();
       $('single-submit').disabled = !(hasRules && hasBrief);
-      $('single-hint').textContent = !hasRules ? 'Choose brand rules first.'
+      $('single-hint').textContent = !hasRules ? 'Choose Brand Rules first.'
         : !hasBrief ? 'Pick an idea or write a brief to continue.' : '';
     }
 

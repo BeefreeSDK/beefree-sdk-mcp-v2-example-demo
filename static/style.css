@@ -1890,6 +1890,11 @@ textarea { resize: vertical; }
 
 html { scroll-behavior: smooth; }
 
+/* Link to the feature's documentation, at the top of a headless page */
+.page-docs { margin: -.4rem 0 1rem; font-size: .85rem; }
+.page-docs a { display: inline-flex; align-items: center; gap: .3rem; font-weight: 600; color: var(--primary); text-decoration: none; }
+.page-docs a:hover { text-decoration: underline; }
+
 /* ─── Code Mode panels ─────────────────────────────────────────────────────── */
 
 .codemode-panels {

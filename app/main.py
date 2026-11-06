@@ -119,7 +119,7 @@ def chat_history(turns) -> list:
             history.append(ModelResponse(parts=[TextPart(content=agent)]))
     return history
 
-# Stream inputs (briefs, chat messages, campaign plans, brand rules) travel as
+# Stream inputs (briefs, chat messages, campaign plans, Brand Rules) travel as
 # compressed tokens in the stream URL (app/payload.py), not in server memory, so
 # any copy of the app behind a load balancer can run them.
 RUN_INPUT_FIELDS = {"brief", "message", "history", "agent"}
@@ -573,9 +573,9 @@ async def brand_rules(request: Request, settings: Settings = Depends(get_run_set
     except BrandRulesRejected as exc:
         return JSONResponse({"errors": exc.details[:20]}, status_code=422)
     except Exception as exc:
-        log.error("Brand rules validation failed: %s", exc)
+        log.error("Brand Rules validation failed: %s", exc)
         return JSONResponse(
-            {"errors": ["Beefree could not check these rules right now. Try again in a moment."]},
+            {"errors": ["Beefree could not check these Brand Rules right now. Try again in a moment."]},
             status_code=502,
         )
     return JSONResponse({"brand_id": pack({"rules": rules})})
@@ -583,11 +583,11 @@ async def brand_rules(request: Request, settings: Settings = Depends(get_run_set
 
 @app.post("/brand-generate", response_class=HTMLResponse)
 async def brand_generate(request: Request, brief: str = Form(...), brand_id: str = Form(...)):
-    """Same result view as Single email, with the brand rules attached to the session."""
+    """Same result view as Single email, with the Brand Rules attached to the session."""
     rules = (unpack(brand_id) or {}).get("rules")
     if not isinstance(rules, dict):
         return HTMLResponse(
-            "<p class='inline-error' role='alert'>These brand rules could not be read. "
+            "<p class='inline-error' role='alert'>These Brand Rules could not be read. "
             "Choose them again to continue.</p>",
             status_code=400,
         )
@@ -843,7 +843,7 @@ async def generate_stream(
     """SSE endpoint: creates a template, runs single email agent, streams previews.
 
     ``input_id`` is a token (app/payload.py) with the brief and, from the brand
-    page, the brand rules: the template session then carries them and the stream
+    page, the Brand Rules: the template session then carries them and the stream
     adds "brand" events each time they apply. From the reusable rows and File Manager
     pages it names the template /rows-generate or /files-generate created instead, and
     the stream adds "rows" or "files" events for what the agent does with them.

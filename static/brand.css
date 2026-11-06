@@ -1,4 +1,4 @@
-/* On-brand email page (/brand): brand rules picker, live preview, guided setup. */
+/* On-brand email page (/brand): Brand Rules picker, live preview, guided setup. */
 
 .br-intro { color: var(--text-muted); font-size: .9rem; max-width: 78ch; margin: -.25rem 0 1.25rem; }
 
@@ -117,9 +117,48 @@
 .br-choice label:has(input:checked) { border-color: var(--primary); background: #F3EFFF; color: var(--primary-dk); font-weight: 600; }
 .br-check { display: flex; gap: .55rem; align-items: flex-start; font-size: .88rem; cursor: pointer; }
 .br-check input { margin-top: .2rem; }
-.br-blocks { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: .4rem .75rem; }
-.br-blocks label { display: flex; gap: .4rem; align-items: center; font-size: .86rem; cursor: pointer; }
 .br-note { font-size: .78rem; color: var(--text-muted); margin: 0; }
+
+/* Blocks step: one card per element; when it is on, its styles (presets) */
+.br-blocks { display: grid; gap: .6rem; }
+.br-block { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.br-block-head { display: flex; align-items: baseline; gap: .55rem; flex-wrap: wrap; padding: .65rem .85rem; cursor: pointer; }
+.br-block-head input { align-self: center; margin: 0; }
+.br-block-name { font-weight: 700; font-size: .9rem; }
+.br-block-head small { font-size: .76rem; color: var(--text-muted); }
+.br-block-body { border-top: 1px solid var(--border); padding: .75rem .85rem .6rem; }
+.br-block-body[hidden] { display: none; }
+.br-styles { display: grid; gap: .75rem; }
+.br-style { border: 1px solid var(--border); border-radius: 8px; padding: .7rem .75rem; background: #FBFAFF; }
+.br-style-head {
+  display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 2.4fr) auto; gap: .5rem 1rem; align-items: end;
+  padding-bottom: .65rem; margin-bottom: .65rem; border-bottom: 1px dashed var(--border);
+}
+.br-style-remove { color: #B42318; padding-bottom: .45rem; }
+.br-style-remove[hidden] { display: none; }
+.br-style-add { margin-top: .55rem; }
+.br-block-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .7rem 1rem; }
+.br-block-field { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+.br-block-field label { font-size: .78rem; font-weight: 600; }
+.br-block-field select, .br-block-field input[type=text], .br-block-field input[type=number] {
+  width: 100%; padding: .4rem .5rem; font-size: .84rem;
+}
+.br-style-name input { font-family: var(--mono); font-size: .8rem; }
+@media (max-width: 640px) {
+  .br-style-head { grid-template-columns: 1fr; }
+}
+
+/* Guardrails: each element's "never add" and per-email cap */
+.br-limits { width: 100%; max-width: 460px; border-collapse: collapse; font-size: .86rem; margin-top: 1rem; }
+.br-limits caption { text-align: left; font-weight: 600; font-size: .86rem; margin-bottom: .4rem; }
+.br-limits caption span { display: block; font-weight: 400; font-size: .76rem; color: var(--text-muted); }
+.br-limits th, .br-limits td { padding: .3rem .5rem; border-bottom: 1px solid var(--border); text-align: left; }
+.br-limits thead th { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--text-muted); }
+.br-limits tbody th { font-weight: 500; }
+.br-limits td:nth-child(2) { text-align: center; width: 6rem; }
+.br-limits thead th:nth-child(2) { text-align: center; }
+.br-limits input[type=number] { width: 6.5rem; padding: .3rem .45rem; }
+.br-limits input[type=number]:disabled { opacity: .45; }
 
 .br-wizard-nav { display: flex; gap: .6rem; margin-top: 1.4rem; }
 .br-wizard-nav [hidden] { display: none; }
@@ -207,5 +246,5 @@
 
 /* Checkboxes and radios keep their natural size (the site styles inputs full width). */
 .br-wizard input[type=checkbox], .br-wizard input[type=radio] { width: auto; flex: none; margin: 0; accent-color: var(--primary); }
-.br-blocks label, .br-check, .br-choice label { font-weight: 500; justify-content: flex-start; }
+.br-check, .br-choice label { font-weight: 500; justify-content: flex-start; }
 .br-check input { margin-top: .2rem; }

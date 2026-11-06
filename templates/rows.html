@@ -68,6 +68,8 @@
     {% set crumbs = [["Home", "/"], ["Headless", "/headless"]] %}
     {% set current %}Email from reusable rows{% endset %}
     {% include "partials/breadcrumb.html" %}
+    {% set docs_url = "https://docs.beefree.io/beefree-sdk/ai-and-mcp/reusable-rows-for-ai" %}{% set docs_name = "Reusable Rows for AI" %}
+    {% include "partials/docs_link.html" %}
 
     <!-- ── Step 1: row library ── -->
     <section class="card form-card br-card" id="rows-section" aria-labelledby="rows-title">

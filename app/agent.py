@@ -323,7 +323,7 @@ language, what this step does, for example:
 
 BRAND_RULES_INSTRUCTIONS = """
 
-BRAND RULES: this session has brand rules. They are listed under "Session
+BRAND RULES: this session has Brand Rules. They are listed under "Session
 constraints" at the end of the beefree_execute description, and the server
 enforces them on every call:
 - Pass `preset` on every call the constraints name (email defaults, sections,
@@ -593,7 +593,7 @@ async def _placed_rows_event(template_id: str, settings: Settings) -> dict | Non
 
 
 def _brand_events(request) -> list[dict]:
-    """Brand rule events (preset applied, value overridden, call refused) in the
+    """Brand Rules events (preset applied, value overridden, call refused) in the
     tool results the agent is about to read."""
     events = []
     for part in request.parts:
@@ -1083,7 +1083,7 @@ async def stream_edit_executor(
     """Run one edit-agent turn and yield SSE events.
 
     The flags say what the session carries (the builder's agent settings), so the
-    agent is told how to use it: ``brand`` (brand rules), ``reusable_rows`` (a
+    agent is told how to use it: ``brand`` (Brand Rules), ``reusable_rows`` (a
     library of saved rows) and ``file_access`` (the File Manager folders allowed).
 
     Emits:
@@ -1193,7 +1193,7 @@ async def stream_single_executor(
     - "preview" events: rendered email HTML in an iframe (same as other executors)
     - "close" event: tells HTMX to stop reconnecting
     """
-    # Brand rules refuse calls that skip a preset or break a limit; the agent
+    # Brand Rules refuse calls that skip a preset or break a limit; the agent
     # recovers from the error message, so give it more room to retry.
     mcp = create_code_mode_mcp(template_id, settings, max_retries=6 if brand else 3)
     system_prompt = SINGLE_EMAIL_AGENT_SYSTEM_PROMPT + CODE_MODE_INSTRUCTIONS

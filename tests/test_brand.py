@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app import main
 from app.beefree import BrandRulesRejected
-from app.brand import PRESETS, events_from_error, events_from_result, shape_errors
+from app.brand import BLOCK_TYPES, PRESETS, events_from_error, events_from_result, shape_errors
 from app.config import Settings
 from app.payload import unpack
 
@@ -89,6 +89,18 @@ class BrandRouteTests(unittest.TestCase):
         data = html[html.index("var PRESETS = "):]
         data = data[:data.index("\n")]
         self.assertLess(data.index('"standard"'), data.index('"highlight"'))
+
+    def test_guided_setup_styles_every_block_type(self):
+        html = self.client.get("/brand").text
+        self.assertIn('data-step="2"><span>3</span> Blocks</button>', html)
+        self.assertIn('id="w-blocks"', html)
+        specs = html.split("var BLOCK_SPECS = [", 1)[1].split("function renderBlocks()", 1)[0]
+        for block in BLOCK_TYPES:
+            self.assertIn(f"type: '{block}'", specs, block)
+        # Several styles per element: buttons start with a primary and an outlined secondary
+        self.assertIn("{ name: 'primary'", specs)
+        self.assertIn("{ name: 'secondary'", specs)
+        self.assertIn("'+ Add another '", html)
 
     def test_rejected_rules_return_beefree_details(self):
         with patch.object(main, "validate_brand_rules",

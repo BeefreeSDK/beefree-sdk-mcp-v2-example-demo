@@ -216,7 +216,7 @@
                 <span class="edit-status-badge is-offline" id="em-status-badge">Not ready</span>
 
                 <button type="button" class="demo-icon-btn as-open-btn" id="as-open" onclick="beeAgentSettings.open()"
-                        title="Agent settings: brand rules, reusable rows, File Manager" aria-label="Agent settings" aria-haspopup="dialog">
+                        title="Agent settings: Brand Rules, reusable rows, File Manager" aria-label="Agent settings" aria-haspopup="dialog">
                   <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                     <path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h8M14 12h0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                     <circle cx="11" cy="4" r="1.8" stroke="currentColor" stroke-width="1.5"/>
@@ -393,7 +393,7 @@
     function $(id) { return document.getElementById(id); }
 
     // ── Agent settings ─────────────────────────────────────────────────────
-    // Brand rules, reusable rows and File Manager access are attached when a
+    // Brand Rules, reusable rows and File Manager access are attached when a
     // session starts, so every startMcpSession() call passes the ones chosen
     // in the settings dialog (static/agent-settings.js).
     var agentSettings = window.beeAgentSettings;
@@ -407,7 +407,7 @@
       var detail = (err && err.detail) || {};
       if (!agentSettings.options()) return null;
       if (detail.status === 403) {
-        return 'Your Beefree plan doesn’t include one of the agent settings. Brand rules need a Superpowers or Enterprise plan, reusable rows a Core plan or above. Turn it off in the settings and try again.';
+        return 'Your Beefree plan doesn’t include one of the agent settings. Brand Rules need a Superpowers or Enterprise plan, reusable rows a Core plan or above. Turn it off in the settings and try again.';
       }
       if (detail.status === 400 || detail.status === 413) {
         var list = Array.isArray(detail.details) ? detail.details.join('; ') : '';
@@ -703,7 +703,7 @@
         enableChat('em');
         appendAgentNote('em', 'Describe the email you want, or ask for a change to the one in the editor.');
         appendAgentNote('em', settingsNote(agentSettings.labels()) ||
-          'Tip: open the settings above to give me your brand rules, your saved rows and your File Manager.');
+          'Tip: open the settings above to give me your Brand Rules, your saved rows and your File Manager.');
         appendSuggestions('em', STARTER_IDEAS);
       } catch (e) {
         btn.disabled = false;
@@ -903,7 +903,7 @@
     agentSettings.onChange(function (items) {
       if (!ready.em) return;
       appendAgentNote('em', settingsNote(items) ||
-        'Settings cleared. From your next message I’ll work without brand rules, saved rows or your File Manager.');
+        'Settings cleared. From your next message I’ll work without Brand Rules, saved rows or your File Manager.');
     });
 
     // Measure the sticky header so the workspace fills exactly the space below it.

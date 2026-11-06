@@ -69,6 +69,8 @@
     {% set crumbs = [["Home", "/"], ["Headless", "/headless"]] %}
     {% set current %}Email with your File Manager{% endset %}
     {% include "partials/breadcrumb.html" %}
+    {% set docs_url = "https://docs.beefree.io/beefree-sdk/ai-and-mcp/file-manager-for-ai" %}{% set docs_name = "File Manager for AI" %}
+    {% include "partials/docs_link.html" %}
 
     <!-- ── Step 1: File Manager access ── -->
     <section class="card form-card br-card" id="access-section" aria-labelledby="access-title">

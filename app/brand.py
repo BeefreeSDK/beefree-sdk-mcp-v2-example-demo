@@ -33,8 +33,8 @@ def _button(bg, fg, radius, font, *, outline=None, description):
 
 
 def _rules(*, page_bg, content_bg, tint, heading, text, muted, primary, on_primary,
-           link, heading_font, body_font, radius, heading_spacing="0px",
-           no_add, max_rows, max_columns, max_buttons):
+           link, heading_font, body_font, radius, heading_spacing="0px"):
+    """A styling-only rule set: approved styles, no permissions or limits."""
     return {
         "presets": {
             "settings": {
@@ -97,12 +97,6 @@ def _rules(*, page_bg, content_bg, tint, heading, text, muted, primary, on_prima
                 },
             },
         },
-        "permissions": {"blocks": {"noAdd": no_add}},
-        "limits": {
-            "rows": {"max": max_rows},
-            "columns": {"maxPerRow": max_columns},
-            "blocks": {"maxPerType": {"button": max_buttons}},
-        },
     }
 
 
@@ -118,8 +112,7 @@ PRESETS = [
             primary="#0B2545", on_primary="#FFFFFF", link="#13A89E",
             heading_font="Georgia, 'Times New Roman', serif",
             body_font="Arial, 'Helvetica Neue', Helvetica, sans-serif",
-            radius="2px", no_add=["menu", "social"],
-            max_rows=8, max_columns=2, max_buttons=2,
+            radius="2px",
         ),
     },
     {
@@ -133,8 +126,7 @@ PRESETS = [
             primary="#5B2A4E", on_primary="#FFFFFF", link="#A0801A",
             heading_font="Georgia, 'Times New Roman', serif",
             body_font="'Trebuchet MS', 'Lucida Grande', Tahoma, sans-serif",
-            radius="30px", no_add=["table", "menu"],
-            max_rows=10, max_columns=3, max_buttons=3,
+            radius="30px",
         ),
     },
     {
@@ -148,8 +140,7 @@ PRESETS = [
             primary="#8B5CF6", on_primary="#FFFFFF", link="#22D3EE",
             heading_font="'Helvetica Neue', Helvetica, Arial, sans-serif",
             body_font="'Helvetica Neue', Helvetica, Arial, sans-serif",
-            radius="0px", heading_spacing="1px", no_add=["table"],
-            max_rows=9, max_columns=3, max_buttons=2,
+            radius="0px", heading_spacing="1px",
         ),
     },
 ]
@@ -159,11 +150,11 @@ PRESETS_BY_ID = {p["id"]: p for p in PRESETS}
 def shape_errors(rules) -> list[str]:
     """Cheap checks before asking Beefree to validate the object."""
     if not isinstance(rules, dict):
-        return ["Brand rules must be a JSON object, like {\"presets\": {...}}."]
+        return ["Brand Rules must be a JSON object, like {\"presets\": {...}}."]
     if not rules:
-        return ["The brand rules object is empty."]
+        return ["The Brand Rules object is empty."]
     if len(json.dumps(rules)) > MAX_RULES_BYTES:
-        return [f"Brand rules are limited to {MAX_RULES_BYTES // 1000} KB in this demo."]
+        return [f"Brand Rules are limited to {MAX_RULES_BYTES // 1000} KB in this demo."]
     known = {"presets", "permissions", "limits"}
     if not known & rules.keys():
         return ["Add at least one of presets, permissions or limits."]
@@ -177,7 +168,7 @@ _TARGET_NAMES = {
     "Section": "section", "SectionStyle": "section", "ColumnStyle": "column",
     "Title": "title", "Paragraph": "paragraph", "Button": "button", "Image": "image",
     "List": "list", "Social": "social", "Icon": "icon", "Spacer": "spacer",
-    "Divider": "divider", "Table": "table", "Menu": "menu", "Video": "video",
+    "Divider": "divider", "Table": "table", "Menu": "menu",
 }
 _SCRIPT_PREFIX = re.compile(r"^(?:script error:\s*)?(?:Error:\s*)?(?:\w+:\s+)?")
 _PRESETS_LIST = re.compile(r"\s*Available presets: ([^.]+)\.?")
@@ -225,7 +216,7 @@ def events_from_result(content) -> list[dict]:
 
 
 def events_from_error(message) -> list[dict]:
-    """A brand event for a script the server refused, if a brand rule refused it."""
+    """A brand event for a script the server refused, if the Brand Rules refused it."""
     data = _as_data(message)
     text = data.get("error", "") if isinstance(data, dict) else str(data)
     text = _SCRIPT_PREFIX.sub("", str(text).strip())

@@ -8,8 +8,8 @@ input itself, compressed: a 4 KB campaign plan becomes about 2 KB of URL-safe
 text, and any copy of the app can read it.
 
 Input tokens are not secret or signed. They only carry what the visitor sent
-(a brief, a chat message, brand rules) or what the page already shows (the plan
-and its prompts); Beefree still validates brand rules when the session starts.
+(a brief, a chat message, Brand Rules) or what the page already shows (the plan
+and its prompts); Beefree still validates Brand Rules when the session starts.
 Chat session tokens, which name the template the agent may edit, are signed.
 """
 
